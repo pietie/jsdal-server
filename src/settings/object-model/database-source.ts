@@ -211,7 +211,10 @@ export class DatabaseSource {
             if (!dbConnectionGuid) {
                 // add new
                 let connection = new Connection();
+                
                 connection.update(logicalName, dataSource, catalog, username, password);
+                connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
+
                 this.ExecutionConnections.push(connection);
             }
             else { // update

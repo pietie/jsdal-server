@@ -204,6 +204,7 @@ var DatabaseSource = (function () {
                 // add new
                 var connection = new connection_1.Connection();
                 connection.update(logicalName, dataSource, catalog, username, password);
+                connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
                 this.ExecutionConnections.push(connection);
             }
             else {

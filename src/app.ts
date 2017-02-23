@@ -58,31 +58,3 @@ function LoadPlugin(path: string) {
     console.log(e);
   }
 }
-
-
-/*
-
-var crypto = require('crypto'),
-    algorithm = 'aes-256-ctr',
-    password = `Akey○{Ω°UsEDtoenc!51ryptcoN3N$trings548§`;
-
-function encrypt(text){
-  var cipher = crypto.createCipher(algorithm,password)
-  var crypted = cipher.update(text,'utf8','hex')
-  crypted += cipher.final('hex');
-  return crypted;
-}
- 
-function decrypt(text){
-  var decipher = crypto.createDecipher(algorithm,password)
-  var dec = decipher.update(text,'hex','utf8')
-  dec += decipher.final('utf8');
-  return dec;
-}
- 
-var hw = encrypt("Data source=12347;user id= 3242342; password=324234324")
-// outputs hello world
-
-console.log(decrypt(hw), hw);
-
-*/

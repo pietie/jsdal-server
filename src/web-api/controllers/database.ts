@@ -4,6 +4,9 @@ import { route } from './../decorators'
 
 export class DatabaseController {
 
+
+
+    // get list of DB Sources for a specific Project
     @route("/api/database")
     public static Get(req): ApiResponse {
         let projectName: string = req.query.project;
@@ -27,6 +30,34 @@ export class DatabaseController {
             }
         }).sort((a, b) => a.Name.localeCompare(b.Name))
         );
+    }
+
+    @route("/api/dbs/:project/:dbSource")
+    public static GetSingle(req): ApiResponse {
+        let projectName: string = req.params.project;
+        let dbSourceName: string = req.params.dbSource;
+
+        let proj = SettingsInstance.Instance.getProject(projectName);
+
+        if (!proj) return ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+
+        var dbSource = proj.getDatabaseSource(dbSourceName);
+
+        if (dbSource == null) {
+            return ApiResponse.ExclamationModal(`The database source entry '${dbSourceName}' does not exist.`);
+        }
+
+        return ApiResponse.Payload({
+            Name: dbSource.Name,
+            Guid: dbSource.CacheKey,
+            InitialCatalog: dbSource.initialCatalog,
+            DataSource: dbSource.dataSource,
+            IsOrmInstalled: dbSource.IsOrmInstalled
+            // JsNamespace: dbSource.JsNamespace,
+            // DefaultRuleMode: dbSource.DefaultRuleMode,
+            // UserID: dbSource.userID,
+            // IntegratedSecurity: dbSource.integratedSecurity
+        });
 
 
     }
@@ -86,7 +117,7 @@ export class DatabaseController {
     }
 
 
-    @route("/api/database/dbconnections")
+    @route("/api/dbconnections")
     public static GetDatabaseConnections(req): ApiResponse {
         let projectName: string = req.query.projectName;
         let dbSourceName: string = req.query.dbSourceName;
@@ -115,14 +146,14 @@ export class DatabaseController {
         }).sort((a, b) => a.Name.localeCompare(b.Name)))
     }
 
-    @route("/api/database/dbconnection", { post: true, put: true })
+    @route("/api/dbconnection", { post: true, put: true })
     public static AddUpdateDatabaseConnection(req): ApiResponse {
         // TODO: Validate parameters - mandatory and also things like logicalName(no special chars etc?)
 
         let dbSourceName: string = req.query.dbSourceName;
         let logicalName: string = req.query.logicalName;
         let dbConnectionGuid: string = req.query.dbConnectionGuid;
-        let projectName: string = req.query.project;
+        let projectName: string = req.query.projectName;
         let dataSource: string = req.query.dataSource;
         let catalog: string = req.query.catalog;
         let username: string = req.query.username;
@@ -149,14 +180,12 @@ export class DatabaseController {
     }
 
 
-
-
     // 04/07/2016, PL: Created.
-    @route("/api/database/dbconnection/:name", { delete: true })
+    @route("/api/dbconnection", { delete: true })
     public static DeleteDatabaseConnection(req): ApiResponse {
         let dbConnectionGuid: string = req.query.dbConnectionGuid;
         let projectName: string = req.query.projectName;
-        let dbSourceName: string = req.params.name;
+        let dbSourceName: string = req.query.dbSourceName;
 
         let proj = SettingsInstance.Instance.getProject(projectName);
 
@@ -175,6 +204,9 @@ export class DatabaseController {
             return ApiResponse.ExclamationModal(ret.userError);
         }
     }
+
+
+
 
     @route("/api/database/update", { put: true })
     public static UpdateDatabaseSource(req): ApiResponse {

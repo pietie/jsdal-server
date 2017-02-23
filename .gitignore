@@ -2,6 +2,8 @@
 
 *.jsDAL
 
+*.key
+
 test/*
 web/*
 refs/*

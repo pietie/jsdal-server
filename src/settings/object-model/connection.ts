@@ -1,4 +1,57 @@
 import * as SqlConnectionStringBuilder from 'node-connection-string-builder';
+import * as crypto from 'crypto';
+import * as keypair from 'keypair';
+import * as fs from 'fs';
+
+const KEY_FILEPATH: string = "./conn.key";
+
+let algorithm = 'aes-256-ctr';
+let connectionPrivateKey:string = null;
+
+function encrypt(text) {
+    var cipher = crypto.createCipher(algorithm, connectionPrivateKey)
+    var crypted = cipher.update(text, 'utf8', 'hex')
+    crypted += cipher.final('hex');
+    return crypted;
+}
+
+function decrypt(text) {
+    var decipher = crypto.createDecipher(algorithm, connectionPrivateKey)
+    var dec = decipher.update(text, 'hex', 'utf8')
+    dec += decipher.final('utf8');
+    return dec;
+}
+
+// setup the connection private key used for encryption/decryption if it does not already exist
+if (!fs.existsSync(KEY_FILEPATH)) {
+    try {// TODO: Replace console.log and console.error with Session Log
+        console.log("Creating private key for Connections...");
+
+        let newKey = keypair().private;
+
+        fs.writeFileSync(KEY_FILEPATH, newKey, { encoding: "utf8" });
+    }
+    catch (e) {
+        console.error(e);
+    }
+}
+else
+{
+    try 
+    {
+        connectionPrivateKey = fs.readFileSync(KEY_FILEPATH, { encoding: "utf8" });
+    }
+    catch(e)
+    {
+        // TODO: Handle and log error
+    }
+}
+
+
+//var hw = encrypt("Data source=12347;user id= 3242342; password=324234324")
+// outputs hello world
+
+//console.log(decrypt(hw), hw);
 
 export class Connection {
     public Name: string;
@@ -37,7 +90,7 @@ export class Connection {
     public get integratedSecurity(): boolean {
         if (this._connectionStringBuilder == null) this._connectionStringBuilder = new SqlConnectionStringBuilder(this.ConnectionStringDecrypted);
         return this._connectionStringBuilder.integratedSecurity;
-    }    
+    }
 
     public static createFromJson(rawJson: any): Connection {
 
@@ -60,7 +113,7 @@ export class Connection {
                 this._descryptedConnectionString = this.ConnectionString;
             }
             else {
-                this._descryptedConnectionString = "TODO: decrypt using key from config or somewhere...  ";
+                this._descryptedConnectionString = decrypt(this.ConnectionString);
             }
         }
 
@@ -83,10 +136,7 @@ export class Connection {
         this._descryptedConnectionString = null;
         this._connectionStringBuilder = null;
 
-        // TODO: !!!
-        //!var encryptedConnectionString = Encryption.AESThenHMAC.SimpleEncryptWithPassword(connectionString, ConnectionStringEncPassword);
-        //!this.ConnectionString = encryptedConnectionString;
-
+        this.ConnectionString = encrypt(connectionString);
     }
 
 }

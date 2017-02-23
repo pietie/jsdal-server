@@ -49,6 +49,7 @@ var decorators_1 = require("./../decorators");
 var DatabaseController = (function () {
     function DatabaseController() {
     }
+    // get list of DB Sources for a specific Project
     DatabaseController.Get = function (req) {
         var projectName = req.query.project;
         var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
@@ -69,6 +70,24 @@ var DatabaseController = (function () {
                 IntegratedSecurity: dbs.integratedSecurity
             };
         }).sort(function (a, b) { return a.Name.localeCompare(b.Name); }));
+    };
+    DatabaseController.GetSingle = function (req) {
+        var projectName = req.params.project;
+        var dbSourceName = req.params.dbSource;
+        var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+        if (!proj)
+            return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
+        var dbSource = proj.getDatabaseSource(dbSourceName);
+        if (dbSource == null) {
+            return api_response_1.ApiResponse.ExclamationModal("The database source entry '" + dbSourceName + "' does not exist.");
+        }
+        return api_response_1.ApiResponse.Payload({
+            Name: dbSource.Name,
+            Guid: dbSource.CacheKey,
+            InitialCatalog: dbSource.initialCatalog,
+            DataSource: dbSource.dataSource,
+            IsOrmInstalled: dbSource.IsOrmInstalled
+        });
     };
     DatabaseController.Delete = function (req) {
         var projectName = req.query.projectName;
@@ -135,7 +154,7 @@ var DatabaseController = (function () {
         var dbSourceName = req.query.dbSourceName;
         var logicalName = req.query.logicalName;
         var dbConnectionGuid = req.query.dbConnectionGuid;
-        var projectName = req.query.project;
+        var projectName = req.query.projectName;
         var dataSource = req.query.dataSource;
         var catalog = req.query.catalog;
         var username = req.query.username;
@@ -159,7 +178,7 @@ var DatabaseController = (function () {
     DatabaseController.DeleteDatabaseConnection = function (req) {
         var dbConnectionGuid = req.query.dbConnectionGuid;
         var projectName = req.query.projectName;
-        var dbSourceName = req.params.name;
+        var dbSourceName = req.query.dbSourceName;
         var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
         if (!proj)
             return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
@@ -527,6 +546,12 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], DatabaseController, "Get", null);
 __decorate([
+    decorators_1.route("/api/dbs/:project/:dbSource"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], DatabaseController, "GetSingle", null);
+__decorate([
     decorators_1.route("/api/database/:name", { delete: true }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -539,19 +564,19 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], DatabaseController, "Post", null);
 __decorate([
-    decorators_1.route("/api/database/dbconnections"),
+    decorators_1.route("/api/dbconnections"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], DatabaseController, "GetDatabaseConnections", null);
 __decorate([
-    decorators_1.route("/api/database/dbconnection", { post: true, put: true }),
+    decorators_1.route("/api/dbconnection", { post: true, put: true }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], DatabaseController, "AddUpdateDatabaseConnection", null);
 __decorate([
-    decorators_1.route("/api/database/dbconnection/:name", { delete: true }),
+    decorators_1.route("/api/dbconnection", { delete: true }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)
