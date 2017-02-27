@@ -79,7 +79,6 @@ var JsFileController = (function () {
             var existing = cs.JsFiles.find(function (js) { return js.Filename.toLowerCase() == oldName_1.toLowerCase(); });
             if (existing == null) {
                 return api_response_1.ApiResponse.ExclamationModal("The output file '" + oldName_1 + "' does not exist in '" + projectName + "/" + dbSource + "'");
-                ;
             }
             var existingNewName = cs.JsFiles.find(function (js) { return js.Filename.toLowerCase() == newName_1.toLowerCase(); });
             if (existingNewName != null) {
@@ -110,7 +109,6 @@ var JsFileController = (function () {
             var existing = cs.JsFiles.find(function (js) { return js.Guid.toLowerCase() == jsFilenameGuid_1.toLowerCase(); });
             if (existing == null) {
                 return api_response_1.ApiResponse.ExclamationModal("The output file '" + jsFilenameGuid_1 + "' does not exist in '" + projectName + "/" + dbSource + "'");
-                ;
             }
             cs.JsFiles.splice(cs.JsFiles.indexOf(existing));
             settings_instance_1.SettingsInstance.saveSettingsToFile();

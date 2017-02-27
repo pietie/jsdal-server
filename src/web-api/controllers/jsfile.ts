@@ -97,7 +97,7 @@ export class JsFileController {
             let existing = cs.JsFiles.find(js => js.Filename.toLowerCase() == oldName.toLowerCase());
 
             if (existing == null) {
-                return ApiResponse.ExclamationModal(`The output file '${oldName}' does not exist in '${projectName}/${dbSource}'`));
+                return ApiResponse.ExclamationModal(`The output file '${oldName}' does not exist in '${projectName}/${dbSource}'`);
             }
 
             let existingNewName = cs.JsFiles.find(js => js.Filename.toLowerCase() == newName.toLowerCase());
@@ -140,7 +140,7 @@ export class JsFileController {
             let existing = cs.JsFiles.find(js => js.Guid.toLowerCase() == jsFilenameGuid.toLowerCase());
 
             if (existing == null) {
-                return ApiResponse.ExclamationModal(`The output file '${jsFilenameGuid}' does not exist in '${projectName}/${dbSource}'`));
+                return ApiResponse.ExclamationModal(`The output file '${jsFilenameGuid}' does not exist in '${projectName}/${dbSource}'`);
             }
 
             cs.JsFiles.splice(cs.JsFiles.indexOf(existing));

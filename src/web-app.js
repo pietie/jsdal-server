@@ -56,6 +56,28 @@ apiRoutes.post('/authenticate', function (req, res) {
         }
     }
 });
+app.use('/token/validate', function (req, res, next) {
+    // look for token
+    var token = req.body.token || req.query.token || req.headers['x-access-token'];
+    if (token) {
+        // decode token
+        jwt.verify(token, SERVER_PRIVATE_KEY, function (err, decoded) {
+            if (err) {
+                return res.status(200).send({ valid: false, message: err.toString() });
+            }
+            else {
+                return res.status(200).send({ valid: true });
+            }
+        });
+    }
+    else {
+        // no token present
+        return res.status(200).send({
+            valid: false,
+            message: 'No token provided.'
+        });
+    }
+});
 // validate JWT 
 apiRoutes.use(function (req, res, next) {
     // look for token
@@ -64,7 +86,7 @@ apiRoutes.use(function (req, res, next) {
         // decode token
         jwt.verify(token, SERVER_PRIVATE_KEY, function (err, decoded) {
             if (err) {
-                return res.status(403).send({ success: false, message: err.toString() });
+                return res.status(401).send({ jwtfailed: true, message: err.toString() });
             }
             else {
                 // allow next request in the chain
@@ -80,7 +102,7 @@ apiRoutes.use(function (req, res, next) {
         });
     }
 });
-console.log("ROUTES TO CONFIGURE!!!", global["WebRoutes"]);
+//console.log("ROUTES TO CONFIGURE!!!", global["WebRoutes"]);
 function processRequest(route, req, res) {
     var ret = route.target.call(this, req, res);
     // look for promise-like result

@@ -15,15 +15,13 @@ export class SettingsInstance {
     }
 
     public static saveSettingsToFile() {
-        try {// TODO: Add locking mechanism here to handle concurrent writes
+        try {
             var json = JSON.stringify(this._instance);
 
-            //console.log("TO SAVE\tTO SAVE\tTO SAVE\tTO SAVE\r\n", json);
-
-            //!File.WriteAllText(SettingsFilePath, json);
-
+            fs.writeFileSync(SettingsInstance.settingsFilePath, json, { encoding: "utf8" });
         }
         catch (ex) {
+            console.error(ex);
             //!SessionLog.Exception(ex);
         }
     }
@@ -39,8 +37,6 @@ export class SettingsInstance {
                         let settingsInst = JsDalServerConfig.createFromJson(JSON.parse(data));
 
 
-                        //  console.dir(settingsInst.ProjectList[0].DatabaseSources[0].ExecutionConnections[0].ConnectionStringDecrypted);
-
                         settingsInst.ProjectList.forEach(p => p.DatabaseSources.forEach(dbs => {
                             dbs.loadCache();
                         }));
@@ -49,33 +45,12 @@ export class SettingsInstance {
 
                         resolve(true);
 
-                        //console.log(settingsInst.ProjectList.map(p=>p.DatabaseSources));
-
-
-                        // TODO: Deserialize into proper Settings related objects!
-                        //console.log("data", Object.keys(json.ProjectList));
-
-                        /*foreach(var cs in  _instance.ProjectList.SelectMany(p => p.Value.DatabaseSources))
-                                    {
-                                        cs.LoadCache();
-                                    }*/
                     }
                     else {
                         // TODO: handle file reading error
                         reject(err);
                     }
                 });
-
-                /*
-                            var json = File.ReadAllText(SettingsFilePath);
-                
-                            _instance = JsonConvert.DeserializeObject<Settings>(json, new JsonConverter[] { new RuleJsonConverter() });
-                
-                            foreach(var cs in  _instance.ProjectList.SelectMany(p => p.Value.DatabaseSources))
-                            {
-                                cs.LoadCache();
-                            }
-                */
             }
             catch (e) {
                 console.error(e);

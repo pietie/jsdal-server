@@ -9,14 +9,7 @@ import { OrmDAL } from '../database/orm-dal'
 import * as async from 'async'
 import * as sql from 'mssql';
 
-//var parseString = require('xml2js').parseString;
-
 import * as xml2js from 'xml2js'
-
-//var parser = require('xml2json');
-
-
-
 
 export class WorkSpawner {
     private static _workerList: Worker[];
@@ -31,9 +24,9 @@ export class WorkSpawner {
 
             async.each(dbSources, (source) => {
 
-                // TODO: Record each Worker
                 let worker = new Worker();
 
+                console.log(`Spawning new worker for ${source.Name}`);
                 WorkSpawner._workerList.push(worker);
 
                 worker.run(source);
@@ -45,11 +38,6 @@ export class WorkSpawner {
             SessionLog.exception(e);
             console.error(e);
         }
-
-    }
-
-    private processDbSource(dbSource: DatabaseSource) {
-        //!dbSource.MetadataConnection.ConnectionStringDecrypted
 
     }
 }
@@ -76,7 +64,7 @@ class Worker {
             password: dbSource.password,
             server: dbSource.dataSource,
             database: dbSource.initialCatalog,
-            stream: false, // You can enable streaming globally
+            stream: false,
             options: {
                 encrypt: true
             }
@@ -84,7 +72,7 @@ class Worker {
 
 
         while (this.isRunning) {
-            
+
             if (!dbSource.IsOrmInstalled) {
                 // try again in 2 seconds
                 this.status = `Waiting for ORM to be installed.`;
@@ -94,11 +82,12 @@ class Worker {
 
             let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => {
                 // TODO: Handle connection error
+                SessionLog.error(err.toString());
                 console.log("connection error", err);
             });
 
 
-            //!SessionLog.info(`${dbSource.Name} connected successfully.`);
+            //SessionLog.info(`${dbSource.Name} connected successfully.`);
 
             try {
                 let routineCount = await OrmDAL.SprocGenGetRoutineListCnt(con, this.maxRowDate);
@@ -106,8 +95,8 @@ class Worker {
 
                 if (routineCount > 0) {
 
-                    SessionLog.info(`${dbSource.Name}\t${routineCount} change(s) found`)
-                    this.status = `${routineCount} change(s) found`;
+                    SessionLog.info(`(${process.pid})\t${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
+                    this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
 
                     await new Promise<any>((resolve, reject) => {
 
@@ -199,30 +188,41 @@ class Worker {
                                 dbSource.saveCache();
                             }
 
-
-                            if (!this.maxRowDate || row.rowver > this.maxRowDate) this.maxRowDate = row.rowver;
+console.log(`\t${newCachedRoutine.Routine} checking max date...${row.rowver}`);
+                            if (!this.maxRowDate || row.rowver > this.maxRowDate) {
+                                this.maxRowDate = row.rowver;
+                            }
 
                         }); // "on row"
 
-                        genGetRoutineListStream.on('error', function (err) {
+                        genGetRoutineListStream.on('error', (err) => {
                             // May be emitted multiple times
                             console.error(err);
                             reject(err);
                         });
 
-                        genGetRoutineListStream.on('done', function (affected) {
+                        genGetRoutineListStream.on('done', (affected) => {
                             dbSource.saveCache();
+                            console.log("..\r\n\tDONE DONE DONE DONE DONE DONE DONE DONE\r\n--", arguments);
+                            let r = 0;
+                            dbSource.cache.forEach(c=> { if (c.RowVer > r) r = c.RowVer; } );
+
+                            if (r != this.maxRowDate)
+                            {
+                                console.log(`\r\n\r\n!!!!!!!!!!!!!!!!!!!!\r\nMaxRowDates dont match!!!\r\n\tr\t${r}\r\n\tmax\t${this.maxRowDate}`);
+                            }
+// we should not call 'resolve' here...the original Get Changes list will return before the actually processing on each of those items are complete :/
                             resolve();
                         });
 
 
-                    });
+                    }); // await Promise...
 
-                } // if (routineCount > 0) {
+                } // if (routineCount > 0) 
 
             }
             catch (e) {
-                console.log("or catch here?");
+                console.log("or catch here?", e.toString());
             }
 
             await ThreadUtil.Sleep(SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);

@@ -42,9 +42,7 @@ var routine_parameter_1 = require("./../settings/object-model/cache/routine-para
 var orm_dal_1 = require("../database/orm-dal");
 var async = require("async");
 var sql = require("mssql");
-//var parseString = require('xml2js').parseString;
 var xml2js = require("xml2js");
-//var parser = require('xml2json');
 var WorkSpawner = (function () {
     function WorkSpawner() {
     }
@@ -54,8 +52,8 @@ var WorkSpawner = (function () {
             WorkSpawner._workerList = [];
             dbSources = [dbSources[0]]; //TEMP 
             async.each(dbSources, function (source) {
-                // TODO: Record each Worker
                 var worker = new Worker();
+                console.log("Spawning new worker for " + source.Name);
                 WorkSpawner._workerList.push(worker);
                 worker.run(source);
             }, function (error) {
@@ -66,9 +64,6 @@ var WorkSpawner = (function () {
             log_1.SessionLog.exception(e);
             console.error(e);
         }
-    };
-    WorkSpawner.prototype.processDbSource = function (dbSource) {
-        //!dbSource.MetadataConnection.ConnectionStringDecrypted
     };
     return WorkSpawner;
 }());
@@ -119,6 +114,7 @@ var Worker = (function () {
                                         }
                                         return [4 /*yield*/, new sql.Connection(sqlConfig).connect().catch(function (err) {
                                                 // TODO: Handle connection error
+                                                log_1.SessionLog.error(err.toString());
                                                 console.log("connection error", err);
                                             })];
                                     case 1:
@@ -132,8 +128,8 @@ var Worker = (function () {
                                         curRow_1 = 0;
                                         if (!(routineCount_1 > 0))
                                             return [3 /*break*/, 5];
-                                        log_1.SessionLog.info(dbSource.Name + "\t" + routineCount_1 + " change(s) found");
-                                        this_1.status = routineCount_1 + " change(s) found";
+                                        log_1.SessionLog.info("(" + process.pid + ")\t" + dbSource.Name + "\t" + routineCount_1 + " change(s) found using row date " + this_1.maxRowDate);
+                                        this_1.status = routineCount_1 + " change(s) found using rowdate " + this_1.maxRowDate;
                                         return [4 /*yield*/, new Promise(function (resolve, reject) {
                                                 var genGetRoutineListStream = orm_dal_1.OrmDAL.SprocGenGetRoutineListStream(con, _this.maxRowDate);
                                                 genGetRoutineListStream.on('row', function (row) { return __awaiter(_this, void 0, void 0, function () {
@@ -204,8 +200,10 @@ var Worker = (function () {
                                                                     lastSavedDate = new Date();
                                                                     dbSource.saveCache();
                                                                 }
-                                                                if (!this.maxRowDate || row.rowver > this.maxRowDate)
+                                                                console.log("\t" + newCachedRoutine.Routine + " checking max date..." + row.rowver);
+                                                                if (!this.maxRowDate || row.rowver > this.maxRowDate) {
                                                                     this.maxRowDate = row.rowver;
+                                                                }
                                                                 return [2 /*return*/];
                                                         }
                                                     });
@@ -217,16 +215,24 @@ var Worker = (function () {
                                                 });
                                                 genGetRoutineListStream.on('done', function (affected) {
                                                     dbSource.saveCache();
+                                                    console.log("..\r\n\tDONE DONE DONE DONE DONE DONE DONE DONE\r\n--", arguments);
+                                                    var r = 0;
+                                                    dbSource.cache.forEach(function (c) { if (c.RowVer > r)
+                                                        r = c.RowVer; });
+                                                    if (r != _this.maxRowDate) {
+                                                        console.log("\r\n\r\n!!!!!!!!!!!!!!!!!!!!\r\nMaxRowDates dont match!!!\r\n\tr\t" + r + "\r\n\tmax\t" + _this.maxRowDate);
+                                                    }
+                                                    // we should not call 'resolve' here...the original Get Changes list will return before the actually processing on each of those items are complete :/
                                                     resolve();
                                                 });
                                             })];
                                     case 4:
-                                        _a.sent();
+                                        _a.sent(); // await Promise...
                                         _a.label = 5;
                                     case 5: return [3 /*break*/, 7];
                                     case 6:
                                         e_1 = _a.sent();
-                                        console.log("or catch here?");
+                                        console.log("or catch here?", e_1.toString());
                                         return [3 /*break*/, 7];
                                     case 7: return [4 /*yield*/, thread_util_1.ThreadUtil.Sleep(settings_instance_1.SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds)];
                                     case 8:

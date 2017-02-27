@@ -21,8 +21,10 @@ var SettingsInstance = (function () {
     SettingsInstance.saveSettingsToFile = function () {
         try {
             var json = JSON.stringify(this._instance);
+            fs.writeFileSync(SettingsInstance.settingsFilePath, json, { encoding: "utf8" });
         }
         catch (ex) {
+            console.error(ex);
         }
     };
     SettingsInstance.loadSettingsFromFile = function () {
@@ -33,7 +35,6 @@ var SettingsInstance = (function () {
                 fs.readFile(SettingsInstance.settingsFilePath, { encoding: "utf8" }, function (err, data) {
                     if (!err) {
                         var settingsInst = object_model_1.JsDalServerConfig.createFromJson(JSON.parse(data));
-                        //  console.dir(settingsInst.ProjectList[0].DatabaseSources[0].ExecutionConnections[0].ConnectionStringDecrypted);
                         settingsInst.ProjectList.forEach(function (p) { return p.DatabaseSources.forEach(function (dbs) {
                             dbs.loadCache();
                         }); });
