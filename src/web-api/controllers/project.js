@@ -78,3 +78,4 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], ProjectController, "Delete", null);
 exports.ProjectController = ProjectController;
+//# sourceMappingURL=project.js.map

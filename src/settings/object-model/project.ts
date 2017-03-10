@@ -4,16 +4,21 @@ import * as shortid from 'shortid'
 export class Project {
     public Name: string;
     public Guid: string;
-    public DatabaseSources: DatabaseSource[]; // todo: correct type
+    public DatabaseSources: DatabaseSource[]; 
+
+    public toJSON()
+    {
+        return { Name: this.Name, Guid: this.Guid, DatabaseSources: this.DatabaseSources  } ;
+    }
 
     constructor() {
         this.DatabaseSources = [];
     }
 
-    public static createFromJson(name: string, rawJson: any): Project {
+    public static createFromJson(rawJson: any): Project {
         let project = new Project();
 
-        project.Name = name;
+        project.Name = rawJson.Name;
         project.Guid = rawJson.Guid;
 
         for (let i = 0; i < rawJson.DatabaseSources.length; i++) {

@@ -130,6 +130,7 @@ if (global["WebRoutes"]) {
             app.delete(route.path, function (req, res) { processRequest(route, req, res); });
         }
     };
+    //console.log("\r\n\r\nROUTES ROUTES ROUTES\r\n", global["WebRoutes"]);
     for (var i = 0; i < global["WebRoutes"].length; i++) {
         _loop_1(i);
     }
@@ -137,3 +138,4 @@ if (global["WebRoutes"]) {
 }
 // need this just to force the @route decorator to run on all other classes..not sure how this works...
 var a = new web_api_1.AuthController();
+//# sourceMappingURL=web-app.js.map

@@ -29,6 +29,7 @@ export class SettingsInstance {
     public static loadSettingsFromFile(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             try {
+
                 if (!fs.existsSync(SettingsInstance.settingsFilePath)) return;
 
                 fs.readFile(SettingsInstance.settingsFilePath, { encoding: "utf8" }, (err, data) => {

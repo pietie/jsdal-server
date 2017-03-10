@@ -57,3 +57,4 @@ var SettingsInstance = (function () {
     return SettingsInstance;
 }());
 exports.SettingsInstance = SettingsInstance;
+//# sourceMappingURL=settings-instance.js.map

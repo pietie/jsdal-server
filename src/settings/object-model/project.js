@@ -5,9 +5,12 @@ var Project = (function () {
     function Project() {
         this.DatabaseSources = [];
     }
-    Project.createFromJson = function (name, rawJson) {
+    Project.prototype.toJSON = function () {
+        return { Name: this.Name, Guid: this.Guid, DatabaseSources: this.DatabaseSources };
+    };
+    Project.createFromJson = function (rawJson) {
         var project = new Project();
-        project.Name = name;
+        project.Name = rawJson.Name;
         project.Guid = rawJson.Guid;
         for (var i = 0; i < rawJson.DatabaseSources.length; i++) {
             var dbs = rawJson.DatabaseSources[i];
@@ -41,3 +44,4 @@ var Project = (function () {
     return Project;
 }());
 exports.Project = Project;
+//# sourceMappingURL=project.js.map

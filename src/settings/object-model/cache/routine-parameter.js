@@ -24,3 +24,4 @@ var ResultsetMetadata = (function () {
     return ResultsetMetadata;
 }());
 exports.ResultsetMetadata = ResultsetMetadata;
+//# sourceMappingURL=routine-parameter.js.map

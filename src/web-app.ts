@@ -158,6 +158,9 @@ function processRequest(route, req, res) {
 
 // configure routes picked up from decorators
 if (global["WebRoutes"]) {
+    
+    //console.log("\r\n\r\nROUTES ROUTES ROUTES\r\n", global["WebRoutes"]);
+
     for (let i = 0; i < global["WebRoutes"].length; i++) {
         let route: { get?: boolean, post?: boolean, put?: boolean, delete?: boolean, target: Function, path: string } = global["WebRoutes"][i];
 
@@ -180,3 +183,4 @@ if (global["WebRoutes"]) {
 
 // need this just to force the @route decorator to run on all other classes..not sure how this works...
 let a = new AuthController();
+

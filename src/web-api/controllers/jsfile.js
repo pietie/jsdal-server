@@ -147,3 +147,4 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], JsFileController, "DeleteJsFile", null);
 exports.JsFileController = JsFileController;
+//# sourceMappingURL=jsfile.js.map
