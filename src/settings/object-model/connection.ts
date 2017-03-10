@@ -47,12 +47,6 @@ else
     }
 }
 
-
-//var hw = encrypt("Data source=12347;user id= 3242342; password=324234324")
-// outputs hello world
-
-//console.log(decrypt(hw), hw);
-
 export class Connection {
     public Name: string;
     public Guid: string;
@@ -61,6 +55,16 @@ export class Connection {
     public Unsafe: boolean = false; // if set true it means the ConnectionString is not encrypted
 
     private _connectionStringBuilder: SqlConnectionStringBuilder;
+
+    public toJSON()
+    {
+        return {
+            Name: this.Name,
+            Guid: this.Guid,
+            ConnectionString: this.ConnectionString,
+            Unsafe: this.Unsafe        
+        };
+    }
 
     public get userID(): string {
 

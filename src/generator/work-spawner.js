@@ -71,7 +71,7 @@ exports.WorkSpawner = WorkSpawner;
 var Worker = (function () {
     function Worker() {
         this.isRunning = false;
-        this.maxRowDate = 4743824;
+        this.maxRowDate = 994743824;
     }
     Object.defineProperty(Worker.prototype, "status", {
         get: function () { return this._status; },
@@ -85,7 +85,7 @@ var Worker = (function () {
     Worker.prototype.run = function (dbSource) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var lastSavedDate, sqlConfig, _loop_1, this_1, state_1;
+            var lastSavedDate, sqlConfig, x, _loop_1, this_1, state_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -101,6 +101,7 @@ var Worker = (function () {
                                 encrypt: true
                             }
                         };
+                        x = 0;
                         _loop_1 = function () {
                             var con, routineCount_1, curRow_1, e_1;
                             return __generator(this, function (_a) {
@@ -128,104 +129,124 @@ var Worker = (function () {
                                         curRow_1 = 0;
                                         if (!(routineCount_1 > 0))
                                             return [3 /*break*/, 5];
-                                        log_1.SessionLog.info("(" + process.pid + ")\t" + dbSource.Name + "\t" + routineCount_1 + " change(s) found using row date " + this_1.maxRowDate);
+                                        x++;
+                                        log_1.SessionLog.info(x + ". " + dbSource.Name + "\t" + routineCount_1 + " change(s) found using row date " + this_1.maxRowDate);
                                         this_1.status = routineCount_1 + " change(s) found using rowdate " + this_1.maxRowDate;
-                                        return [4 /*yield*/, new Promise(function (resolve, reject) {
-                                                var genGetRoutineListStream = orm_dal_1.OrmDAL.SprocGenGetRoutineListStream(con, _this.maxRowDate);
-                                                genGetRoutineListStream.on('row', function (row) { return __awaiter(_this, void 0, void 0, function () {
-                                                    var newCachedRoutine, perc, resultSets, e_2;
-                                                    return __generator(this, function (_a) {
-                                                        switch (_a.label) {
-                                                            case 0:
-                                                                newCachedRoutine = new cached_routine_1.CachedRoutine();
-                                                                newCachedRoutine.Routine = row.RoutineName;
-                                                                newCachedRoutine.Schema = row.SchemaName;
-                                                                newCachedRoutine.Type = row.RoutineType;
-                                                                newCachedRoutine.IsDeleted = row.IsDeleted;
-                                                                newCachedRoutine.Parameters = [];
-                                                                newCachedRoutine.RowVer = row.rowver;
-                                                                newCachedRoutine.ResultSetRowver = row.ResultSetRowver;
-                                                                newCachedRoutine.RoutineParsingRowver = row.RoutineParsingRowver;
-                                                                if (row.JsonMetadata && row.JsonMetadata != "") {
-                                                                    try {
-                                                                        newCachedRoutine.jsDALMetadata = JSON.parse(row.JsonMetadata);
-                                                                    }
-                                                                    catch (ex) {
-                                                                        newCachedRoutine.jsDALMetadata = { error: ex };
-                                                                    }
-                                                                }
-                                                                // convert ParameterXml to a javscript object
-                                                                xml2js.parseString(row.ParametersXml, function (err, result) {
-                                                                    if (!err && result && result.Routine && result.Routine.Parameter) {
-                                                                        for (var e in result.Routine.Parameter) {
-                                                                            var newParm = routine_parameter_1.RoutineParameter.createFromJson(result.Routine.Parameter[e]);
-                                                                            newCachedRoutine.Parameters.push(newParm);
-                                                                        }
+                                        return [4 /*yield*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
+                                                var _this = this;
+                                                var genGetRoutineListStream, stillProcessingCnt, isDone;
+                                                return __generator(this, function (_a) {
+                                                    switch (_a.label) {
+                                                        case 0:
+                                                            genGetRoutineListStream = orm_dal_1.OrmDAL.SprocGenGetRoutineListStream(con, this.maxRowDate);
+                                                            stillProcessingCnt = 0;
+                                                            isDone = false;
+                                                            // for every row
+                                                            genGetRoutineListStream.on('row', function (row) { return __awaiter(_this, void 0, void 0, function () {
+                                                                var newCachedRoutine, perc, resultSets, e_2;
+                                                                return __generator(this, function (_a) {
+                                                                    switch (_a.label) {
+                                                                        case 0:
+                                                                            stillProcessingCnt++;
+                                                                            newCachedRoutine = new cached_routine_1.CachedRoutine();
+                                                                            newCachedRoutine.Routine = row.RoutineName;
+                                                                            newCachedRoutine.Schema = row.SchemaName;
+                                                                            newCachedRoutine.Type = row.RoutineType;
+                                                                            newCachedRoutine.IsDeleted = row.IsDeleted;
+                                                                            newCachedRoutine.Parameters = [];
+                                                                            newCachedRoutine.RowVer = row.rowver;
+                                                                            newCachedRoutine.ResultSetRowver = row.ResultSetRowver;
+                                                                            newCachedRoutine.RoutineParsingRowver = row.RoutineParsingRowver;
+                                                                            if (row.JsonMetadata && row.JsonMetadata != "") {
+                                                                                try {
+                                                                                    newCachedRoutine.jsDALMetadata = JSON.parse(row.JsonMetadata);
+                                                                                }
+                                                                                catch (ex) {
+                                                                                    newCachedRoutine.jsDALMetadata = { error: ex };
+                                                                                }
+                                                                            }
+                                                                            // convert ParameterXml to a javscript object
+                                                                            xml2js.parseString(row.ParametersXml, function (err, result) {
+                                                                                if (!err && result && result.Routine && result.Routine.Parameter) {
+                                                                                    for (var e in result.Routine.Parameter) {
+                                                                                        var newParm = routine_parameter_1.RoutineParameter.createFromJson(result.Routine.Parameter[e]);
+                                                                                        newCachedRoutine.Parameters.push(newParm);
+                                                                                    }
+                                                                                }
+                                                                            });
+                                                                            curRow_1++;
+                                                                            perc = (curRow_1 / routineCount_1) * 100.0;
+                                                                            this.status = dbSource.Name + " - Overall progress: (" + perc.toFixed(2) + "%. Currently processing [" + row.SchemaName + "].[" + row.RoutineName + "]"; //, schema, name, perc);
+                                                                            console.log(this.status);
+                                                                            if (!!newCachedRoutine.IsDeleted)
+                                                                                return [3 /*break*/, 4];
+                                                                            if (!(newCachedRoutine.ResultSetRowver && newCachedRoutine.ResultSetRowver >= newCachedRoutine.RowVer))
+                                                                                return [3 /*break*/, 1];
+                                                                            console.log("Result set metadata up to date");
+                                                                            return [3 /*break*/, 4];
+                                                                        case 1:
+                                                                            _a.trys.push([1, 3, , 4]);
+                                                                            return [4 /*yield*/, orm_dal_1.OrmDAL.RoutineGetFmtOnlyResults(con, newCachedRoutine.Schema, newCachedRoutine.Routine, newCachedRoutine.Parameters)];
+                                                                        case 2:
+                                                                            resultSets = _a.sent();
+                                                                            if (resultSets) {
+                                                                                newCachedRoutine.ResultSetMetadata = resultSets;
+                                                                            }
+                                                                            else {
+                                                                                console.log("\t(no results) ", newCachedRoutine.Routine);
+                                                                            }
+                                                                            newCachedRoutine.ResultSetRowver = row.rowver;
+                                                                            newCachedRoutine.ResultSetError = null;
+                                                                            return [3 /*break*/, 4];
+                                                                        case 3:
+                                                                            e_2 = _a.sent();
+                                                                            // TODO: Loggity log
+                                                                            newCachedRoutine.ResultSetRowver = row.rowver;
+                                                                            newCachedRoutine.ResultSetError = e_2.toString();
+                                                                            return [3 /*break*/, 4];
+                                                                        case 4:
+                                                                            dbSource.addToCache(row.rowver, newCachedRoutine);
+                                                                            // TODO: Make saving gap configurable?
+                                                                            if (new Date().getTime() - lastSavedDate.getTime() >= 20000 /*ms*/) {
+                                                                                lastSavedDate = new Date();
+                                                                                dbSource.saveCache();
+                                                                            }
+                                                                            if (!this.maxRowDate || row.rowver > this.maxRowDate) {
+                                                                                this.maxRowDate = row.rowver;
+                                                                            }
+                                                                            stillProcessingCnt--;
+                                                                            return [2 /*return*/];
                                                                     }
                                                                 });
-                                                                curRow_1++;
-                                                                perc = (curRow_1 / routineCount_1) * 100.0;
-                                                                this.status = dbSource.Name + " - Overall progress: (" + perc.toFixed(2) + "%. Currently processing [" + row.SchemaName + "].[" + row.RoutineName + "]"; //, schema, name, perc);
-                                                                console.log(this.status);
-                                                                if (!!newCachedRoutine.IsDeleted)
-                                                                    return [3 /*break*/, 4];
-                                                                if (!(newCachedRoutine.ResultSetRowver && newCachedRoutine.ResultSetRowver >= newCachedRoutine.RowVer))
-                                                                    return [3 /*break*/, 1];
-                                                                console.log("Result set metadata up to date");
-                                                                return [3 /*break*/, 4];
-                                                            case 1:
-                                                                _a.trys.push([1, 3, , 4]);
-                                                                return [4 /*yield*/, orm_dal_1.OrmDAL.RoutineGetFmtOnlyResults(con, newCachedRoutine.Schema, newCachedRoutine.Routine, newCachedRoutine.Parameters)];
-                                                            case 2:
-                                                                resultSets = _a.sent();
-                                                                if (resultSets) {
-                                                                    newCachedRoutine.ResultSetMetadata = resultSets;
+                                                            }); }); // "on row"
+                                                            genGetRoutineListStream.on('error', function (err) {
+                                                                // May be emitted multiple times
+                                                                console.error(err);
+                                                                reject(err);
+                                                            });
+                                                            genGetRoutineListStream.on('done', function (affected) {
+                                                                isDone = true;
+                                                                dbSource.saveCache();
+                                                            });
+                                                            _a.label = 1;
+                                                        case 1:
+                                                            if (!true)
+                                                                return [3 /*break*/, 3];
+                                                            if (isDone) {
+                                                                // TODO : add timeout here but only once we've reached the done event
+                                                                if (stillProcessingCnt <= 0) {
+                                                                    resolve();
+                                                                    return [3 /*break*/, 3];
                                                                 }
-                                                                else {
-                                                                    console.log("No res for ", newCachedRoutine.Routine);
-                                                                }
-                                                                newCachedRoutine.ResultSetRowver = row.rowver;
-                                                                newCachedRoutine.ResultSetError = null;
-                                                                return [3 /*break*/, 4];
-                                                            case 3:
-                                                                e_2 = _a.sent();
-                                                                // TODO: Loggity log
-                                                                newCachedRoutine.ResultSetRowver = row.rowver;
-                                                                newCachedRoutine.ResultSetError = e_2.toString();
-                                                                return [3 /*break*/, 4];
-                                                            case 4:
-                                                                dbSource.addToCache(row.rowver, newCachedRoutine);
-                                                                // TODO: Make saving gap configurable?
-                                                                if (new Date().getTime() - lastSavedDate.getTime() >= 20000 /*ms*/) {
-                                                                    lastSavedDate = new Date();
-                                                                    dbSource.saveCache();
-                                                                }
-                                                                console.log("\t" + newCachedRoutine.Routine + " checking max date..." + row.rowver);
-                                                                if (!this.maxRowDate || row.rowver > this.maxRowDate) {
-                                                                    this.maxRowDate = row.rowver;
-                                                                }
-                                                                return [2 /*return*/];
-                                                        }
-                                                    });
-                                                }); }); // "on row"
-                                                genGetRoutineListStream.on('error', function (err) {
-                                                    // May be emitted multiple times
-                                                    console.error(err);
-                                                    reject(err);
-                                                });
-                                                genGetRoutineListStream.on('done', function (affected) {
-                                                    dbSource.saveCache();
-                                                    console.log("..\r\n\tDONE DONE DONE DONE DONE DONE DONE DONE\r\n--", arguments);
-                                                    var r = 0;
-                                                    dbSource.cache.forEach(function (c) { if (c.RowVer > r)
-                                                        r = c.RowVer; });
-                                                    if (r != _this.maxRowDate) {
-                                                        console.log("\r\n\r\n!!!!!!!!!!!!!!!!!!!!\r\nMaxRowDates dont match!!!\r\n\tr\t" + r + "\r\n\tmax\t" + _this.maxRowDate);
+                                                            }
+                                                            return [4 /*yield*/, thread_util_1.ThreadUtil.Sleep(200)];
+                                                        case 2:
+                                                            _a.sent();
+                                                            return [3 /*break*/, 1];
+                                                        case 3: return [2 /*return*/];
                                                     }
-                                                    // we should not call 'resolve' here...the original Get Changes list will return before the actually processing on each of those items are complete :/
-                                                    resolve();
                                                 });
-                                            })];
+                                            }); })];
                                     case 4:
                                         _a.sent(); // await Promise...
                                         _a.label = 5;
@@ -259,3 +280,4 @@ var Worker = (function () {
     };
     return Worker;
 }());
+//# sourceMappingURL=work-spawner.js.map

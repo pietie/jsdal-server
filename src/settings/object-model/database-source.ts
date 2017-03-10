@@ -1,5 +1,5 @@
 import { JsFile } from './jsfile'
-import { BaseRule } from './base-rule'
+import { BaseRule, RuleType, SchemaRule, SpecificRule, RegexRule } from './rules'
 import { Connection } from './connection'
 
 import { CachedRoutine } from './cache/cached-routine'
@@ -12,6 +12,11 @@ import * as shortid from 'shortid'
 import * as SqlConnectionStringBuilder from 'node-connection-string-builder';
 
 import * as sql from 'mssql';
+
+export enum DefaultRuleMode {
+    IncludeAll = 0,
+    ExcludeAll = 1
+}
 
 export class DatabaseSource {
 
@@ -35,9 +40,8 @@ export class DatabaseSource {
     public ExecutionConnections: Connection[];
 
 
-    // TODO: Make sure this is not serialized when saving!
     private CachedRoutineList: CachedRoutine[];
-    
+
 
     constructor() {
         this.JsFiles = [];
@@ -45,6 +49,24 @@ export class DatabaseSource {
         this.ExecutionConnections = [];
 
         this.CachedRoutineList = [];
+    }
+
+    // customise JSON.stringify behaviour to make sure we don't serialise unwanted properties
+    public toJSON() {
+        return {
+            Name: this.Name,
+            CacheKey: this.CacheKey,
+            MetadataConnection: this.MetadataConnection,
+            ExecutionConnections: this.ExecutionConnections,
+            WhitelistedDomainsCsv: this.WhitelistedDomainsCsv,
+            WhitelistAllowAllPrivateIPs: this.WhitelistAllowAllPrivateIPs,
+            JsFiles: this.JsFiles,
+            IsOrmInstalled: this.IsOrmInstalled,
+            DefaultRuleMode: this.DefaultRuleMode,
+            LastUpdateDate: this.LastUpdateDate,
+            Plugins: this.Plugins,
+            Rules: this.Rules
+        };
     }
 
     public get userID(): string {
@@ -211,7 +233,7 @@ export class DatabaseSource {
             if (!dbConnectionGuid) {
                 // add new
                 let connection = new Connection();
-                
+
                 connection.update(logicalName, dataSource, catalog, username, password);
                 connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
 
@@ -384,10 +406,9 @@ export class DatabaseSource {
     public updatePluginList(pluginList: any[]): { success: boolean, userError?: string } {
         this.Plugins = [];
         if (!pluginList) return;
-        
-        pluginList.forEach(p=>
-        {
-            let included:boolean = p.Included;
+
+        pluginList.forEach(p => {
+            let included: boolean = p.Included;
 
             if (included) this.Plugins.push(p);
         });
@@ -412,4 +433,84 @@ export class DatabaseSource {
 
         return { success: true };
     }
+
+    public addRule(ruleType: RuleType, txt: string): { success: boolean, userErrorMsg?: string } {
+        let rule: BaseRule = null;
+
+        switch (ruleType) // TODO: Check for duplicated rules?
+        {
+            case RuleType.Schema:
+                rule = new SchemaRule(txt);
+                break;
+            case RuleType.Specific:
+                {
+                    var parts = txt.split('.');
+                    var schema = "dbo";
+                    var name = txt;
+
+                    if (parts.length > 1) {
+                        schema = parts[0];
+                        name = parts[1];
+                    }
+
+                    rule = new SpecificRule(schema, name);
+                }
+                break;
+            case RuleType.Regex:
+                {
+                    try {
+                        var regexTest = new RegExp(txt);
+                    }
+                    catch (ex) {
+                        return { success: false, userErrorMsg: "Invalid regex pattern: " + ex.toString() };
+                    }
+                }
+                rule = new RegexRule(txt);
+                break;
+            default:
+                throw `Unsupported rule type: ${ruleType}`;
+        }
+
+        rule.Guid = shortid.generate();
+
+        this.Rules.push(rule);
+
+        return { success: true };
+    }
+
+    public deleteRule(ruleGuid: string): { success: boolean, userErrorMsg?: string } {
+        var existingRule = this.Rules.find(r => r.Guid == ruleGuid);
+
+        if (existingRule == null) {
+            return { success: false, userErrorMsg: "The specified rule was not found." };
+        }
+
+        this.Rules.splice(this.Rules.indexOf(existingRule), 1);
+
+        return { success: true };
+    }
+
+    public applyDbLevelRules() {
+        this.applyRules(JsFile.DBLevel);
+    }
+
+    public applyRules(jsFileContext: JsFile) {
+        if (this.CachedRoutineList == null) return;
+
+        this.CachedRoutineList.forEach(routine => {
+            if (routine.RuleInstructions == null) return;
+            //if (routine.RuleInstructions.length == 1 
+            //&& routine.RuleInstructions.First().Key == null) continue; // PL: No idea why this happens but when no rules exist RuleInstructions contains a single KeyValue pair that are both null...this causes routine.RuleInstructions[jsFileContext] to hang 
+
+            delete routine.RuleInstructions[jsFileContext.Guid];
+
+            if (routine.IsDeleted) return;
+
+            let instruction = routine.applyRules(this, jsFileContext);
+
+            routine.RuleInstructions[jsFileContext.Guid] = instruction;
+
+        });
+    }
+
 }

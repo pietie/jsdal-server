@@ -40,3 +40,4 @@ function LoadPlugin(path) {
         console.log(e);
     }
 }
+//# sourceMappingURL=app.js.map

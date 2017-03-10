@@ -16,7 +16,7 @@ export class JsDalServerConfig {
         config.Settings = Settings.createFromJson(rawJson.Settings);
 
         for (var e in rawJson.ProjectList) {
-            config.ProjectList.push(Project.createFromJson(e, rawJson.ProjectList[e]));
+            config.ProjectList.push(Project.createFromJson(rawJson.ProjectList[e]));
         }
 
         return config;

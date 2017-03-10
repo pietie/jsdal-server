@@ -22,3 +22,4 @@ function route(route, methods) {
     };
 }
 exports.route = route;
+//# sourceMappingURL=decorators.js.map

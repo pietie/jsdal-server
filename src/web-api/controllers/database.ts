@@ -552,7 +552,7 @@ export class DatabaseController {
 
             var routineCache = cs.cache;
             throw "Not yet supported"
-            return ApiResponse.Payload(null);
+            //!return ApiResponse.Payload(null);
 
             // var predicate = PredicateBuilder.True<Classes.ProjectObjectModel.CachedRoutineEntry>();
 

@@ -9,3 +9,5 @@ __export(require("./controllers/project"));
 __export(require("./controllers/database"));
 __export(require("./controllers/util"));
 __export(require("./controllers/jsfile"));
+__export(require("./controllers/rule"));
+//# sourceMappingURL=index.js.map

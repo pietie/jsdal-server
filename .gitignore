@@ -4,6 +4,8 @@
 
 *.key
 
+*.js.map
+
 test/*
 web/*
 refs/*

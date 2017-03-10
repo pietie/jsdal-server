@@ -44,7 +44,7 @@ export class WorkSpawner {
 
 class Worker {
     private isRunning: boolean = false;
-    private maxRowDate: number = 4743824;
+    private maxRowDate: number = 994743824;
     private _status: string;
 
     public get status(): string { return this._status; }
@@ -70,7 +70,7 @@ class Worker {
             }
         }
 
-
+let x:number = 0;
         while (this.isRunning) {
 
             if (!dbSource.IsOrmInstalled) {
@@ -94,15 +94,21 @@ class Worker {
                 let curRow: number = 0;
 
                 if (routineCount > 0) {
-
-                    SessionLog.info(`(${process.pid})\t${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
+x++;
+                    SessionLog.info(`${x}. ${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
                     this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
 
-                    await new Promise<any>((resolve, reject) => {
+                    await new Promise<any>(async (resolve, reject) => {
 
                         let genGetRoutineListStream = OrmDAL.SprocGenGetRoutineListStream(con, this.maxRowDate);
 
+                        let stillProcessingCnt: number = 0;
+                        let isDone: boolean = false;
+
+                        // for every row
                         genGetRoutineListStream.on('row', async (row) => {
+
+                            stillProcessingCnt++;
 
                             let newCachedRoutine = new CachedRoutine();
 
@@ -162,7 +168,7 @@ class Worker {
                                             newCachedRoutine.ResultSetMetadata = resultSets;
                                         }
                                         else {
-                                            console.log("No res for ", newCachedRoutine.Routine);
+                                            console.log("\t(no results) ", newCachedRoutine.Routine);
                                         }
 
                                         newCachedRoutine.ResultSetRowver = row.rowver;
@@ -188,10 +194,11 @@ class Worker {
                                 dbSource.saveCache();
                             }
 
-console.log(`\t${newCachedRoutine.Routine} checking max date...${row.rowver}`);
                             if (!this.maxRowDate || row.rowver > this.maxRowDate) {
                                 this.maxRowDate = row.rowver;
                             }
+
+                            stillProcessingCnt--;
 
                         }); // "on row"
 
@@ -202,18 +209,26 @@ console.log(`\t${newCachedRoutine.Routine} checking max date...${row.rowver}`);
                         });
 
                         genGetRoutineListStream.on('done', (affected) => {
+                            isDone = true;
                             dbSource.saveCache();
-                            console.log("..\r\n\tDONE DONE DONE DONE DONE DONE DONE DONE\r\n--", arguments);
-                            let r = 0;
-                            dbSource.cache.forEach(c=> { if (c.RowVer > r) r = c.RowVer; } );
-
-                            if (r != this.maxRowDate)
-                            {
-                                console.log(`\r\n\r\n!!!!!!!!!!!!!!!!!!!!\r\nMaxRowDates dont match!!!\r\n\tr\t${r}\r\n\tmax\t${this.maxRowDate}`);
-                            }
-// we should not call 'resolve' here...the original Get Changes list will return before the actually processing on each of those items are complete :/
-                            resolve();
                         });
+
+                        /*
+                            The following loop waits for all the routines to finish processing. 
+                        */
+                        while (true) {
+
+                            if (isDone) {
+                                // TODO : add timeout here but only once we've reached the done event
+                                if (stillProcessingCnt <= 0) {
+                                    resolve();
+                                    break;
+                                }
+
+                            }
+
+                            await ThreadUtil.Sleep(200);
+                        }
 
 
                     }); // await Promise...

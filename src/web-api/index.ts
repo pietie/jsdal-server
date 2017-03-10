@@ -6,3 +6,5 @@ export * from './controllers/project'
 export * from './controllers/database'
 export * from './controllers/util'
 export * from './controllers/jsfile'
+
+export * from './controllers/rule'

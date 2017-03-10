@@ -92,3 +92,4 @@ var SessionLog = (function () {
 SessionLog.MAX_ENTRIES = 2000;
 SessionLog._log = new MemoryLog(SessionLog.MAX_ENTRIES);
 exports.SessionLog = SessionLog;
+//# sourceMappingURL=log.js.map

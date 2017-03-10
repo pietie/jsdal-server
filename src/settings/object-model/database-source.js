@@ -35,7 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 var jsfile_1 = require("./jsfile");
-var base_rule_1 = require("./base-rule");
+var rules_1 = require("./rules");
 var connection_1 = require("./connection");
 var cached_routine_1 = require("./cache/cached-routine");
 var fs = require("fs");
@@ -44,6 +44,11 @@ var shelljs = require("shelljs");
 var shortid = require("shortid");
 var SqlConnectionStringBuilder = require("node-connection-string-builder");
 var sql = require("mssql");
+var DefaultRuleMode;
+(function (DefaultRuleMode) {
+    DefaultRuleMode[DefaultRuleMode["IncludeAll"] = 0] = "IncludeAll";
+    DefaultRuleMode[DefaultRuleMode["ExcludeAll"] = 1] = "ExcludeAll";
+})(DefaultRuleMode = exports.DefaultRuleMode || (exports.DefaultRuleMode = {}));
 var DatabaseSource = (function () {
     function DatabaseSource() {
         this.JsFiles = [];
@@ -51,6 +56,23 @@ var DatabaseSource = (function () {
         this.ExecutionConnections = [];
         this.CachedRoutineList = [];
     }
+    // customise JSON.stringify behaviour to make sure we don't serialise unwanted properties
+    DatabaseSource.prototype.toJSON = function () {
+        return {
+            Name: this.Name,
+            CacheKey: this.CacheKey,
+            MetadataConnection: this.MetadataConnection,
+            ExecutionConnections: this.ExecutionConnections,
+            WhitelistedDomainsCsv: this.WhitelistedDomainsCsv,
+            WhitelistAllowAllPrivateIPs: this.WhitelistAllowAllPrivateIPs,
+            JsFiles: this.JsFiles,
+            IsOrmInstalled: this.IsOrmInstalled,
+            DefaultRuleMode: this.DefaultRuleMode,
+            LastUpdateDate: this.LastUpdateDate,
+            Plugins: this.Plugins,
+            Rules: this.Rules
+        };
+    };
     Object.defineProperty(DatabaseSource.prototype, "userID", {
         get: function () {
             if (this._connectionStringBuilder == null)
@@ -115,7 +137,7 @@ var DatabaseSource = (function () {
             dbSource.JsFiles.push(jsfile_1.JsFile.createFromJson(rawJson.JsFiles[i]));
         }
         for (var i = 0; i < rawJson.Rules.length; i++) {
-            dbSource.Rules.push(base_rule_1.BaseRule.createFromJson(rawJson.Rules[i]));
+            dbSource.Rules.push(rules_1.BaseRule.createFromJson(rawJson.Rules[i]));
         }
         //console.log(dbSource);
         return dbSource;
@@ -399,6 +421,70 @@ var DatabaseSource = (function () {
         this.JsFiles.push(jsfile);
         return { success: true };
     };
+    DatabaseSource.prototype.addRule = function (ruleType, txt) {
+        var rule = null;
+        switch (ruleType) {
+            case rules_1.RuleType.Schema:
+                rule = new rules_1.SchemaRule(txt);
+                break;
+            case rules_1.RuleType.Specific:
+                {
+                    var parts = txt.split('.');
+                    var schema = "dbo";
+                    var name = txt;
+                    if (parts.length > 1) {
+                        schema = parts[0];
+                        name = parts[1];
+                    }
+                    rule = new rules_1.SpecificRule(schema, name);
+                }
+                break;
+            case rules_1.RuleType.Regex:
+                {
+                    try {
+                        var regexTest = new RegExp(txt);
+                    }
+                    catch (ex) {
+                        return { success: false, userErrorMsg: "Invalid regex pattern: " + ex.toString() };
+                    }
+                }
+                rule = new rules_1.RegexRule(txt);
+                break;
+            default:
+                throw "Unsupported rule type: " + ruleType;
+        }
+        rule.Guid = shortid.generate();
+        this.Rules.push(rule);
+        return { success: true };
+    };
+    DatabaseSource.prototype.deleteRule = function (ruleGuid) {
+        var existingRule = this.Rules.find(function (r) { return r.Guid == ruleGuid; });
+        if (existingRule == null) {
+            return { success: false, userErrorMsg: "The specified rule was not found." };
+        }
+        this.Rules.splice(this.Rules.indexOf(existingRule), 1);
+        return { success: true };
+    };
+    DatabaseSource.prototype.applyDbLevelRules = function () {
+        this.applyRules(jsfile_1.JsFile.DBLevel);
+    };
+    DatabaseSource.prototype.applyRules = function (jsFileContext) {
+        var _this = this;
+        if (this.CachedRoutineList == null)
+            return;
+        this.CachedRoutineList.forEach(function (routine) {
+            if (routine.RuleInstructions == null)
+                return;
+            //if (routine.RuleInstructions.length == 1 
+            //&& routine.RuleInstructions.First().Key == null) continue; // PL: No idea why this happens but when no rules exist RuleInstructions contains a single KeyValue pair that are both null...this causes routine.RuleInstructions[jsFileContext] to hang 
+            delete routine.RuleInstructions[jsFileContext.Guid];
+            if (routine.IsDeleted)
+                return;
+            var instruction = routine.applyRules(_this, jsFileContext);
+            routine.RuleInstructions[jsFileContext.Guid] = instruction;
+        });
+    };
     return DatabaseSource;
 }());
 exports.DatabaseSource = DatabaseSource;
+//# sourceMappingURL=database-source.js.map

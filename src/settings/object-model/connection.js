@@ -36,13 +36,18 @@ else {
     catch (e) {
     }
 }
-//var hw = encrypt("Data source=12347;user id= 3242342; password=324234324")
-// outputs hello world
-//console.log(decrypt(hw), hw);
 var Connection = (function () {
     function Connection() {
         this.Unsafe = false; // if set true it means the ConnectionString is not encrypted
     }
+    Connection.prototype.toJSON = function () {
+        return {
+            Name: this.Name,
+            Guid: this.Guid,
+            ConnectionString: this.ConnectionString,
+            Unsafe: this.Unsafe
+        };
+    };
     Object.defineProperty(Connection.prototype, "userID", {
         get: function () {
             if (this._connectionStringBuilder == null)
@@ -128,3 +133,4 @@ var Connection = (function () {
     return Connection;
 }());
 exports.Connection = Connection;
+//# sourceMappingURL=connection.js.map

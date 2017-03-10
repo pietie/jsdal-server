@@ -46,3 +46,4 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], MainController, "getSessionLog", null);
 exports.MainController = MainController;
+//# sourceMappingURL=main.js.map

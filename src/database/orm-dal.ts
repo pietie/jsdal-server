@@ -6,7 +6,7 @@ export class OrmDAL {
 
     public static SprocGenGetRoutineListCnt(con: sql.Connection, maxRowDate: number): Promise<number> {
         return new Promise<number>((resolve, reject) => {
-            new sql.Request(con)
+            (<any>(new sql.Request(con)))
                 .input('maxRowver', sql.BigInt, maxRowDate)
                 .execute('orm.SprocGenGetRoutineListCnt').then(function (result) {
 
@@ -25,7 +25,7 @@ export class OrmDAL {
 
         request.stream = true;
 
-        request
+        (<any>request)
             .input('maxRowver', sql.BigInt, maxRowDate)
             .execute('orm.SprocGenGetRoutineList');
 

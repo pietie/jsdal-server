@@ -46,3 +46,4 @@ var ApiResponseType;
     ApiResponseType[ApiResponseType["Error"] = 30] = "Error";
     ApiResponseType[ApiResponseType["Exception"] = 40] = "Exception";
 })(ApiResponseType = exports.ApiResponseType || (exports.ApiResponseType = {}));
+//# sourceMappingURL=api-response.js.map

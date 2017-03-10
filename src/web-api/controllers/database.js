@@ -484,7 +484,6 @@ var DatabaseController = (function () {
             }
             var routineCache = cs.cache;
             throw "Not yet supported";
-            return api_response_1.ApiResponse.Payload(null);
         }
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
@@ -648,3 +647,4 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], DatabaseController, "UpdateWhitelist", null);
 exports.DatabaseController = DatabaseController;
+//# sourceMappingURL=database.js.map

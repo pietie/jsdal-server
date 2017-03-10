@@ -5,7 +5,7 @@ var OrmDAL = (function () {
     }
     OrmDAL.SprocGenGetRoutineListCnt = function (con, maxRowDate) {
         return new Promise(function (resolve, reject) {
-            new sql.Request(con)
+            (new sql.Request(con))
                 .input('maxRowver', sql.BigInt, maxRowDate)
                 .execute('orm.SprocGenGetRoutineListCnt').then(function (result) {
                 if (result && result.length > 0 && result[0].length > 0)
@@ -144,3 +144,4 @@ var OrmDAL = (function () {
     return OrmDAL;
 }());
 exports.OrmDAL = OrmDAL;
+//# sourceMappingURL=orm-dal.js.map

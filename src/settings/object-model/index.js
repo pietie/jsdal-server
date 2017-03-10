@@ -7,4 +7,4 @@ __export(require("./project"));
 __export(require("./database-source"));
 __export(require("./jsfile"));
 __export(require("./connection"));
-__export(require("./base-rule"));
+//# sourceMappingURL=index.js.map

@@ -29,3 +29,4 @@ winAuth({ username: "plessing", password: "P@ssw0rd" }, (error, result) => {
     console.log(result);
 });
 ***/ 
+//# sourceMappingURL=win-auth.js.map

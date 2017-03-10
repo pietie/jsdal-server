@@ -10,7 +10,7 @@ var JsDalServerConfig = (function () {
         var config = new JsDalServerConfig();
         config.Settings = Settings.createFromJson(rawJson.Settings);
         for (var e in rawJson.ProjectList) {
-            config.ProjectList.push(project_1.Project.createFromJson(e, rawJson.ProjectList[e]));
+            config.ProjectList.push(project_1.Project.createFromJson(rawJson.ProjectList[e]));
         }
         return config;
     };
@@ -80,3 +80,4 @@ var Settings = (function () {
     return Settings;
 }());
 exports.Settings = Settings;
+//# sourceMappingURL=jsdal-server.config.js.map

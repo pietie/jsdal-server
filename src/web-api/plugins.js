@@ -7,3 +7,4 @@ var TestPlugin = (function () {
     };
     return TestPlugin;
 }());
+//# sourceMappingURL=plugins.js.map
