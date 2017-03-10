@@ -19,15 +19,24 @@ export class SpecificRule extends BaseRule {
 
         this.Schema = schema;
         this.Routine = routine;
+        this.Type = RuleType.Specific;
     }
 
-    public Apply(routine: CachedRoutine): boolean {
+    public static createFromJson(rawJson: any): BaseRule {
+        let ret = new SpecificRule();
+
+        ret.Schema = rawJson.Schema;
+        ret.Routine = rawJson.Routine;
+
+        return ret;
+    }
+
+    public apply(routine: CachedRoutine): boolean {
         return routine.Schema.toLowerCase() == this.Schema.toLowerCase()
             && routine.Routine.toLowerCase() == this.Routine.toLowerCase()
-        ; 
+            ;
     }
     public get RuleProcessOrder(): number { return 0; }
-    public get Type(): RuleType { return RuleType.Specific; }
 
     public toString() {
         return `[${this.Schema}].[${this.Routine}]`;

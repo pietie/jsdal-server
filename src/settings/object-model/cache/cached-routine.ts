@@ -87,6 +87,9 @@ export class CachedRoutine {
 
         // apply DB source level
         dbSource.Rules.forEach(dbRule => {
+
+            if (dbRule == null) return;
+
             if (dbRule.apply(this)) {
                 if (dbSource.DefaultRuleMode == DefaultRuleMode.ExcludeAll) {
                     instruction.Included = true;
@@ -113,6 +116,9 @@ export class CachedRoutine {
         if (jsFileContext != null) {
 
             jsFileContext.Rules.forEach(fileRule => {
+
+                if (fileRule == null) return;
+
                 if (fileRule.apply(this)) {
                     if (dbSource.DefaultRuleMode == DefaultRuleMode.ExcludeAll) {
                         instruction.Included = true;

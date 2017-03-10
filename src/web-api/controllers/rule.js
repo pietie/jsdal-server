@@ -17,7 +17,7 @@ var RuleController = (function () {
     }
     RuleController.Post = function (req) {
         try {
-            var projectName = req.query.project;
+            var projectName = req.query.projectName;
             var dbSourceName = req.query.dbSource;
             var jsFilenameGuid_1 = req.query.jsFilenameGuid;
             var json = req.query.json;
@@ -27,7 +27,6 @@ var RuleController = (function () {
             var dbSource = proj.getDatabaseSource(dbSourceName);
             if (dbSource == null)
                 return api_response_1.ApiResponse.ExclamationModal("The data source '" + dbSourceName + "' does not exist.");
-            console.log("json -> ", json);
             var obj = JSON.parse(json);
             if (!jsFilenameGuid_1) {
                 var ret = dbSource.addRule(obj.Type, obj.Text);
@@ -61,7 +60,7 @@ var RuleController = (function () {
     };
     RuleController.Delete = function (req) {
         try {
-            var projectName = req.query.project;
+            var projectName = req.query.projectName;
             var dbSourceName = req.query.dbSource;
             var jsFilenameGuid_2 = req.query.jsFilenameGuid;
             var ruleGuid = req.query.ruleGuid;
@@ -167,21 +166,21 @@ var RuleController = (function () {
             if (dbSource == null)
                 return api_response_1.ApiResponse.ExclamationModal("The data source '" + dbSourceName + "' does not exist.");
             var cachedRoutines = dbSource.cache;
+            dbSource.applyDbLevelRules();
+            //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
+            //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+            var dbSourceRules = dbSource.Rules.filter(function (r) { return r != null; }).map(function (rule) {
+                return {
+                    Ix: dbSource.Rules.indexOf(rule) + 1,
+                    Type: rule.Type,
+                    Description: rule.toString(),
+                    Guid: rule.Guid,
+                    IsDataSourceRule: true,
+                    DBLevelOnly: true,
+                    AffectedCount: 9999 // TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                };
+            });
             if (!jsFilenameGuid_4) {
-                dbSource.applyDbLevelRules();
-                //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
-                //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
-                var ret = dbSource.Rules.map(function (rule) {
-                    return {
-                        Ix: dbSource.Rules.indexOf(rule) + 1,
-                        Type: rule.Type,
-                        Description: rule.toString(),
-                        Guid: rule.Guid,
-                        IsDataSourceRule: true,
-                        DBLevelOnly: true,
-                        AffectedCount: 9999 // TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
-                    };
-                });
                 /*
                 
                                 var q = (from r in cs.Rules
@@ -196,14 +195,30 @@ var RuleController = (function () {
                                         AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
                                     }).ToList();
                 */
-                return api_response_1.ApiResponse.Payload(ret);
+                return api_response_1.ApiResponse.Payload(dbSourceRules);
             }
             else {
                 var jsFile = dbSource.JsFiles.find(function (js) { return js.Guid == jsFilenameGuid_4; });
                 if (jsFile == null)
                     return api_response_1.ApiResponse.ExclamationModal("The specified output file was not found.");
                 dbSource.applyRules(jsFile);
-                throw "Not yet implemented!!";
+                //var ruleLookup = cachedRoutines ?.GroupBy(cr => cr.RuleInstructions[jsFile] ?.Rule)
+                //                    .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+                //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
+                //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+                var jsFileRules = jsFile.Rules.filter(function (r) { return r != null; }).map(function (rule) {
+                    return {
+                        Ix: jsFile.Rules.indexOf(rule) + 1,
+                        Type: rule.Type,
+                        Description: rule.toString(),
+                        Guid: rule.Guid,
+                        IsDataSourceRule: false,
+                        DBLevelOnly: false,
+                        AffectedCount: 9999 // TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                    };
+                });
+                var ret = dbSourceRules.concat(jsFileRules).sort(function (a, b) { return (a.IsDataSourceRule === b.IsDataSourceRule) ? 0 : a.IsDataSourceRule ? -1 : 1; });
+                return api_response_1.ApiResponse.Payload(ret);
             }
         }
         catch (ex) {

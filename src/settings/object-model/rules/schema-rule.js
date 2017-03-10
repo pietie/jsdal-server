@@ -5,31 +5,24 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var base_rule_1 = require("./base-rule");
-var cached_routine_1 = require("./../cache/cached-routine");
 var SchemaRule = (function (_super) {
     __extends(SchemaRule, _super);
     function SchemaRule(name) {
         var _this = _super.call(this) || this;
         _this.Name = name;
+        _this.Type = base_rule_1.RuleType.Schema;
         return _this;
     }
-    SchemaRule.prototype.Apply = function (routine) {
-        if (routine instanceof cached_routine_1.CachedRoutine) {
-            console.log("CachedRoutine leg called");
-            return routine.Schema.toLowerCase() == this.Name.toLowerCase();
-        }
-        else {
-            console.log("<any> leg called");
-            return routine.SchemaName.toLowerCase() == this.Name.toLowerCase();
-        }
+    SchemaRule.createFromJson = function (rawJson) {
+        var ret = new SchemaRule();
+        ret.Name = rawJson.Name;
+        return ret;
+    };
+    SchemaRule.prototype.apply = function (routine) {
+        return routine.Schema.toLowerCase() == this.Name.toLowerCase();
     };
     Object.defineProperty(SchemaRule.prototype, "RuleProcessOrder", {
         get: function () { return 1; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SchemaRule.prototype, "Type", {
-        get: function () { return base_rule_1.RuleType.Schema; },
         enumerable: true,
         configurable: true
     });

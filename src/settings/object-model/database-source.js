@@ -458,7 +458,7 @@ var DatabaseSource = (function () {
         return { success: true };
     };
     DatabaseSource.prototype.deleteRule = function (ruleGuid) {
-        var existingRule = this.Rules.find(function (r) { return r.Guid == ruleGuid; });
+        var existingRule = this.Rules.find(function (r) { /*r!=null &&*/ return r.Guid == ruleGuid; });
         if (existingRule == null) {
             return { success: false, userErrorMsg: "The specified rule was not found." };
         }

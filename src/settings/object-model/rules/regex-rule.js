@@ -10,20 +10,21 @@ var RegexRule = (function (_super) {
     function RegexRule(match) {
         var _this = _super.call(this) || this;
         _this.Match = match;
+        _this.Type = base_rule_1.RuleType.Regex;
         return _this;
     }
-    RegexRule.prototype.Apply = function (routine) {
+    RegexRule.createFromJson = function (rawJson) {
+        var ret = new RegexRule();
+        ret.Match = rawJson.Match;
+        return ret;
+    };
+    RegexRule.prototype.apply = function (routine) {
         //var reg = new RegExp(this.Match.Replace("\\", "\\\\"), RegexOptions.None);
         var reg = new RegExp(this.Match);
         return reg.test(routine.Routine);
     };
     Object.defineProperty(RegexRule.prototype, "RuleProcessOrder", {
         get: function () { return 2; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(RegexRule.prototype, "Type", {
-        get: function () { return base_rule_1.RuleType.Regex; },
         enumerable: true,
         configurable: true
     });

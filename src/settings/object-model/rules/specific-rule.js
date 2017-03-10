@@ -20,19 +20,21 @@ var SpecificRule = (function (_super) {
         }
         _this.Schema = schema;
         _this.Routine = routine;
+        _this.Type = base_rule_1.RuleType.Specific;
         return _this;
     }
-    SpecificRule.prototype.Apply = function (routine) {
+    SpecificRule.createFromJson = function (rawJson) {
+        var ret = new SpecificRule();
+        ret.Schema = rawJson.Schema;
+        ret.Routine = rawJson.Routine;
+        return ret;
+    };
+    SpecificRule.prototype.apply = function (routine) {
         return routine.Schema.toLowerCase() == this.Schema.toLowerCase()
             && routine.Routine.toLowerCase() == this.Routine.toLowerCase();
     };
     Object.defineProperty(SpecificRule.prototype, "RuleProcessOrder", {
         get: function () { return 0; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SpecificRule.prototype, "Type", {
-        get: function () { return base_rule_1.RuleType.Specific; },
         enumerable: true,
         configurable: true
     });

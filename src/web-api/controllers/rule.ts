@@ -9,7 +9,7 @@ export class RuleController {
     @route("/api/rule", { post: true })
     public static Post(req): ApiResponse {
         try {
-            let projectName: string = req.query.project;
+            let projectName: string = req.query.projectName;
             let dbSourceName: string = req.query.dbSource;
             let jsFilenameGuid: string = req.query.jsFilenameGuid;
             let json: string = req.query.json;
@@ -21,8 +21,6 @@ export class RuleController {
             var dbSource = proj.getDatabaseSource(dbSourceName);
 
             if (dbSource == null) return ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
-
-            console.log("json -> ", json);
 
             var obj = JSON.parse(json);
 
@@ -71,7 +69,7 @@ export class RuleController {
     @route("/api/rule", { delete: true })
     public static Delete(req): ApiResponse {
         try {
-            let projectName: string = req.query.project;
+            let projectName: string = req.query.projectName;
             let dbSourceName: string = req.query.dbSource;
             let jsFilenameGuid: string = req.query.jsFilenameGuid;
             let ruleGuid: string = req.query.ruleGuid;
@@ -213,39 +211,40 @@ export class RuleController {
             var cachedRoutines = dbSource.cache;
 
 
+            dbSource.applyDbLevelRules();
+
+            //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
+            //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+
+            let dbSourceRules = dbSource.Rules.filter(r=>r!=null).map(rule => {
+                return {
+                    Ix: dbSource.Rules.indexOf(rule) + 1,
+                    Type: rule.Type,
+                    Description: rule.toString(),
+                    Guid: rule.Guid,
+                    IsDataSourceRule: true,
+                    DBLevelOnly: true,
+                    AffectedCount: 9999// TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                };
+            });
+
             if (!jsFilenameGuid) { // DB-level
 
-                dbSource.applyDbLevelRules();
-
-                //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
-                //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
-
-                let ret = dbSource.Rules.map(rule => {
-                    return {
-                        Ix: dbSource.Rules.indexOf(rule) + 1,
-                        Type: rule.Type,
-                        Description: rule.toString(),
-                        Guid: rule.Guid,
-                        IsDataSourceRule: true,
-                        DBLevelOnly: true,
-                        AffectedCount: 9999// TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
-                    };
-                });
-/*
-
-                var q = (from r in cs.Rules
-                select new
-                    {
-                        Ix = cs.Rules.IndexOf(r) + 1,
-                        Type = (int)r.Type,
-                        Description = r.ToString(),
-                        r.Guid,
-                        IsDataSourceRule = true,
-                        DBLevelOnly = true,
-                        AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
-                    }).ToList();
-*/
-                return ApiResponse.Payload(ret);
+                /*
+                
+                                var q = (from r in cs.Rules
+                                select new
+                                    {
+                                        Ix = cs.Rules.IndexOf(r) + 1,
+                                        Type = (int)r.Type,
+                                        Description = r.ToString(),
+                                        r.Guid,
+                                        IsDataSourceRule = true,
+                                        DBLevelOnly = true,
+                                        AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                                    }).ToList();
+                */
+                return ApiResponse.Payload(dbSourceRules);
             }
             else { //  JsFile-level
                 var jsFile = dbSource.JsFiles.find(js => js.Guid == jsFilenameGuid);
@@ -253,36 +252,59 @@ export class RuleController {
                 if (jsFile == null) return ApiResponse.ExclamationModal("The specified output file was not found.");
 
                 dbSource.applyRules(jsFile);
-throw "Not yet implemented!!";
-                //var ruleLookup = cachedRoutines ?.GroupBy(cr => cr.RuleInstructions[jsFile] ?.Rule)
-//                    .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
-  /**                                                  
-                var q = (from r in jsFile.Rules
-                select new
-                    {
-                        Ix = jsFile.Rules.IndexOf(r) + 1,
-                        Type = (int)r.Type,
-                        Description = r.ToString(),
-                        r.Guid,
-                        IsDataSourceRule = false,
-                        DBLevelOnly = false,
-                        AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
-                    }).Union(
-                        from r in cs.Rules
-                                    select new
-                            {
-                                Ix = cs.Rules.IndexOf(r) + 1,
-                                Type = (int)r.Type,
-                                Description = r.ToString(),
-                                r.Guid,
-                                IsDataSourceRule = true,
-                                DBLevelOnly = false,
-                                AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
-                            }
-                    ).OrderByDescending(e => e.IsDataSourceRule).ThenBy(e => e.Ix)
-                        .ToList();
 
-                return ApiResponse.Payload(ret);**/
+                //var ruleLookup = cachedRoutines ?.GroupBy(cr => cr.RuleInstructions[jsFile] ?.Rule)
+                //                    .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+
+
+    
+
+                //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
+                //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+
+                let jsFileRules = jsFile.Rules.filter(r=>r!=null).map(rule => {
+                    return {
+                        Ix: jsFile.Rules.indexOf(rule) + 1,
+                        Type: rule.Type,
+                        Description: rule.toString(),
+                        Guid: rule.Guid,
+                        IsDataSourceRule: false,
+                        DBLevelOnly: false,
+                        AffectedCount: 9999// TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                    };
+                });
+
+                let ret = [...dbSourceRules, ...jsFileRules].sort((a,b)=> { return (a.IsDataSourceRule === b.IsDataSourceRule)? 0 : a.IsDataSourceRule? -1 : 1;  });
+
+                return ApiResponse.Payload(ret);
+
+                /**                                                  
+                              var q = (from r in jsFile.Rules
+                              select new
+                                  {
+                                      Ix = jsFile.Rules.IndexOf(r) + 1,
+                                      Type = (int)r.Type,
+                                      Description = r.ToString(),
+                                      r.Guid,
+                                      IsDataSourceRule = false,
+                                      DBLevelOnly = false,
+                                      AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                                  }).Union(
+                                      from r in cs.Rules
+                                                  select new
+                                          {
+                                              Ix = cs.Rules.IndexOf(r) + 1,
+                                              Type = (int)r.Type,
+                                              Description = r.ToString(),
+                                              r.Guid,
+                                              IsDataSourceRule = true,
+                                              DBLevelOnly = false,
+                                              AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                                          }
+                                  ).OrderByDescending(e => e.IsDataSourceRule).ThenBy(e => e.Ix)
+                                      .ToList();
+              
+                              return ApiResponse.Payload(ret);**/
             }
         }
         catch (ex) {

@@ -63,6 +63,8 @@ var CachedRoutine = (function () {
             return instruction;
         // apply DB source level
         dbSource.Rules.forEach(function (dbRule) {
+            if (dbRule == null)
+                return;
             if (dbRule.apply(_this)) {
                 if (dbSource.DefaultRuleMode == database_source_1.DefaultRuleMode.ExcludeAll) {
                     instruction.Included = true;
@@ -84,6 +86,8 @@ var CachedRoutine = (function () {
         // apply JSFile level
         if (jsFileContext != null) {
             jsFileContext.Rules.forEach(function (fileRule) {
+                if (fileRule == null)
+                    return;
                 if (fileRule.apply(_this)) {
                     if (dbSource.DefaultRuleMode == database_source_1.DefaultRuleMode.ExcludeAll) {
                         instruction.Included = true;

@@ -1,11 +1,25 @@
 "use strict";
+var _1 = require("./");
 var BaseRule = (function () {
     function BaseRule() {
+        this.Type = -1;
     }
     BaseRule.createFromJson = function (rawJson) {
-        var rule = null;
-        // TODO: IMPLEMENT - factory based on Type?!
-        return rule;
+        var ret = null;
+        switch (rawJson.Type) {
+            case RuleType.Schema:
+                ret = _1.SchemaRule.createFromJson(rawJson);
+                break;
+            case RuleType.Specific:
+                ret = _1.SpecificRule.createFromJson(rawJson);
+                break;
+            case RuleType.Regex:
+                ret = _1.RegexRule.createFromJson(rawJson);
+                break;
+            default: throw "Unsupported rule type: " + rawJson.Type;
+        }
+        ret.Guid = rawJson.Guid;
+        return ret;
     };
     BaseRule.prototype.apply = function (routine) {
         throw "Not implemented";

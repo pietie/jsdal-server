@@ -8,9 +8,18 @@ export class RegexRule extends BaseRule {
     {
         super();
         this.Match = match;
+        this.Type = RuleType.Regex;
     }
 
-    public Apply(routine: CachedRoutine): boolean {
+    public static createFromJson(rawJson: any): BaseRule {
+        let ret = new RegexRule();
+
+        ret.Match = rawJson.Match;
+
+        return ret;
+    }
+
+    public apply(routine: CachedRoutine): boolean {
         //var reg = new RegExp(this.Match.Replace("\\", "\\\\"), RegexOptions.None);
         var reg = new RegExp(this.Match);
 
@@ -20,7 +29,6 @@ export class RegexRule extends BaseRule {
     }
 
     public get RuleProcessOrder(): number { return 2; }
-    public get Type(): RuleType { return RuleType.Regex; }
     public toString() { return this.Match; }
 }
  

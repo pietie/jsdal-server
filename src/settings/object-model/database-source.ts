@@ -479,7 +479,7 @@ export class DatabaseSource {
     }
 
     public deleteRule(ruleGuid: string): { success: boolean, userErrorMsg?: string } {
-        var existingRule = this.Rules.find(r => r.Guid == ruleGuid);
+        var existingRule = this.Rules.find(r =>/*r!=null &&*/ r.Guid == ruleGuid);
 
         if (existingRule == null) {
             return { success: false, userErrorMsg: "The specified rule was not found." };
