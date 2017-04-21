@@ -17,12 +17,10 @@ var SpecificRule = (function (_super) {
         var _this = _super.call(this) || this;
         if (schema && routine) {
             // remove quoted identifier ('[..]') if present
-            console.log("\tBEFORE: ", schema, routine);
             if (schema[0] == '[' && schema[schema.length - 1] == ']')
-                schema = schema.substring(1, schema.length - 2);
+                schema = schema.substring(1, schema.length - 1);
             if (routine[0] == '[' && routine[routine.length - 1] == ']')
-                routine = routine.substring(1, routine.length - 2);
-            console.log("\tAFTER: ", schema, routine);
+                routine = routine.substring(1, routine.length - 1);
         }
         _this.Schema = schema;
         _this.Routine = routine;

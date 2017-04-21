@@ -170,6 +170,16 @@ var RuleController = (function () {
             dbSource.applyDbLevelRules();
             //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
             //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
+            var ruleLookup_1 = {};
+            if (cachedRoutines) {
+                // group by Rule...select KV....where Rule != null....ToLookup
+                var dbLevelRuleInstructions = cachedRoutines.map(function (cr) { return cr.RuleInstructions.DbLevel; }).filter(function (r) { return r != null && r.Rule != null; });
+                ruleLookup_1 = dbLevelRuleInstructions.reduce(function (acc, cur) {
+                    acc[cur.Rule.Guid] = acc[cur.Rule.Guid] || { Cnt: 0 };
+                    acc[cur.Rule.Guid].Cnt = acc[cur.Rule.Guid].Cnt + 1;
+                    return acc;
+                }, {});
+            }
             var dbSourceRules = dbSource.Rules.filter(function (r) { return r != null; }).map(function (rule) {
                 return {
                     Ix: dbSource.Rules.indexOf(rule) + 1,
@@ -178,7 +188,7 @@ var RuleController = (function () {
                     Guid: rule.Guid,
                     IsDataSourceRule: true,
                     DBLevelOnly: true,
-                    AffectedCount: 9999 // TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                    AffectedCount: ruleLookup_1[rule.Guid] != null ? ruleLookup_1[rule.Guid].Cnt : 0
                 };
             });
             if (!jsFilenameGuid_4) {

@@ -11,10 +11,8 @@ export class SpecificRule extends BaseRule {
 
         if (schema && routine) {
             // remove quoted identifier ('[..]') if present
-            console.log("\tBEFORE: ", schema, routine);
-            if (schema[0] == '[' && schema[schema.length - 1] == ']') schema = schema.substring(1, schema.length - 2);
-            if (routine[0] == '[' && routine[routine.length - 1] == ']') routine = routine.substring(1, routine.length - 2);
-            console.log("\tAFTER: ", schema, routine);
+            if (schema[0] == '[' && schema[schema.length - 1] == ']') schema = schema.substring(1, schema.length - 1);
+            if (routine[0] == '[' && routine[routine.length - 1] == ']') routine = routine.substring(1, routine.length - 1);
         }
 
         this.Schema = schema;

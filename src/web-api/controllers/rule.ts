@@ -216,7 +216,24 @@ export class RuleController {
             //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
             //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
 
-            let dbSourceRules = dbSource.Rules.filter(r=>r!=null).map(rule => {
+            let ruleLookup = {};
+
+            if (cachedRoutines) {
+                // group by Rule...select KV....where Rule != null....ToLookup
+                let dbLevelRuleInstructions = cachedRoutines.map(cr => cr.RuleInstructions.DbLevel).filter(r => r != null && r.Rule != null);
+
+
+                ruleLookup = dbLevelRuleInstructions.reduce((acc, cur) => {
+                    acc[cur.Rule.Guid] = acc[cur.Rule.Guid] || { Cnt: 0 };
+                    acc[cur.Rule.Guid].Cnt = acc[cur.Rule.Guid].Cnt + 1;
+
+                    return acc;
+                }, {});
+
+
+            }
+
+            let dbSourceRules = dbSource.Rules.filter(r => r != null).map(rule => {
                 return {
                     Ix: dbSource.Rules.indexOf(rule) + 1,
                     Type: rule.Type,
@@ -224,7 +241,7 @@ export class RuleController {
                     Guid: rule.Guid,
                     IsDataSourceRule: true,
                     DBLevelOnly: true,
-                    AffectedCount: 9999// TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                    AffectedCount: ruleLookup[rule.Guid] != null ? ruleLookup[rule.Guid].Cnt : 0
                 };
             });
 
@@ -257,12 +274,12 @@ export class RuleController {
                 //                    .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
 
 
-    
+
 
                 //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
                 //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
 
-                let jsFileRules = jsFile.Rules.filter(r=>r!=null).map(rule => {
+                let jsFileRules = jsFile.Rules.filter(r => r != null).map(rule => {
                     return {
                         Ix: jsFile.Rules.indexOf(rule) + 1,
                         Type: rule.Type,
@@ -274,7 +291,7 @@ export class RuleController {
                     };
                 });
 
-                let ret = [...dbSourceRules, ...jsFileRules].sort((a,b)=> { return (a.IsDataSourceRule === b.IsDataSourceRule)? 0 : a.IsDataSourceRule? -1 : 1;  });
+                let ret = [...dbSourceRules, ...jsFileRules].sort((a, b) => { return (a.IsDataSourceRule === b.IsDataSourceRule) ? 0 : a.IsDataSourceRule ? -1 : 1; });
 
                 return ApiResponse.Payload(ret);
 
