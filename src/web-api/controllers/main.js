@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var api_response_1 = require("./../api-response");
 var decorators_1 = require("./../decorators");
+var log_1 = require("./../../util/log");
 var MainController = (function () {
     function MainController() {
     }
@@ -30,7 +31,7 @@ var MainController = (function () {
         });
     };
     MainController.getSessionLog = function () {
-        return api_response_1.ApiResponse.Payload([{ todo: 123 }]);
+        return api_response_1.ApiResponse.Payload(log_1.SessionLog.entries);
     };
     return MainController;
 }());

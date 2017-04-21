@@ -1,6 +1,7 @@
 import { ApiResponse } from './../api-response'
 import { route } from  './../decorators'
 import * as os from 'os'
+import { SessionLog } from "./../../util/log";
 
 export class MainController {
     @route('/api/main/stats')
@@ -25,7 +26,7 @@ export class MainController {
     @route('/api/main/sessionlog')
     public static getSessionLog() : ApiResponse
     {
-        return ApiResponse.Payload([{ todo: 123}]);
+        return ApiResponse.Payload(SessionLog.entries);
     }
 
 /*

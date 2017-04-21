@@ -46,15 +46,8 @@ var MemoryLog = (function () {
 }());
 var LogEntry = (function () {
     function LogEntry() {
-        this._createDate = new Date();
+        this.CreateDate = new Date();
     }
-    Object.defineProperty(LogEntry.prototype, "CreateDate", {
-        get: function () {
-            return this._createDate;
-        },
-        enumerable: true,
-        configurable: true
-    });
     LogEntry.prototype.Append = function (msg, reportTime) {
         if (reportTime === void 0) { reportTime = true; }
         if (msg == null)
@@ -81,6 +74,13 @@ var LogEntryType;
 var SessionLog = (function () {
     function SessionLog() {
     }
+    Object.defineProperty(SessionLog, "entries", {
+        get: function () {
+            return this._log.Entries;
+        },
+        enumerable: true,
+        configurable: true
+    });
     SessionLog.info = function (info) {
         var line = chalk.gray(info);
         this._log.info(line);

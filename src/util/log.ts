@@ -59,16 +59,16 @@ class MemoryLog {
 
 class LogEntry {
 
-    _createDate: Date;
+    CreateDate: Date;
 
     constructor() {
-        this._createDate = new Date();
+        this.CreateDate = new Date();
     }
 
 
-    public get CreateDate(): Date {
-        return this._createDate;
-    }
+    // public get CreateDate(): Date {
+    //     return this._createDate;
+    // }
 
     public Message: string;
     public Type: LogEntryType;
@@ -104,6 +104,10 @@ export class SessionLog {
     static readonly MAX_ENTRIES: number = 2000;
     static _log:MemoryLog = new MemoryLog(SessionLog.MAX_ENTRIES);
 
+    public static get entries() : LogEntry[] {
+        return this._log.Entries;
+    }
+
     public static info(info: string) {
         let line:string = chalk.gray(info);
         this._log.info(line);
@@ -113,6 +117,4 @@ export class SessionLog {
     public static error(info: string) { this._log.error(info); }
     public static warning(info: string) { this._log.warning(info); }
     public static exception(ex: Error) { this._log.exception(ex); }
-
-    // public static List<LogEntry> Entries { get { return _log.Entries; } }
 }
