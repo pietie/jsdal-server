@@ -119,13 +119,14 @@ export class JsFileController {
         }
     }
 
-    @route("/api/database/deleteJsFile", { delete: true })
+    @route("/api/jsfile/:key", { delete: true })
     public static DeleteJsFile(req, res): ApiResponse {
         try {
-            console.log("req.query", req.query);
+
             let projectName: string = req.query.projectName;
             let dbSource: string = req.query.dbSource;
-            let jsFilenameGuid: string = req.query.jsFilenameGuid;
+
+            let jsFilenameGuid: string = req.params.key;
 
             let proj = SettingsInstance.Instance.getProject(projectName);
 

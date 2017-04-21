@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var fs = require("fs");
 var object_model_1 = require("./object-model");
 var SettingsInstance = (function () {
@@ -25,6 +26,7 @@ var SettingsInstance = (function () {
         }
         catch (ex) {
             console.error(ex);
+            //!SessionLog.Exception(ex);
         }
     };
     SettingsInstance.loadSettingsFromFile = function () {

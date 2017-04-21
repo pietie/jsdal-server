@@ -370,6 +370,192 @@ BEGIN
 	end')
 END
 
+if (not exists (select top 1 1 from sys.procedures where name ='SprocGenExtractAndStoreJsonMetadata' and SCHEMA_NAME(schema_Id) = 'orm'))
+BEGIN
+	EXEC(
+	'create proc [orm].[SprocGenExtractAndStoreJsonMetadata]
+(
+	@catalog varchar(500)
+	,@schema varchar(500)
+	,@routine varchar(500)
+	
+)
+as
+begin
+
+	/*
+		1. Extract all multi and single line comments
+		2. Within each comment, extract what looks like json fragments
+		3. Within each of those fragments look for the first one that looks like a valid jsDAL metadata definition.
+	*/
+	SET NOCOUNT ON;
+ 
+	DECLARE @routineSource varchar(max)
+
+	select @routineSource = object_definition(object_id(QUOTENAME(@catalog) + ''.'' + QUOTENAME(@schema) + ''.'' + QUOTENAME(@routine)))
+
+
+
+	DECLARE @commentLookup TABLE (ID INT IDENTITY(1,1), StartIx INT, EndIx INT)
+
+
+	declare @i int = 1
+			,@ch char(1)
+			,@nextCh char(1)
+
+			,@inMultiLineComment bit = 0
+			,@inSingleLineComment bit = 0
+
+			,@curCommentLookupId INT
+			,@commentEndIx INT
+			,@foundEndOfComment bit = 0
+
+	while (@i < len(@routineSource) + 1)
+	begin
+		set @ch = substring(@routineSource,@i,1)
+		set @nextCh = substring(@routineSource,@i+1,1)
+
+		if (@inMultiLineComment = 0 AND @inSingleLineComment = 0)
+		begin
+			if (@ch = ''/'' and @nextCh = ''*'')
+			begin
+				set @inMultiLineComment = 1
+				set @commentEndIx = null
+
+				insert into @commentLookup (StartIx) values (@i)
+				select @curCommentLookupId = SCOPE_IDENTITY()
+
+				set @i += 1
+			end
+			else if (@ch = ''-'' and @nextCh = ''-'')
+			begin
+				set @inSingleLineComment = 1
+				set @commentEndIx = null
+
+				insert into @commentLookup (StartIx) values (@i)
+				select @curCommentLookupId = SCOPE_IDENTITY()
+
+				set @i += 1
+			end
+		end
+		else if (@inMultiLineComment = 1 and @inSingleLineComment = 0)
+		begin
+
+			if ((@ch = ''*'' and @nextCh = ''/'') OR (@i = len(@routineSource)/*auto close multiline comment if this is the last character*/))
+			begin
+				set @foundEndOfComment = 1;
+				set @i += 1;
+				set @commentEndIx = @i + 1;
+			end
+		end
+		else if (@inMultiLineComment = 0 AND @inSingleLineComment = 1 AND @ch = char(10)) -- single line comments end at a newline
+		begin
+			set @foundEndOfComment = 1;
+			set @commentEndIx = @i;
+		end
+
+		if (@foundEndOfComment = 1)
+		begin
+			set @inSingleLineComment = 0
+			set @inMultiLineComment = 0
+
+			update @commentLookup
+				set EndIx = @commentEndIx
+			where id= @curCommentLookupId
+
+			set @curCommentLookupId = null
+
+			
+			set @foundEndOfComment = 0
+		end
+
+
+		set @i += 1;
+	end
+
+	DECLARE @comment varchar(max)
+			,@isObjectOpen bit = 0
+			,@curOpenCnt int = 0
+			,@curFragmentId INT
+
+	DECLARE @jsonFragments TABLE(ID INT IDENTITY(1,1), StartIx INT, EndIx INT, Fragment varchar(max))
+
+	DECLARE cur CURSOR FOR
+		select SUBSTRING(@routineSource, StartIx, EndIx-StartIx+1)  from @commentLookup
+ 
+	OPEN cur
+	FETCH NEXT FROM cur INTO @comment
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		set @i = 0
+		set @curFragmentId = null
+		set @isObjectOpen = 0
+		set @curOpenCnt = 0
+
+
+		while (@i < len(@comment) + 1)
+		begin
+			set @ch = substring(@comment,@i,1)
+
+			if (@ch = ''{'')
+			begin
+
+				if (@isObjectOpen = 0)
+				begin
+					set @isObjectOpen = 1
+					set @curOpenCnt = 1;
+
+					insert into @jsonFragments (StartIx) values (@i)
+					select @curFragmentId = SCOPE_IDENTITY()
+				end
+				else
+				begin
+					set @curOpenCnt += 1;
+				end
+			end
+			else if (@ch = ''}'' or @i = len(@comment))
+			begin
+				if (@isObjectOpen = 1)
+				begin
+
+					set @curOpenCnt -= 1;
+					
+					if (@curOpenCnt <= 0)
+                    begin
+
+                        set @isObjectOpen = 0; 
+                        
+						update @jsonFragments 
+							set EndIx = @i,
+								Fragment = SUBSTRING(@comment, StartIx, @i-StartIx+1)
+						where id = @curFragmentId
+						
+						set @curFragmentId = null
+                    end
+				
+				end				
+			end
+
+
+			set @i += 1;
+		end
+		
+	FETCH NEXT FROM cur INTO @comment
+	END
+	CLOSE cur
+	DEALLOCATE cur
+
+	DECLARE @jsonMetadata varchar(max)
+	-- grab the first fragment that *looks* like jsDAL metadata
+	select top 1 @jsonMetadata = Fragment from @jsonFragments where Fragment like ''%jsDAL%:%{%''
+
+	update orm.SprocDalMonitor
+		set JsonMetadata = @jsonMetadata
+	where CatalogName = @catalog and SchemaName = @schema and RoutineName = @routine
+
+end')
+END
+
 
 if (not exists (select top 1 1 from sys.procedures where name ='SprocGenGetRoutineListCnt' and SCHEMA_NAME(schema_Id) = 'orm'))
 BEGIN

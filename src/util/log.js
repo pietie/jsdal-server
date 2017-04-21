@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var chalk = require("chalk");
 var MemoryLog = (function () {
     function MemoryLog(maxEntries) {
@@ -64,6 +65,7 @@ var LogEntry = (function () {
         if (reportTime) {
             var startDate = this.LastAppend ? this.LastAppend : this.CreateDate;
             this.LastAppend = new Date();
+            //!?durationMS = " (" + (int)this.LastAppend.Value.Subtract(startDate).TotalMilliseconds + "ms)";
         }
         this.Message += durationMS + "; " + msg;
     };

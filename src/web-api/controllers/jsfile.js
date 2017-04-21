@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var api_response_1 = require("./../api-response");
 var settings_instance_1 = require("./../../settings/settings-instance");
 var decorators_1 = require("./../decorators");
@@ -95,10 +96,9 @@ var JsFileController = (function () {
     };
     JsFileController.DeleteJsFile = function (req, res) {
         try {
-            console.log("req.query", req.query);
             var projectName = req.query.projectName;
             var dbSource = req.query.dbSource;
-            var jsFilenameGuid_1 = req.query.jsFilenameGuid;
+            var jsFilenameGuid_1 = req.params.key;
             var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
             if (!proj)
                 return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
@@ -141,7 +141,7 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], JsFileController, "UpdateJsFile", null);
 __decorate([
-    decorators_1.route("/api/database/deleteJsFile", { delete: true }),
+    decorators_1.route("/api/jsfile/:key", { delete: true }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)

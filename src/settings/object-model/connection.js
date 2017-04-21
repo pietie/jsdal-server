@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var SqlConnectionStringBuilder = require("node-connection-string-builder");
 var crypto = require("crypto");
 var keypair = require("keypair");
@@ -34,6 +35,7 @@ else {
         connectionPrivateKey = fs.readFileSync(KEY_FILEPATH, { encoding: "utf8" });
     }
     catch (e) {
+        // TODO: Handle and log error
     }
 }
 var Connection = (function () {

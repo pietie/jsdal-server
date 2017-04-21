@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var rules_1 = require("./rules");
 var shortid = require("shortid");
 var JsFile = (function () {

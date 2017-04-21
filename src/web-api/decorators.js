@@ -7,6 +7,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
     }
     return t;
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 function route(route, methods) {
     return function (target, // the function itself and not the prototype
         propertyKey, // The name of the static method

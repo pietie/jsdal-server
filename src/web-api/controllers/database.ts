@@ -4,8 +4,6 @@ import { route } from './../decorators'
 
 export class DatabaseController {
 
-
-
     // get list of DB Sources for a specific Project
     @route("/api/database")
     public static Get(req): ApiResponse {
@@ -52,9 +50,9 @@ export class DatabaseController {
             Guid: dbSource.CacheKey,
             InitialCatalog: dbSource.initialCatalog,
             DataSource: dbSource.dataSource,
-            IsOrmInstalled: dbSource.IsOrmInstalled
+            IsOrmInstalled: dbSource.IsOrmInstalled,
             // JsNamespace: dbSource.JsNamespace,
-            // DefaultRuleMode: dbSource.DefaultRuleMode,
+            DefaultRuleMode: dbSource.DefaultRuleMode
             // UserID: dbSource.userID,
             // IntegratedSecurity: dbSource.integratedSecurity
         });
@@ -525,7 +523,7 @@ export class DatabaseController {
 
     }
 
-    @route("api/database/cachedroutines")
+    @route("/api/database/cachedroutines")
     public static GetCachedRoutines(req): ApiResponse {
         try {
 
@@ -534,9 +532,9 @@ export class DatabaseController {
 
             let q: string = req.query.q;
             let type: string = req.query.type;
-            let results: string = req.query.results;
-            let hasMeta: boolean = req.query.hasMeta;
-            let isDeleted: boolean = req.query.isDeleted;
+            let status: string = req.query.results;
+            let hasMeta: boolean = req.query.hasMeta != null? req.query.hasMeta.toLowerCase() == "true" : false;
+            let isDeleted: boolean = req.query.isDeleted != null? req.query.isDeleted.toLowerCase() == "true" : false;
 
             let proj = SettingsInstance.Instance.getProject(projectName);
 
@@ -550,50 +548,42 @@ export class DatabaseController {
                 return ApiResponse.ExclamationModal(`The project '${projectName}' does not contain a datasource called '${dbSource}'`);
             }
 
-            var routineCache = cs.cache;
-            throw "Not yet supported"
-            //!return ApiResponse.Payload(null);
+            let routineCache = cs.cache;
+            let results = routineCache;
 
-            // var predicate = PredicateBuilder.True<Classes.ProjectObjectModel.CachedRoutineEntry>();
+            if (q && q.trim() != "")
+            {
+                q = q.toLowerCase();
+                results = results.filter(r=>  r.FullName.toLowerCase().indexOf(q) >= 0 );
+            }
 
+            if (type != "0"/*All*/)
+            {
+                results = results.filter(r=>r.Type.toLowerCase() === type.toLowerCase());
+            }
 
-            // if (!string.IsNullOrWhiteSpace(q)) {
-            //     predicate = predicate.And(r => r.FullName.ToLower().Contains(q.ToLower()));
-            // }
+            if (status == "1"/*Has error*/) {
+                results = results.filter(r=>r.ResultSetError != null && r.ResultSetError.trim() != "");
+            }
+            else if (status == "2"/*No error*/) {
+                results = results.filter(r=>r.ResultSetError == null || r.ResultSetError.trim() == "");
+            }
 
-            // if (!type.Equals("0"/*All*/, StringComparison.OrdinalIgnoreCase)) {
-            //     predicate = predicate.And(r => r.Type.Equals(type, StringComparison.OrdinalIgnoreCase));
-            // }
+            if (hasMeta) {
+                results = results.filter(r=>r.jsDALMetadata != null && r.jsDALMetadata.jsDAL != null);
+            }
 
-            // if (results.Equals("1"/*Has error*/)) {
-            //     predicate = predicate.And(r => !string.IsNullOrEmpty(r.ResultSetError));
-            // }
-            // else if (results.Equals("2"/*No error*/)) {
-            //     predicate = predicate.And(r => string.IsNullOrEmpty(r.ResultSetError));
-            // }
+            if (isDeleted) {
+                results = results.filter(r=>r.IsDeleted);
+            }
 
-            // if (hasMeta) {
-            //     predicate = predicate.And(r => r.jsDALMetadata != null && r.jsDALMetadata.jsDAL != null);
-            // }
-
-            // if (isDeleted) {
-            //     predicate = predicate.And(r => r.IsDeleted);
-            // }
-
-            // var result = routineCache.AsQueryable().AsExpandable().Where(predicate).OrderBy(r => r.FullName);
-
-            // return ApiResponse.Payload(new {
-            //     Results = result,
-            //     TotalCount = routineCache.Count
-            // });
-
-
-
-
+            return ApiResponse.Payload({
+                Results: results.sort((a, b) => a.FullName.localeCompare(b.FullName)),
+                TotalCount: routineCache.length
+            });
         }
         catch (ex) {
             return ApiResponse.Exception(ex);
-
         }
 
     }

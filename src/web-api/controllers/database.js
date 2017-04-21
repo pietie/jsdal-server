@@ -13,7 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
         function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments)).next());
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
@@ -43,6 +43,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var api_response_1 = require("./../api-response");
 var settings_instance_1 = require("./../../settings/settings-instance");
 var decorators_1 = require("./../decorators");
@@ -86,7 +87,11 @@ var DatabaseController = (function () {
             Guid: dbSource.CacheKey,
             InitialCatalog: dbSource.initialCatalog,
             DataSource: dbSource.dataSource,
-            IsOrmInstalled: dbSource.IsOrmInstalled
+            IsOrmInstalled: dbSource.IsOrmInstalled,
+            // JsNamespace: dbSource.JsNamespace,
+            DefaultRuleMode: dbSource.DefaultRuleMode
+            // UserID: dbSource.userID,
+            // IntegratedSecurity: dbSource.integratedSecurity
         });
     };
     DatabaseController.Delete = function (req) {
@@ -414,6 +419,7 @@ var DatabaseController = (function () {
                             }).ToList();
             */
             return api_response_1.ApiResponse.Payload(ret);
+            //return availableOnServer.ToApiResponse();
         }
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
@@ -469,11 +475,11 @@ var DatabaseController = (function () {
         try {
             var projectName = req.query.projectName;
             var dbSource = req.query.dbSource;
-            var q = req.query.q;
-            var type = req.query.type;
-            var results = req.query.results;
-            var hasMeta = req.query.hasMeta;
-            var isDeleted = req.query.isDeleted;
+            var q_1 = req.query.q;
+            var type_1 = req.query.type;
+            var status = req.query.results;
+            var hasMeta = req.query.hasMeta != null ? req.query.hasMeta.toLowerCase() == "true" : false;
+            var isDeleted = req.query.isDeleted != null ? req.query.isDeleted.toLowerCase() == "true" : false;
             var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
             if (!proj) {
                 return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
@@ -483,7 +489,30 @@ var DatabaseController = (function () {
                 return api_response_1.ApiResponse.ExclamationModal("The project '" + projectName + "' does not contain a datasource called '" + dbSource + "'");
             }
             var routineCache = cs.cache;
-            throw "Not yet supported";
+            var results = routineCache;
+            if (q_1 && q_1.trim() != "") {
+                q_1 = q_1.toLowerCase();
+                results = results.filter(function (r) { return r.FullName.toLowerCase().indexOf(q_1) >= 0; });
+            }
+            if (type_1 != "0" /*All*/) {
+                results = results.filter(function (r) { return r.Type.toLowerCase() === type_1.toLowerCase(); });
+            }
+            if (status == "1" /*Has error*/) {
+                results = results.filter(function (r) { return r.ResultSetError != null && r.ResultSetError.trim() != ""; });
+            }
+            else if (status == "2" /*No error*/) {
+                results = results.filter(function (r) { return r.ResultSetError == null || r.ResultSetError.trim() == ""; });
+            }
+            if (hasMeta) {
+                results = results.filter(function (r) { return r.jsDALMetadata != null && r.jsDALMetadata.jsDAL != null; });
+            }
+            if (isDeleted) {
+                results = results.filter(function (r) { return r.IsDeleted; });
+            }
+            return api_response_1.ApiResponse.Payload({
+                Results: results.sort(function (a, b) { return a.FullName.localeCompare(b.FullName); }),
+                TotalCount: routineCache.length
+            });
         }
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
@@ -629,7 +658,7 @@ __decorate([
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], DatabaseController, "ClearCache", null);
 __decorate([
-    decorators_1.route("api/database/cachedroutines"),
+    decorators_1.route("/api/database/cachedroutines"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)

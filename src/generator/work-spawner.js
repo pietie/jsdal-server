@@ -4,7 +4,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
         function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments)).next());
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
@@ -34,6 +34,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var log_1 = require("./../util/log");
 var thread_util_1 = require("./../util/thread-util");
 var settings_instance_1 = require("./../settings/settings-instance");
@@ -71,7 +72,7 @@ exports.WorkSpawner = WorkSpawner;
 var Worker = (function () {
     function Worker() {
         this.isRunning = false;
-        this.maxRowDate = 994743824;
+        this.maxRowDate = 0;
     }
     Object.defineProperty(Worker.prototype, "status", {
         get: function () { return this._status; },
@@ -85,7 +86,7 @@ var Worker = (function () {
     Worker.prototype.run = function (dbSource) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var lastSavedDate, sqlConfig, x, _loop_1, this_1, state_1;
+            var lastSavedDate, sqlConfig, cache, x, _loop_1, this_1, state_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -101,6 +102,11 @@ var Worker = (function () {
                                 encrypt: true
                             }
                         };
+                        cache = dbSource.cache;
+                        if (cache != null && cache.length > 0) {
+                            this.maxRowDate = Math.max.apply(Math, cache.map(function (c) { return c.RowVer; }));
+                            log_1.SessionLog.info(dbSource.Name + "\tMaxRowDate from cache = " + this.maxRowDate);
+                        }
                         x = 0;
                         _loop_1 = function () {
                             var con, routineCount_1, curRow_1, e_1;
@@ -110,6 +116,7 @@ var Worker = (function () {
                                         if (!dbSource.IsOrmInstalled) {
                                             // try again in 2 seconds
                                             this_1.status = "Waiting for ORM to be installed.";
+                                            console.log(this_1.status);
                                             setTimeout(function () { return _this.run(dbSource); }, 2000);
                                             return [2 /*return*/, { value: void 0 }];
                                         }
@@ -127,8 +134,7 @@ var Worker = (function () {
                                     case 3:
                                         routineCount_1 = _a.sent();
                                         curRow_1 = 0;
-                                        if (!(routineCount_1 > 0))
-                                            return [3 /*break*/, 5];
+                                        if (!(routineCount_1 > 0)) return [3 /*break*/, 5];
                                         x++;
                                         log_1.SessionLog.info(x + ". " + dbSource.Name + "\t" + routineCount_1 + " change(s) found using row date " + this_1.maxRowDate);
                                         this_1.status = routineCount_1 + " change(s) found using rowdate " + this_1.maxRowDate;
@@ -177,11 +183,8 @@ var Worker = (function () {
                                                                             curRow_1++;
                                                                             perc = (curRow_1 / routineCount_1) * 100.0;
                                                                             this.status = dbSource.Name + " - Overall progress: (" + perc.toFixed(2) + "%. Currently processing [" + row.SchemaName + "].[" + row.RoutineName + "]"; //, schema, name, perc);
-                                                                            console.log(this.status);
-                                                                            if (!!newCachedRoutine.IsDeleted)
-                                                                                return [3 /*break*/, 4];
-                                                                            if (!(newCachedRoutine.ResultSetRowver && newCachedRoutine.ResultSetRowver >= newCachedRoutine.RowVer))
-                                                                                return [3 /*break*/, 1];
+                                                                            if (!!newCachedRoutine.IsDeleted) return [3 /*break*/, 4];
+                                                                            if (!(newCachedRoutine.ResultSetRowver && newCachedRoutine.ResultSetRowver >= newCachedRoutine.RowVer)) return [3 /*break*/, 1];
                                                                             console.log("Result set metadata up to date");
                                                                             return [3 /*break*/, 4];
                                                                         case 1:
@@ -193,7 +196,7 @@ var Worker = (function () {
                                                                                 newCachedRoutine.ResultSetMetadata = resultSets;
                                                                             }
                                                                             else {
-                                                                                console.log("\t(no results) ", newCachedRoutine.Routine);
+                                                                                // console.log("\t(no results) ", newCachedRoutine.Routine);
                                                                             }
                                                                             newCachedRoutine.ResultSetRowver = row.rowver;
                                                                             newCachedRoutine.ResultSetError = null;
@@ -211,7 +214,7 @@ var Worker = (function () {
                                                                                 lastSavedDate = new Date();
                                                                                 dbSource.saveCache();
                                                                             }
-                                                                            if (!this.maxRowDate || row.rowver > this.maxRowDate) {
+                                                                            if (this.maxRowDate == null || row.rowver > this.maxRowDate) {
                                                                                 this.maxRowDate = row.rowver;
                                                                             }
                                                                             stillProcessingCnt--;
@@ -230,8 +233,7 @@ var Worker = (function () {
                                                             });
                                                             _a.label = 1;
                                                         case 1:
-                                                            if (!true)
-                                                                return [3 /*break*/, 3];
+                                                            if (!true) return [3 /*break*/, 3];
                                                             if (isDone) {
                                                                 // TODO : add timeout here but only once we've reached the done event
                                                                 if (stillProcessingCnt <= 0) {
@@ -249,6 +251,12 @@ var Worker = (function () {
                                             }); })];
                                     case 4:
                                         _a.sent(); // await Promise...
+                                        // processing of found changes complete...
+                                        {
+                                            // call save for final changes 
+                                            dbSource.saveCache();
+                                            console.log("PROMISE done. Always save here? call generate here?");
+                                        }
                                         _a.label = 5;
                                     case 5: return [3 /*break*/, 7];
                                     case 6:
@@ -265,8 +273,7 @@ var Worker = (function () {
                         this_1 = this;
                         _a.label = 1;
                     case 1:
-                        if (!this.isRunning)
-                            return [3 /*break*/, 3];
+                        if (!this.isRunning) return [3 /*break*/, 3];
                         return [5 /*yield**/, _loop_1()];
                     case 2:
                         state_1 = _a.sent();

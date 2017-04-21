@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var settings_instance_1 = require("./settings/settings-instance");
 var work_spawner_1 = require("./generator/work-spawner");
 require("./web-app");
@@ -15,6 +16,9 @@ function CompileListOfAvailablePlugins() {
         pluginCollection.forEach(function (p) { return LoadPlugin("./../plugins/" + p); });
     }
     catch (e) {
+        // TODO: Just log
+        ///ignore?
+        // console.log("e,",e);
     }
 }
 function LoadPlugin(path) {

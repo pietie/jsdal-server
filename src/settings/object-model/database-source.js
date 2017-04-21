@@ -4,7 +4,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
         function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments)).next());
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
@@ -34,6 +34,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var jsfile_1 = require("./jsfile");
 var rules_1 = require("./rules");
 var connection_1 = require("./connection");
@@ -165,7 +166,6 @@ var DatabaseSource = (function () {
         }
     };
     DatabaseSource.prototype.loadCache = function () {
-        var _this = this;
         try {
             var cachePath = "./test/cache";
             if (!fs.existsSync(cachePath))
@@ -174,16 +174,30 @@ var DatabaseSource = (function () {
             if (!fs.existsSync(cacheFilePath))
                 return;
             this.CachedRoutineList = [];
-            fs.readFile(cacheFilePath, { encoding: "utf8" }, function (err, data) {
-                if (!err) {
-                    var allCacheEntries = JSON.parse(data);
-                    for (var i = 0; i < allCacheEntries.length; i++) {
-                        _this.CachedRoutineList.push(cached_routine_1.CachedRoutine.createFromJson(allCacheEntries[i]));
-                    }
-                }
-                else {
-                }
-            });
+            var data = fs.readFileSync(cacheFilePath, { encoding: "utf8" });
+            var allCacheEntries = JSON.parse(data);
+            for (var i = 0; i < allCacheEntries.length; i++) {
+                this.CachedRoutineList.push(cached_routine_1.CachedRoutine.createFromJson(allCacheEntries[i]));
+            }
+            /*
+                        fs.readFile(cacheFilePath, { encoding: "utf8" }, (err, data) => {
+                            if (!err) {
+            
+                                let allCacheEntries = JSON.parse(data);
+            
+                                for (let i = 0; i < allCacheEntries.length; i++) {
+                                    this.CachedRoutineList.push(CachedRoutine.createFromJson(allCacheEntries[i]));
+                                }
+            
+                            }
+                            else {
+                                // TODO: handle file read error
+                                console.error("ERROR! Failed to read cache file", cacheFilePath);
+                                console.log(err);
+                            }
+                        });
+            
+            */
         }
         catch (ex) {
             //SessionLog.Exception(ex);
@@ -198,6 +212,7 @@ var DatabaseSource = (function () {
                     shelljs.mkdir('-p', cachePath);
                 }
                 catch (e) {
+                    // TODO: Log
                 }
             }
             var cacheFilePath = path.join(cachePath, this.CacheKey + ".json");
@@ -418,6 +433,7 @@ var DatabaseSource = (function () {
         }
         var jsfile = new jsfile_1.JsFile();
         jsfile.Filename = name;
+        jsfile.Guid = shortid.generate();
         this.JsFiles.push(jsfile);
         return { success: true };
     };

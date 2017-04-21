@@ -44,7 +44,7 @@ export class WorkSpawner {
 
 class Worker {
     private isRunning: boolean = false;
-    private maxRowDate: number = 994743824;
+    private maxRowDate: number = 0;
     private _status: string;
 
     public get status(): string { return this._status; }
@@ -70,12 +70,20 @@ class Worker {
             }
         }
 
-let x:number = 0;
+        var cache = dbSource.cache;
+
+        if (cache != null && cache.length > 0) {
+            this.maxRowDate = Math.max(...cache.map(c => c.RowVer));
+            SessionLog.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
+        }
+
+        let x: number = 0;
         while (this.isRunning) {
 
             if (!dbSource.IsOrmInstalled) {
                 // try again in 2 seconds
                 this.status = `Waiting for ORM to be installed.`;
+                console.log(this.status);
                 setTimeout(() => this.run(dbSource), 2000);
                 return;
             }
@@ -94,7 +102,7 @@ let x:number = 0;
                 let curRow: number = 0;
 
                 if (routineCount > 0) {
-x++;
+                    x++;
                     SessionLog.info(`${x}. ${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
                     this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
 
@@ -147,7 +155,6 @@ x++;
 
                             this.status = `${dbSource.Name} - Overall progress: (${perc.toFixed(2)}%. Currently processing [${row.SchemaName}].[${row.RoutineName}]`;//, schema, name, perc);
 
-                            console.log(this.status);
 
                             if (!newCachedRoutine.IsDeleted) {
 
@@ -168,7 +175,7 @@ x++;
                                             newCachedRoutine.ResultSetMetadata = resultSets;
                                         }
                                         else {
-                                            console.log("\t(no results) ", newCachedRoutine.Routine);
+                                            // console.log("\t(no results) ", newCachedRoutine.Routine);
                                         }
 
                                         newCachedRoutine.ResultSetRowver = row.rowver;
@@ -194,7 +201,7 @@ x++;
                                 dbSource.saveCache();
                             }
 
-                            if (!this.maxRowDate || row.rowver > this.maxRowDate) {
+                            if (this.maxRowDate == null || row.rowver > this.maxRowDate) {
                                 this.maxRowDate = row.rowver;
                             }
 
@@ -232,6 +239,15 @@ x++;
 
 
                     }); // await Promise...
+
+
+                    // processing of found changes complete...
+                    {
+                        // call save for final changes 
+                        dbSource.saveCache();
+
+                        console.log("PROMISE done. Always save here? call generate here?");
+                    }
 
                 } // if (routineCount > 0) 
 

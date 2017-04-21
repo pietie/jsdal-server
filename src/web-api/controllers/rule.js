@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 var api_response_1 = require("./../api-response");
 var settings_instance_1 = require("./../../settings/settings-instance");
 var decorators_1 = require("./../decorators");
@@ -219,6 +220,33 @@ var RuleController = (function () {
                 });
                 var ret = dbSourceRules.concat(jsFileRules).sort(function (a, b) { return (a.IsDataSourceRule === b.IsDataSourceRule) ? 0 : a.IsDataSourceRule ? -1 : 1; });
                 return api_response_1.ApiResponse.Payload(ret);
+                /**
+                              var q = (from r in jsFile.Rules
+                              select new
+                                  {
+                                      Ix = jsFile.Rules.IndexOf(r) + 1,
+                                      Type = (int)r.Type,
+                                      Description = r.ToString(),
+                                      r.Guid,
+                                      IsDataSourceRule = false,
+                                      DBLevelOnly = false,
+                                      AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                                  }).Union(
+                                      from r in cs.Rules
+                                                  select new
+                                          {
+                                              Ix = cs.Rules.IndexOf(r) + 1,
+                                              Type = (int)r.Type,
+                                              Description = r.ToString(),
+                                              r.Guid,
+                                              IsDataSourceRule = true,
+                                              DBLevelOnly = false,
+                                              AffectedCount = (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
+                                          }
+                                  ).OrderByDescending(e => e.IsDataSourceRule).ThenBy(e => e.Ix)
+                                      .ToList();
+              
+                              return ApiResponse.Payload(ret);**/
             }
         }
         catch (ex) {

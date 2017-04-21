@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var project_1 = require("./project");
 var JsDalServerConfig = (function () {
     function JsDalServerConfig() {

@@ -169,20 +169,33 @@ export class DatabaseSource {
 
             this.CachedRoutineList = [];
 
-            fs.readFile(cacheFilePath, { encoding: "utf8" }, (err, data) => {
-                if (!err) {
+            let data = fs.readFileSync(cacheFilePath, { encoding: "utf8" });
 
-                    let allCacheEntries = JSON.parse(data);
+            let allCacheEntries = JSON.parse(data);
 
-                    for (let i = 0; i < allCacheEntries.length; i++) {
-                        this.CachedRoutineList.push(CachedRoutine.createFromJson(allCacheEntries[i]));
-                    }
+            for (let i = 0; i < allCacheEntries.length; i++) {
+                this.CachedRoutineList.push(CachedRoutine.createFromJson(allCacheEntries[i]));
+            }
 
-                }
-                else {
-                    // TODO: handle file read error
-                }
-            });
+            /*
+                        fs.readFile(cacheFilePath, { encoding: "utf8" }, (err, data) => {
+                            if (!err) {
+            
+                                let allCacheEntries = JSON.parse(data);
+            
+                                for (let i = 0; i < allCacheEntries.length; i++) {
+                                    this.CachedRoutineList.push(CachedRoutine.createFromJson(allCacheEntries[i]));
+                                }
+            
+                            }
+                            else {
+                                // TODO: handle file read error
+                                console.error("ERROR! Failed to read cache file", cacheFilePath);
+                                console.log(err);
+                            }
+                        });
+            
+            */
 
 
         }
@@ -428,6 +441,7 @@ export class DatabaseSource {
         let jsfile = new JsFile();
 
         jsfile.Filename = name;
+        jsfile.Guid = shortid.generate();
 
         this.JsFiles.push(jsfile);
 

@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var edge = require("edge");
 var winAuth = edge.func(function () {
     /*
@@ -22,7 +23,8 @@ var winAuth = edge.func(function () {
             }
         } catch  { return false; }
     }
-*/ });
+*/ 
+});
 /***
 winAuth({ username: "plessing", password: "P@ssw0rd" }, (error, result) => {
     if (error) throw error;

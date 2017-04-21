@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var database_source_1 = require("./database-source");
 var shortid = require("shortid");
 var Project = (function () {
