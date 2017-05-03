@@ -1,13 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var chalk = require("chalk");
-var MemoryLog = (function () {
-    function MemoryLog(maxEntries) {
-        if (maxEntries === void 0) { maxEntries = 1000; }
+const chalk = require("chalk");
+class MemoryLog {
+    constructor(maxEntries = 1000) {
         this._entries = [];
         this._maxEntries = maxEntries;
     }
-    MemoryLog.prototype.addEntry = function (type, entry) {
+    addEntry(type, entry) {
         //lock(_entries)
         {
             // cull from the front
@@ -20,36 +19,30 @@ var MemoryLog = (function () {
             this._entries.push(newEntry);
             return newEntry;
         }
-    };
-    MemoryLog.prototype.info = function (info) {
+    }
+    info(info) {
         return this.addEntry(LogEntryType.Info, info);
-    };
-    MemoryLog.prototype.warning = function (info) {
+    }
+    warning(info) {
         return this.addEntry(LogEntryType.Warning, info);
-    };
-    MemoryLog.prototype.error = function (info) {
+    }
+    error(info) {
         return this.addEntry(LogEntryType.Error, info);
-    };
-    MemoryLog.prototype.exception = function (ex) {
+    }
+    exception(ex) {
         var line = ex.name + ';' + ex.message + ';' + ex.stack;
         // if (args != null && args.Length > 0) {
         //     line = string.Join(";", args) + "; " + ex.ToString();
         // }
         return this.addEntry(LogEntryType.Exception, line);
-    };
-    Object.defineProperty(MemoryLog.prototype, "Entries", {
-        get: function () { return this._entries; },
-        enumerable: true,
-        configurable: true
-    });
-    return MemoryLog;
-}());
-var LogEntry = (function () {
-    function LogEntry() {
+    }
+    get Entries() { return this._entries; }
+}
+class LogEntry {
+    constructor() {
         this.CreateDate = new Date();
     }
-    LogEntry.prototype.Append = function (msg, reportTime) {
-        if (reportTime === void 0) { reportTime = true; }
+    Append(msg, reportTime = true) {
         if (msg == null)
             return;
         if (this.Message == null)
@@ -61,9 +54,8 @@ var LogEntry = (function () {
             //!?durationMS = " (" + (int)this.LastAppend.Value.Subtract(startDate).TotalMilliseconds + "ms)";
         }
         this.Message += durationMS + "; " + msg;
-    };
-    return LogEntry;
-}());
+    }
+}
 var LogEntryType;
 (function (LogEntryType) {
     LogEntryType[LogEntryType["Info"] = 10] = "Info";
@@ -71,26 +63,19 @@ var LogEntryType;
     LogEntryType[LogEntryType["Error"] = 30] = "Error";
     LogEntryType[LogEntryType["Exception"] = 40] = "Exception";
 })(LogEntryType || (LogEntryType = {}));
-var SessionLog = (function () {
-    function SessionLog() {
+class SessionLog {
+    static get entries() {
+        return this._log.Entries;
     }
-    Object.defineProperty(SessionLog, "entries", {
-        get: function () {
-            return this._log.Entries;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    SessionLog.info = function (info) {
-        var line = chalk.gray(info);
+    static info(info) {
+        let line = chalk.gray(info);
         this._log.info(line);
         console.log(line);
-    };
-    SessionLog.error = function (info) { this._log.error(info); };
-    SessionLog.warning = function (info) { this._log.warning(info); };
-    SessionLog.exception = function (ex) { this._log.exception(ex); };
-    return SessionLog;
-}());
+    }
+    static error(info) { this._log.error(info); }
+    static warning(info) { this._log.warning(info); }
+    static exception(ex) { this._log.exception(ex); }
+}
 SessionLog.MAX_ENTRIES = 2000;
 SessionLog._log = new MemoryLog(SessionLog.MAX_ENTRIES);
 exports.SessionLog = SessionLog;

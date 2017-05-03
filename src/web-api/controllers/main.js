@@ -9,16 +9,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var api_response_1 = require("./../api-response");
-var decorators_1 = require("./../decorators");
-var log_1 = require("./../../util/log");
-var MainController = (function () {
-    function MainController() {
-    }
-    MainController.getStats = function () {
-        var mu = process.memoryUsage();
-        var now = new Date();
-        var startDate = new Date(now.getTime() - (process.uptime() * 1000));
+const api_response_1 = require("./../api-response");
+const decorators_1 = require("./../decorators");
+const log_1 = require("./../../util/log");
+class MainController {
+    static getStats() {
+        let mu = process.memoryUsage();
+        let now = new Date();
+        let startDate = new Date(now.getTime() - (process.uptime() * 1000));
         return api_response_1.ApiResponse.Payload({
             WebServerStartDate: startDate,
             Performance: {
@@ -29,12 +27,11 @@ var MainController = (function () {
             },
             TickCount: 0 // not supported on nodejs
         });
-    };
-    MainController.getSessionLog = function () {
+    }
+    static getSessionLog() {
         return api_response_1.ApiResponse.Payload(log_1.SessionLog.entries);
-    };
-    return MainController;
-}());
+    }
+}
 __decorate([
     decorators_1.route('/api/main/stats'),
     __metadata("design:type", Function),

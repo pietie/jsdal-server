@@ -69,7 +69,7 @@ apiRoutes.post('/authenticate', (req, res) => {
                 let expiresEpoch = new Date().getTime() + (timeoutInHours * 3600000/*convert to ms*/);
 
                 var token = jwt.sign({ name: "Some name" }, SERVER_PRIVATE_KEY, {
-                    expiresIn:`${timeoutInHours} hours`
+                    expiresIn: `${timeoutInHours} hours`
                 });
 
                 res.json({
@@ -84,16 +84,15 @@ apiRoutes.post('/authenticate', (req, res) => {
 
 });
 
-app.use('/token/validate', (req, res, next)=>
-{
-   // look for token
+app.use('/token/validate', (req, res, next) => {
+    // look for token
     let token = req.body.token || req.query.token || req.headers['x-access-token'];
 
     if (token) {
         // decode token
         jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
             if (err) {
-                   return res.status(200).send({ valid: false, message: err.toString() });
+                return res.status(200).send({ valid: false, message: err.toString() });
             } else {
                 return res.status(200).send({ valid: true });
             }
@@ -104,16 +103,47 @@ app.use('/token/validate', (req, res, next)=>
         // no token present
         return res.status(200).send({
             valid: false,
-            message: 'No token provided.'
+            message: 'No token provided. (ref1)'
         });
 
     }
 
 });
 
-// validate JWT 
-apiRoutes.use((req, res, next) => {
+// // validate JWT 
+// apiRoutes.use((req, res, next) => {
 
+//     // look for token
+//     let token = req.body.token || req.query.token || req.headers['x-access-token'];
+
+//     if (token) {
+//         // decode token
+//         jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
+//             if (err) {
+
+//                 return res.status(401).send({ jwtfailed: true, message: err.toString() });
+
+//             } else {
+//                 // allow next request in the chain
+//                 next();
+//             }
+//         });
+
+//     } else {
+
+//         // no token present
+//         return res.status(403).send({
+//             success: false,
+//             message: 'No token provided. (ref2)'
+//         });
+
+//     }
+// });
+
+
+//console.log("ROUTES TO CONFIGURE!!!", global["WebRoutes"]);
+
+function authorise(req) {
     // look for token
     let token = req.body.token || req.query.token || req.headers['x-access-token'];
 
@@ -121,31 +151,39 @@ apiRoutes.use((req, res, next) => {
         // decode token
         jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
             if (err) {
-              
-                return res.status(401).send({ jwtfailed: true, message: err.toString() });
-
+                return { status: 401, ret: { jwtfailed: true, message: err.toString() } };
             } else {
                 // allow next request in the chain
-                next();
+                return { status: 200 };
             }
         });
 
     } else {
-
         // no token present
-        return res.status(403).send({
-            success: false,
-            message: 'No token provided.'
-        });
-
+        return {
+            status: 403, ret: {
+                success: false,
+                message: 'No token provided. (ref2)'
+            }
+        };
     }
-});
+}
 
-
-//console.log("ROUTES TO CONFIGURE!!!", global["WebRoutes"]);
 
 function processRequest(route, req, res) {
+
+    if (!route.allowAnonymousAccess) {
+        let auth = authorise(req);
+
+        if (auth.status != 200) {
+            return res.status(auth.status).send(auth.ret);
+        }
+    }
+ 
     let ret = route.target.call(this, req, res);
+
+    // if the ret value is undefined assume the target call already handled the response
+    if (ret == undefined) return;
 
     // look for promise-like result
     if (ret.then && ret.catch) {
@@ -158,7 +196,7 @@ function processRequest(route, req, res) {
 
 // configure routes picked up from decorators
 if (global["WebRoutes"]) {
-    
+
     //console.log("\r\n\r\nROUTES ROUTES ROUTES\r\n", global["WebRoutes"]);
 
     for (let i = 0; i < global["WebRoutes"].length; i++) {

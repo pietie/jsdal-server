@@ -59,9 +59,17 @@ export class CachedRoutine {
         return cachedRoutine;
     }
 
-    public equals(r: CachedRoutine): boolean {
-        return this.Schema.toLowerCase() == r.Schema.toLowerCase()
-            && this.Routine.toLowerCase() == r.Routine.toLowerCase();
+    public equals(r: CachedRoutine | string, routineName?: string): boolean {
+        if (r instanceof CachedRoutine) {
+
+            return this.Schema.toLowerCase() == r.Schema.toLowerCase()
+                && this.Routine.toLowerCase() == r.Routine.toLowerCase();
+        }
+        else
+        {
+            return this.Schema.toLowerCase() == r.toLowerCase()
+            && this.Routine.toLowerCase() == routineName.toLowerCase();
+        }
     }
 
     public applyRules(dbSource: DatabaseSource, jsFileContext: JsFile): RoutineIncludeExcludeInstruction {

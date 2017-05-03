@@ -9,18 +9,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var api_response_1 = require("./../api-response");
-var settings_instance_1 = require("./../../settings/settings-instance");
-var decorators_1 = require("./../decorators");
-var ProjectController = (function () {
-    function ProjectController() {
+const api_response_1 = require("./../api-response");
+const settings_instance_1 = require("./../../settings/settings-instance");
+const decorators_1 = require("./../decorators");
+class ProjectController {
+    static Get() {
+        return api_response_1.ApiResponse.Payload(settings_instance_1.SettingsInstance.Instance.ProjectList.map(p => { return { Name: p.Name, NumberOfDatabaseSources: p.DatabaseSources.length }; }));
     }
-    ProjectController.Get = function () {
-        return api_response_1.ApiResponse.Payload(settings_instance_1.SettingsInstance.Instance.ProjectList.map(function (p) { return { Name: p.Name, NumberOfDatabaseSources: p.DatabaseSources.length }; }));
-    };
-    ProjectController.AddNew = function (req) {
-        var name = req.body;
-        var ret = settings_instance_1.SettingsInstance.Instance.AddProject(name);
+    static AddNew(req) {
+        let name = req.body;
+        let ret = settings_instance_1.SettingsInstance.Instance.AddProject(name);
         if (ret.success) {
             settings_instance_1.SettingsInstance.saveSettingsToFile();
             return api_response_1.ApiResponse.Success();
@@ -28,11 +26,11 @@ var ProjectController = (function () {
         else {
             return api_response_1.ApiResponse.ExclamationModal(ret.userError);
         }
-    };
-    ProjectController.UpdateProject = function (req) {
-        var name = req.params.name;
-        var newName = req.body;
-        var ret = settings_instance_1.SettingsInstance.Instance.UpdateProject(name, newName);
+    }
+    static UpdateProject(req) {
+        let name = req.params.name;
+        let newName = req.body;
+        let ret = settings_instance_1.SettingsInstance.Instance.UpdateProject(name, newName);
         if (ret.success) {
             settings_instance_1.SettingsInstance.saveSettingsToFile();
             return api_response_1.ApiResponse.Success();
@@ -40,10 +38,10 @@ var ProjectController = (function () {
         else {
             return api_response_1.ApiResponse.ExclamationModal(ret.userError);
         }
-    };
-    ProjectController.Delete = function (req) {
-        var name = req.body;
-        var ret = settings_instance_1.SettingsInstance.Instance.DeleteProject(name);
+    }
+    static Delete(req) {
+        let name = req.body;
+        let ret = settings_instance_1.SettingsInstance.Instance.DeleteProject(name);
         if (ret.success) {
             settings_instance_1.SettingsInstance.saveSettingsToFile();
             return api_response_1.ApiResponse.Success();
@@ -51,9 +49,8 @@ var ProjectController = (function () {
         else {
             return api_response_1.ApiResponse.ExclamationModal(ret.userError);
         }
-    };
-    return ProjectController;
-}());
+    }
+}
 __decorate([
     decorators_1.route("/api/project"),
     __metadata("design:type", Function),

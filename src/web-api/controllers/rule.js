@@ -9,28 +9,26 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var api_response_1 = require("./../api-response");
-var settings_instance_1 = require("./../../settings/settings-instance");
-var decorators_1 = require("./../decorators");
-var jsfile_1 = require("./../../settings/object-model/jsfile");
-var RuleController = (function () {
-    function RuleController() {
-    }
-    RuleController.Post = function (req) {
+const api_response_1 = require("./../api-response");
+const settings_instance_1 = require("./../../settings/settings-instance");
+const decorators_1 = require("./../decorators");
+const jsfile_1 = require("./../../settings/object-model/jsfile");
+class RuleController {
+    static Post(req) {
         try {
-            var projectName = req.query.projectName;
-            var dbSourceName = req.query.dbSource;
-            var jsFilenameGuid_1 = req.query.jsFilenameGuid;
-            var json = req.query.json;
-            var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            let projectName = req.query.projectName;
+            let dbSourceName = req.query.dbSource;
+            let jsFilenameGuid = req.query.jsFilenameGuid;
+            let json = req.query.json;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
             if (!proj)
-                return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
             var dbSource = proj.getDatabaseSource(dbSourceName);
             if (dbSource == null)
-                return api_response_1.ApiResponse.ExclamationModal("The data source '" + dbSourceName + "' does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
             var obj = JSON.parse(json);
-            if (!jsFilenameGuid_1) {
-                var ret = dbSource.addRule(obj.Type, obj.Text);
+            if (!jsFilenameGuid) {
+                let ret = dbSource.addRule(obj.Type, obj.Text);
                 if (ret.success) {
                     settings_instance_1.SettingsInstance.saveSettingsToFile();
                     //!GeneratorThreadDispatcher.SetRulesDirty(cs);
@@ -41,10 +39,10 @@ var RuleController = (function () {
                 }
             }
             else {
-                var jsFile = dbSource.JsFiles.find(function (js) { return js.Guid.toLowerCase() == jsFilenameGuid_1.toLowerCase(); });
+                var jsFile = dbSource.JsFiles.find(js => js.Guid.toLowerCase() == jsFilenameGuid.toLowerCase());
                 if (jsFile == null)
                     return api_response_1.ApiResponse.ExclamationModal("The specified output file was not found.");
-                var ret = jsFile.addRule(obj.Type, obj.Text);
+                let ret = jsFile.addRule(obj.Type, obj.Text);
                 if (ret.success) {
                     settings_instance_1.SettingsInstance.saveSettingsToFile();
                     //!                    GeneratorThreadDispatcher.SetRulesDirty(cs);
@@ -58,21 +56,21 @@ var RuleController = (function () {
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
         }
-    };
-    RuleController.Delete = function (req) {
+    }
+    static Delete(req) {
         try {
-            var projectName = req.query.projectName;
-            var dbSourceName = req.query.dbSource;
-            var jsFilenameGuid_2 = req.query.jsFilenameGuid;
-            var ruleGuid = req.query.ruleGuid;
-            var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            let projectName = req.query.projectName;
+            let dbSourceName = req.query.dbSource;
+            let jsFilenameGuid = req.query.jsFilenameGuid;
+            let ruleGuid = req.query.ruleGuid;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
             if (!proj)
-                return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
             var dbSource = proj.getDatabaseSource(dbSourceName);
             if (dbSource == null)
-                return api_response_1.ApiResponse.ExclamationModal("The data source '" + dbSourceName + "' does not exist.");
-            if (!jsFilenameGuid_2) {
-                var ret = dbSource.deleteRule(ruleGuid);
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
+            if (!jsFilenameGuid) {
+                let ret = dbSource.deleteRule(ruleGuid);
                 if (ret.success) {
                     //!GeneratorThreadDispatcher.SetRulesDirty(cs);
                     settings_instance_1.SettingsInstance.saveSettingsToFile();
@@ -83,10 +81,10 @@ var RuleController = (function () {
                 }
             }
             else {
-                var jsFile = dbSource.JsFiles.find(function (js) { return js.Guid == jsFilenameGuid_2; });
+                var jsFile = dbSource.JsFiles.find(js => js.Guid == jsFilenameGuid);
                 if (jsFile == null)
                     return api_response_1.ApiResponse.ExclamationModal("The specified output file was not found.");
-                var ret = jsFile.deleteRule(ruleGuid);
+                let ret = jsFile.deleteRule(ruleGuid);
                 if (ret.success) {
                     //!GeneratorThreadDispatcher.SetRulesDirty(cs);
                     settings_instance_1.SettingsInstance.saveSettingsToFile();
@@ -99,33 +97,33 @@ var RuleController = (function () {
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
         }
-    };
-    RuleController.GetRoutineList = function (req) {
+    }
+    static GetRoutineList(req) {
         try {
-            var projectName = req.query.projectName;
-            var dbSourceName = req.query.dbSource;
-            var jsFilenameGuid_3 = req.query.jsFilenameGuid;
-            var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            let projectName = req.query.projectName;
+            let dbSourceName = req.query.dbSource;
+            let jsFilenameGuid = req.query.jsFilenameGuid;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
             if (!proj)
-                return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
             var dbSource = proj.getDatabaseSource(dbSourceName);
             if (dbSource == null)
-                return api_response_1.ApiResponse.ExclamationModal("The data source '" + dbSourceName + "' does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
             var cache = dbSource.cache;
             if (cache == null) {
                 return api_response_1.ApiResponse.ExclamationModal("Routine cache does not exist. Make sure the project thread is running and that it is able to access the database.");
             }
-            var jsFile_1 = null;
-            if (jsFilenameGuid_3) {
-                jsFile_1 = dbSource.JsFiles.find(function (js) { return js.Guid == jsFilenameGuid_3; });
-                if (jsFile_1 == null)
+            let jsFile = null;
+            if (jsFilenameGuid) {
+                jsFile = dbSource.JsFiles.find(js => js.Guid == jsFilenameGuid);
+                if (jsFile == null)
                     return api_response_1.ApiResponse.ExclamationModal("The specified output file was not found.");
             }
-            if (jsFile_1 == null) {
+            if (jsFile == null) {
                 dbSource.applyDbLevelRules();
-                var dbLevel_1 = jsfile_1.JsFile.DBLevel.Guid;
-                var ret = cache.filter(function (row) { return !row.IsDeleted; }).sort(function (a, b) { return a.FullName.localeCompare(b.FullName); }).map(function (row) {
-                    var ruleIns = row.RuleInstructions[dbLevel_1];
+                let dbLevel = jsfile_1.JsFile.DBLevel.Guid;
+                let ret = cache.filter(row => !row.IsDeleted).sort((a, b) => a.FullName.localeCompare(b.FullName)).map(row => {
+                    let ruleIns = row.RuleInstructions[dbLevel];
                     return {
                         RoutineFullName: row.FullName,
                         Included: !!ruleIns.Included,
@@ -137,9 +135,9 @@ var RuleController = (function () {
                 return api_response_1.ApiResponse.Payload(ret);
             }
             else {
-                dbSource.applyRules(jsFile_1);
-                var ret = cache.filter(function (row) { return !row.IsDeleted; }).sort(function (a, b) { return a.FullName.localeCompare(b.FullName); }).map(function (row) {
-                    var ruleIns = row.RuleInstructions[jsFile_1.Guid];
+                dbSource.applyRules(jsFile);
+                let ret = cache.filter(row => !row.IsDeleted).sort((a, b) => a.FullName.localeCompare(b.FullName)).map(row => {
+                    let ruleIns = row.RuleInstructions[jsFile.Guid];
                     return {
                         RoutineFullName: row.FullName,
                         Included: !!ruleIns.Included,
@@ -154,33 +152,33 @@ var RuleController = (function () {
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
         }
-    };
-    RuleController.GetRuleList = function (req) {
+    }
+    static GetRuleList(req) {
         try {
-            var projectName = req.query.projectName;
-            var dbSourceName = req.query.dbSource;
-            var jsFilenameGuid_4 = req.query.jsFilenameGuid;
-            var proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            let projectName = req.query.projectName;
+            let dbSourceName = req.query.dbSource;
+            let jsFilenameGuid = req.query.jsFilenameGuid;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
             if (!proj)
-                return api_response_1.ApiResponse.ExclamationModal("The project \"" + projectName + "\" does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
             var dbSource = proj.getDatabaseSource(dbSourceName);
             if (dbSource == null)
-                return api_response_1.ApiResponse.ExclamationModal("The data source '" + dbSourceName + "' does not exist.");
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
             var cachedRoutines = dbSource.cache;
             dbSource.applyDbLevelRules();
             //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
             //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
-            var ruleLookup_1 = {};
+            let ruleLookup = {};
             if (cachedRoutines) {
                 // group by Rule...select KV....where Rule != null....ToLookup
-                var dbLevelRuleInstructions = cachedRoutines.map(function (cr) { return cr.RuleInstructions.DbLevel; }).filter(function (r) { return r != null && r.Rule != null; });
-                ruleLookup_1 = dbLevelRuleInstructions.reduce(function (acc, cur) {
+                let dbLevelRuleInstructions = cachedRoutines.map(cr => cr.RuleInstructions.DbLevel).filter(r => r != null && r.Rule != null);
+                ruleLookup = dbLevelRuleInstructions.reduce((acc, cur) => {
                     acc[cur.Rule.Guid] = acc[cur.Rule.Guid] || { Cnt: 0 };
                     acc[cur.Rule.Guid].Cnt = acc[cur.Rule.Guid].Cnt + 1;
                     return acc;
                 }, {});
             }
-            var dbSourceRules = dbSource.Rules.filter(function (r) { return r != null; }).map(function (rule) {
+            let dbSourceRules = dbSource.Rules.filter(r => r != null).map(rule => {
                 return {
                     Ix: dbSource.Rules.indexOf(rule) + 1,
                     Type: rule.Type,
@@ -188,10 +186,10 @@ var RuleController = (function () {
                     Guid: rule.Guid,
                     IsDataSourceRule: true,
                     DBLevelOnly: true,
-                    AffectedCount: ruleLookup_1[rule.Guid] != null ? ruleLookup_1[rule.Guid].Cnt : 0
+                    AffectedCount: ruleLookup[rule.Guid] != null ? ruleLookup[rule.Guid].Cnt : 0
                 };
             });
-            if (!jsFilenameGuid_4) {
+            if (!jsFilenameGuid) {
                 /*
                 
                                 var q = (from r in cs.Rules
@@ -209,7 +207,7 @@ var RuleController = (function () {
                 return api_response_1.ApiResponse.Payload(dbSourceRules);
             }
             else {
-                var jsFile = dbSource.JsFiles.find(function (js) { return js.Guid == jsFilenameGuid_4; });
+                var jsFile = dbSource.JsFiles.find(js => js.Guid == jsFilenameGuid);
                 if (jsFile == null)
                     return api_response_1.ApiResponse.ExclamationModal("The specified output file was not found.");
                 dbSource.applyRules(jsFile);
@@ -217,7 +215,7 @@ var RuleController = (function () {
                 //                    .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
                 //                var ruleLookup = cachedRoutines?.GroupBy(cr => cr.RuleInstructions[JsFile.DBLevel]?.Rule)
                 //                  .Select(g => new { Rule = g.Key, Count = g.Count() }).Where(g => g.Rule != null).ToDictionary(k => k.Rule);
-                var jsFileRules = jsFile.Rules.filter(function (r) { return r != null; }).map(function (rule) {
+                let jsFileRules = jsFile.Rules.filter(r => r != null).map(rule => {
                     return {
                         Ix: jsFile.Rules.indexOf(rule) + 1,
                         Type: rule.Type,
@@ -228,7 +226,7 @@ var RuleController = (function () {
                         AffectedCount: 9999 // TODO:! (ruleLookup.ContainsKey(r) ? ruleLookup[r].Count : 0)
                     };
                 });
-                var ret = dbSourceRules.concat(jsFileRules).sort(function (a, b) { return (a.IsDataSourceRule === b.IsDataSourceRule) ? 0 : a.IsDataSourceRule ? -1 : 1; });
+                let ret = [...dbSourceRules, ...jsFileRules].sort((a, b) => { return (a.IsDataSourceRule === b.IsDataSourceRule) ? 0 : a.IsDataSourceRule ? -1 : 1; });
                 return api_response_1.ApiResponse.Payload(ret);
                 /**
                               var q = (from r in jsFile.Rules
@@ -262,9 +260,8 @@ var RuleController = (function () {
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);
         }
-    };
-    return RuleController;
-}());
+    }
+}
 __decorate([
     decorators_1.route("/api/rule", { post: true }),
     __metadata("design:type", Function),

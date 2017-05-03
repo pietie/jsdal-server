@@ -9,19 +9,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var express = require("express");
-var decorators_1 = require("./../decorators");
-var AuthController = (function () {
-    function AuthController() {
-    }
-    AuthController.authLogin = function (req) {
-        var username = req.body.username;
-        var password = req.body.password;
+const express = require("express");
+const decorators_1 = require("./../decorators");
+class AuthController {
+    static authLogin(req) {
+        let username = req.body.username;
+        let password = req.body.password;
         console.log("Username:", username);
         return { todo: 123 };
-    };
-    return AuthController;
-}());
+    }
+}
 __decorate([
     decorators_1.route('/api/auth', { post: true }),
     __metadata("design:type", Function),

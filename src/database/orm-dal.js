@@ -1,11 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var sql = require("mssql");
-var OrmDAL = (function () {
-    function OrmDAL() {
-    }
-    OrmDAL.SprocGenGetRoutineListCnt = function (con, maxRowDate) {
-        return new Promise(function (resolve, reject) {
+const sql = require("mssql");
+class OrmDAL {
+    static SprocGenGetRoutineListCnt(con, maxRowDate) {
+        return new Promise((resolve, reject) => {
             (new sql.Request(con))
                 .input('maxRowver', sql.BigInt, maxRowDate)
                 .execute('orm.SprocGenGetRoutineListCnt').then(function (result) {
@@ -18,24 +16,24 @@ var OrmDAL = (function () {
             });
             return null;
         });
-    };
-    OrmDAL.SprocGenGetRoutineListStream = function (con, maxRowDate) {
-        var request = new sql.Request(con);
+    }
+    static SprocGenGetRoutineListStream(con, maxRowDate) {
+        let request = new sql.Request(con);
         request.stream = true;
         request
             .input('maxRowver', sql.BigInt, maxRowDate)
             .execute('orm.SprocGenGetRoutineList');
         return request;
-    };
-    OrmDAL.RoutineGetFmtOnlyResults = function (con, schema, routine, parameterList) {
-        return new Promise(function (resolve, reject) {
-            var resultSets = null;
-            var request = new sql.Request(con);
+    }
+    static RoutineGetFmtOnlyResults(con, schema, routine, parameterList) {
+        return new Promise((resolve, reject) => {
+            let resultSets = null;
+            let request = new sql.Request(con);
             request.stream = true;
-            var parms = parameterList.filter(function (p) { return p.IsResult != "YES"; }).map(function (p) { return p.ParameterName + ' = null'; });
+            let parms = parameterList.filter(p => p.IsResult != "YES").map(p => p.ParameterName + ' = null');
             // TODO: Get 'brackettedName' like in C# dbCmd.CommandText = GetBrackettedName(schema, routine);
-            var query = "set fmtonly on; exec " + schema + "." + routine + " " + parms.join(',') + ";";
-            request.on('recordset', function (columns) {
+            let query = `set fmtonly on; exec ${schema}.${routine} ${parms.join(',')};`;
+            request.on('recordset', (columns) => {
                 // for every result set
                 if (!resultSets)
                     resultSets = [];
@@ -47,9 +45,9 @@ var OrmDAL = (function () {
                 // NumericalScale = row.Field<short>("NumericScale"),
                 //console.log("!!!\t", columns);
                 //return;
-                var cols = [];
-                for (var e in columns) {
-                    var col = columns[e];
+                let cols = [];
+                for (let e in columns) {
+                    let col = columns[e];
                     cols.push({
                         ColumnName: col.name,
                         DataType: col.type,
@@ -69,8 +67,8 @@ var OrmDAL = (function () {
             });
             request.query(query);
         });
-    };
-    OrmDAL.mapDbTypeToSqlDriverType = function (dbType) {
+    }
+    static mapDbTypeToSqlDriverType(dbType) {
         dbType = dbType.toLowerCase();
         if (dbType == "varchar")
             return sql.VarChar;
@@ -139,10 +137,9 @@ var OrmDAL = (function () {
         else if (dbType == "sql_variant")
             return sql.VarChar;
         else {
-            throw "Unsupported dbType: " + dbType;
+            throw `Unsupported dbType: ${dbType}`;
         }
-    };
-    return OrmDAL;
-}());
+    }
+}
 exports.OrmDAL = OrmDAL;
 //# sourceMappingURL=orm-dal.js.map

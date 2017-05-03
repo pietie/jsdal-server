@@ -1,4 +1,4 @@
-export function route(route: string, methods?: { get?:boolean, post?:boolean, put?:boolean, delete?:boolean }) {
+export function route(route: string, methods?: { get?:boolean, post?:boolean, put?:boolean, delete?:boolean }, allowAnonymousAccess:boolean=false) {
     return function (
         target: Function, // the function itself and not the prototype
         propertyKey: string | symbol, // The name of the static method
@@ -8,7 +8,7 @@ export function route(route: string, methods?: { get?:boolean, post?:boolean, pu
 
         if (!methods) methods = { get: true };
 
-        global["WebRoutes"].push({ path: route, target: descriptor.value, ...methods });
+        global["WebRoutes"].push({ path: route, allowAnonymousAccess: !!allowAnonymousAccess, target: descriptor.value, ...methods });
 
         //console.log("INPUT, ", value),
         //console.log("StaticMethodDecorator called on: ", target, propertyKey, descriptor);

@@ -1,42 +1,40 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var ApiResponse = (function () {
-    function ApiResponse() {
+class ApiResponse {
+    constructor() {
         this.ApiResponseVer = "1.0";
     }
-    ApiResponse.Success = function () {
-        var ret = new ApiResponse();
+    static Success() {
+        let ret = new ApiResponse();
         ret.Type = ApiResponseType.Success;
         return ret;
-    };
-    ApiResponse.ExclamationModal = function (msg) {
-        var ret = new ApiResponse();
+    }
+    static ExclamationModal(msg) {
+        let ret = new ApiResponse();
         ret.Message = msg;
         ret.Type = ApiResponseType.ExclamationModal;
         return ret;
-    };
-    ApiResponse.InformationToast = function (msg, data) {
-        if (data === void 0) { data = null; }
-        var ret = new ApiResponse();
+    }
+    static InformationToast(msg, data = null) {
+        let ret = new ApiResponse();
         ret.Message = msg;
         ret.Type = ApiResponseType.InfoMsg;
         ret.Data = data;
         return ret;
-    };
-    ApiResponse.Exception = function (ex) {
-        var ret = new ApiResponse();
+    }
+    static Exception(ex) {
+        let ret = new ApiResponse();
         ret.Message = ex.toString();
         ret.Type = ApiResponseType.Exception;
         return ret;
-    };
-    ApiResponse.Payload = function (data) {
-        var ret = new ApiResponse();
+    }
+    static Payload(data) {
+        let ret = new ApiResponse();
         ret.Data = data;
         ret.Type = ApiResponseType.Success;
         return ret;
-    };
-    return ApiResponse;
-}());
+    }
+}
 exports.ApiResponse = ApiResponse;
 var ApiResponseType;
 (function (ApiResponseType) {

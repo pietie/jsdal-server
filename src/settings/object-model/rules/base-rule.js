@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var _1 = require("./");
-var BaseRule = (function () {
-    function BaseRule() {
+const _1 = require("./");
+class BaseRule {
+    constructor() {
         this.Type = -1;
     }
-    BaseRule.createFromJson = function (rawJson) {
-        var ret = null;
+    static createFromJson(rawJson) {
+        let ret = null;
         switch (rawJson.Type) {
             case RuleType.Schema:
                 ret = _1.SchemaRule.createFromJson(rawJson);
@@ -21,15 +21,14 @@ var BaseRule = (function () {
         }
         ret.Guid = rawJson.Guid;
         return ret;
-    };
-    BaseRule.prototype.apply = function (routine) {
+    }
+    apply(routine) {
         throw "Not implemented";
-    };
-    BaseRule.prototype.toString = function () {
+    }
+    toString() {
         return this.Name;
-    };
-    return BaseRule;
-}());
+    }
+}
 exports.BaseRule = BaseRule;
 var RuleType;
 (function (RuleType) {

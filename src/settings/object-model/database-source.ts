@@ -12,6 +12,8 @@ import * as shortid from 'shortid'
 import * as SqlConnectionStringBuilder from 'node-connection-string-builder';
 
 import * as sql from 'mssql';
+import { Request } from "@types/express";
+import { SessionLog } from "./../../util/log";
 
 export enum DefaultRuleMode {
     IncludeAll = 0,
@@ -148,9 +150,6 @@ export class DatabaseSource {
                 // remove existing cached version as it will just be added again below
                 let ix = this.CachedRoutineList.indexOf(changed[0]);
                 this.CachedRoutineList.splice(ix, 1);
-            }
-            else {
-                console.log("NEW NEW NEW ROUTINE!!!?", newCachedRoutine);
             }
 
             this.CachedRoutineList.push(newCachedRoutine);
@@ -527,4 +526,51 @@ export class DatabaseSource {
         });
     }
 
+    public mayAccessDbSource(req: Request): { success: boolean, userErrorMsg?: string } {
+        if (this.WhitelistedDomainsCsv == null) {
+            return { success: false, userErrorMsg: "No access list exists." };
+        }
+
+        let referer = req.header("Referer");
+        let host = req.host;
+        let whitelistedIPs = this.WhitelistedDomainsCsv.split(',');
+
+        let r: any = null;
+
+        whitelistedIPs.forEach(en => {
+            if (en.toLowerCase() == host.toLowerCase()) {
+                r = { success: true };
+                return;
+            }
+        });
+
+        if (r) return r;
+
+        return { success: false, userErrorMsg: `The host (${host}) is not allowed to access this resource.` };
+    }
+
+    public getSqlConnection(dbConnectionGuid: string): { user: string, password: string, server: string, database: string } {
+
+        let decryptedConnection: Connection;
+
+        if (!dbConnectionGuid) {
+            decryptedConnection = this.MetadataConnection;
+        }
+        else {
+
+            var dbConnection = this.ExecutionConnections.find(con => con.Guid == dbConnectionGuid);
+
+            if (dbConnection != null) {
+                decryptedConnection = dbConnection;
+            }
+            else {
+                SessionLog.error(`The execution connection '${dbConnectionGuid}' not found in specified DB Source '${this.Name}' (${this.CacheKey}). Reverting to metadata connection.`);
+                decryptedConnection = this.MetadataConnection;
+            }
+        }
+
+        return {
+            user: decryptedConnection.userID, password: decryptedConnection.password, server: decryptedConnection.dataSource, database: decryptedConnection.initialCatalog
+        };
+    }
 }

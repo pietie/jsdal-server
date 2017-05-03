@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var database_source_1 = require("./../database-source");
+const database_source_1 = require("./../database-source");
 var RoutineIncludeExcludeInstructionSource;
 (function (RoutineIncludeExcludeInstructionSource) {
     RoutineIncludeExcludeInstructionSource[RoutineIncludeExcludeInstructionSource["Unknown"] = 0] = "Unknown";
@@ -8,23 +8,16 @@ var RoutineIncludeExcludeInstructionSource;
     RoutineIncludeExcludeInstructionSource[RoutineIncludeExcludeInstructionSource["DbSourceLevel"] = 20] = "DbSourceLevel";
     RoutineIncludeExcludeInstructionSource[RoutineIncludeExcludeInstructionSource["JsFileLevel"] = 30] = "JsFileLevel";
 })(RoutineIncludeExcludeInstructionSource = exports.RoutineIncludeExcludeInstructionSource || (exports.RoutineIncludeExcludeInstructionSource = {}));
-var RoutineIncludeExcludeInstruction = (function () {
-    function RoutineIncludeExcludeInstruction() {
-    }
-    return RoutineIncludeExcludeInstruction;
-}());
+class RoutineIncludeExcludeInstruction {
+}
 exports.RoutineIncludeExcludeInstruction = RoutineIncludeExcludeInstruction;
-var CachedRoutine = (function () {
-    function CachedRoutine() {
+class CachedRoutine {
+    get FullName() { return `[${this.Schema}].[${this.Routine}]`; }
+    constructor() {
         this.RuleInstructions = {};
     }
-    Object.defineProperty(CachedRoutine.prototype, "FullName", {
-        get: function () { return "[" + this.Schema + "].[" + this.Routine + "]"; },
-        enumerable: true,
-        configurable: true
-    });
-    CachedRoutine.createFromJson = function (rawJson) {
-        var cachedRoutine = new CachedRoutine();
+    static createFromJson(rawJson) {
+        let cachedRoutine = new CachedRoutine();
         cachedRoutine.Schema = rawJson.Schema;
         cachedRoutine.Routine = rawJson.Routine;
         cachedRoutine.Type = rawJson.Type;
@@ -35,14 +28,19 @@ var CachedRoutine = (function () {
         cachedRoutine.IsDeleted = rawJson.IsDeleted;
         cachedRoutine.Parameters = rawJson.Parameters;
         return cachedRoutine;
-    };
-    CachedRoutine.prototype.equals = function (r) {
-        return this.Schema.toLowerCase() == r.Schema.toLowerCase()
-            && this.Routine.toLowerCase() == r.Routine.toLowerCase();
-    };
-    CachedRoutine.prototype.applyRules = function (dbSource, jsFileContext) {
-        var _this = this;
-        var instruction = new RoutineIncludeExcludeInstruction();
+    }
+    equals(r, routineName) {
+        if (r instanceof CachedRoutine) {
+            return this.Schema.toLowerCase() == r.Schema.toLowerCase()
+                && this.Routine.toLowerCase() == r.Routine.toLowerCase();
+        }
+        else {
+            return this.Schema.toLowerCase() == r.toLowerCase()
+                && this.Routine.toLowerCase() == routineName.toLowerCase();
+        }
+    }
+    applyRules(dbSource, jsFileContext) {
+        let instruction = new RoutineIncludeExcludeInstruction();
         // apply Metadata first
         if (this.jsDALMetadata && this.jsDALMetadata.jsDAL != null) {
             if (this.jsDALMetadata.jsDAL !== undefined) {
@@ -63,10 +61,10 @@ var CachedRoutine = (function () {
         if (instruction.Reason != null)
             return instruction;
         // apply DB source level
-        dbSource.Rules.forEach(function (dbRule) {
+        dbSource.Rules.forEach(dbRule => {
             if (dbRule == null)
                 return;
-            if (dbRule.apply(_this)) {
+            if (dbRule.apply(this)) {
                 if (dbSource.DefaultRuleMode == database_source_1.DefaultRuleMode.ExcludeAll) {
                     instruction.Included = true;
                     instruction.Reason = dbRule.toString();
@@ -86,10 +84,10 @@ var CachedRoutine = (function () {
             return instruction;
         // apply JSFile level
         if (jsFileContext != null) {
-            jsFileContext.Rules.forEach(function (fileRule) {
+            jsFileContext.Rules.forEach(fileRule => {
                 if (fileRule == null)
                     return;
-                if (fileRule.apply(_this)) {
+                if (fileRule.apply(this)) {
                     if (dbSource.DefaultRuleMode == database_source_1.DefaultRuleMode.ExcludeAll) {
                         instruction.Included = true;
                         instruction.Reason = fileRule.toString(); // TODO: Consider recording a more substantial reference to the rule
@@ -114,8 +112,7 @@ var CachedRoutine = (function () {
         instruction.Source = RoutineIncludeExcludeInstructionSource.DbSourceLevel;
         instruction.Reason = "Default";
         return instruction;
-    };
-    return CachedRoutine;
-}());
+    }
+}
 exports.CachedRoutine = CachedRoutine;
 //# sourceMappingURL=cached-routine.js.map

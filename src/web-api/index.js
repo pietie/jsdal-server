@@ -11,4 +11,5 @@ __export(require("./controllers/database"));
 __export(require("./controllers/util"));
 __export(require("./controllers/jsfile"));
 __export(require("./controllers/rule"));
+__export(require("./controllers/exec"));
 //# sourceMappingURL=index.js.map

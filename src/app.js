@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var settings_instance_1 = require("./settings/settings-instance");
-var work_spawner_1 = require("./generator/work-spawner");
+const settings_instance_1 = require("./settings/settings-instance");
+const work_spawner_1 = require("./generator/work-spawner");
 require("./web-app");
-var fs = require("fs");
-settings_instance_1.SettingsInstance.loadSettingsFromFile().then(function () {
+const fs = require("fs");
+settings_instance_1.SettingsInstance.loadSettingsFromFile().then(() => {
     work_spawner_1.WorkSpawner.Start();
     CompileListOfAvailablePlugins();
 });
@@ -12,8 +12,8 @@ global["PluginAssemblies"] = []; // TOOD: Wrap nicely in a class?
 function CompileListOfAvailablePlugins() {
     try {
         // TODO: Figure out how we want to do JS-plugins
-        var pluginCollection = fs.readdirSync("./plugins").filter(function (p) { return p.toLowerCase().endsWith(".plugin.js"); });
-        pluginCollection.forEach(function (p) { return LoadPlugin("./../plugins/" + p); });
+        let pluginCollection = fs.readdirSync("./plugins").filter(p => p.toLowerCase().endsWith(".plugin.js"));
+        pluginCollection.forEach(p => LoadPlugin(`./../plugins/${p}`));
     }
     catch (e) {
         // TODO: Just log
@@ -23,12 +23,12 @@ function CompileListOfAvailablePlugins() {
 }
 function LoadPlugin(path) {
     try {
-        var PluginCollection = require(path).plugins;
+        let PluginCollection = require(path).plugins;
         if (!PluginCollection)
             return;
-        PluginCollection.forEach(function (Plugin) {
+        PluginCollection.forEach(Plugin => {
             try {
-                var p = new Plugin();
+                let p = new Plugin();
                 // TODO: Check Id, check interface compatibility...
                 global["PluginAssemblies"].push(p);
             }

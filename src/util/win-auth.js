@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var edge = require("edge");
-var winAuth = edge.func(function () {
+const edge = require("edge");
+var winAuth = edge.func(() => {
     /*
     #r "System.DirectoryServices.dll"
 

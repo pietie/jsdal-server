@@ -7,58 +7,32 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t;
-    return { next: verb(0), "throw": verb(1), "return": verb(2) };
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [0, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var jsfile_1 = require("./jsfile");
-var rules_1 = require("./rules");
-var connection_1 = require("./connection");
-var cached_routine_1 = require("./cache/cached-routine");
-var fs = require("fs");
-var path = require("path");
-var shelljs = require("shelljs");
-var shortid = require("shortid");
-var SqlConnectionStringBuilder = require("node-connection-string-builder");
-var sql = require("mssql");
+const jsfile_1 = require("./jsfile");
+const rules_1 = require("./rules");
+const connection_1 = require("./connection");
+const cached_routine_1 = require("./cache/cached-routine");
+const fs = require("fs");
+const path = require("path");
+const shelljs = require("shelljs");
+const shortid = require("shortid");
+const SqlConnectionStringBuilder = require("node-connection-string-builder");
+const sql = require("mssql");
+const log_1 = require("./../../util/log");
 var DefaultRuleMode;
 (function (DefaultRuleMode) {
     DefaultRuleMode[DefaultRuleMode["IncludeAll"] = 0] = "IncludeAll";
     DefaultRuleMode[DefaultRuleMode["ExcludeAll"] = 1] = "ExcludeAll";
 })(DefaultRuleMode = exports.DefaultRuleMode || (exports.DefaultRuleMode = {}));
-var DatabaseSource = (function () {
-    function DatabaseSource() {
+class DatabaseSource {
+    constructor() {
         this.JsFiles = [];
         this.Rules = [];
         this.ExecutionConnections = [];
         this.CachedRoutineList = [];
     }
     // customise JSON.stringify behaviour to make sure we don't serialise unwanted properties
-    DatabaseSource.prototype.toJSON = function () {
+    toJSON() {
         return {
             Name: this.Name,
             CacheKey: this.CacheKey,
@@ -73,54 +47,34 @@ var DatabaseSource = (function () {
             Plugins: this.Plugins,
             Rules: this.Rules
         };
-    };
-    Object.defineProperty(DatabaseSource.prototype, "userID", {
-        get: function () {
-            if (this._connectionStringBuilder == null)
-                this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
-            return this._connectionStringBuilder.userID;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DatabaseSource.prototype, "password", {
-        get: function () {
-            if (this._connectionStringBuilder == null)
-                this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
-            return this._connectionStringBuilder.password;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DatabaseSource.prototype, "dataSource", {
-        get: function () {
-            if (this._connectionStringBuilder == null)
-                this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
-            return this._connectionStringBuilder.dataSource;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DatabaseSource.prototype, "initialCatalog", {
-        get: function () {
-            if (this._connectionStringBuilder == null)
-                this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
-            return this._connectionStringBuilder.initialCatalog;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DatabaseSource.prototype, "integratedSecurity", {
-        get: function () {
-            if (this._connectionStringBuilder == null)
-                this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
-            return this._connectionStringBuilder.integratedSecurity;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    DatabaseSource.createFromJson = function (rawJson) {
-        var dbSource = new DatabaseSource();
+    }
+    get userID() {
+        if (this._connectionStringBuilder == null)
+            this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
+        return this._connectionStringBuilder.userID;
+    }
+    get password() {
+        if (this._connectionStringBuilder == null)
+            this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
+        return this._connectionStringBuilder.password;
+    }
+    get dataSource() {
+        if (this._connectionStringBuilder == null)
+            this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
+        return this._connectionStringBuilder.dataSource;
+    }
+    get initialCatalog() {
+        if (this._connectionStringBuilder == null)
+            this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
+        return this._connectionStringBuilder.initialCatalog;
+    }
+    get integratedSecurity() {
+        if (this._connectionStringBuilder == null)
+            this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
+        return this._connectionStringBuilder.integratedSecurity;
+    }
+    static createFromJson(rawJson) {
+        let dbSource = new DatabaseSource();
         dbSource.Name = rawJson.Name;
         dbSource.CacheKey = rawJson.CacheKey;
         dbSource.WhitelistedDomainsCsv = rawJson.WhitelistedDomainsCsv;
@@ -131,19 +85,19 @@ var DatabaseSource = (function () {
         dbSource.LastUpdateDate = rawJson.LastUpdateDate;
         dbSource.Plugins = rawJson.Plugins;
         dbSource.MetadataConnection = connection_1.Connection.createFromJson(rawJson.MetadataConnection);
-        for (var i = 0; i < rawJson.ExecutionConnections.length; i++) {
+        for (let i = 0; i < rawJson.ExecutionConnections.length; i++) {
             dbSource.ExecutionConnections.push(connection_1.Connection.createFromJson(rawJson.ExecutionConnections[i]));
         }
-        for (var i = 0; i < rawJson.JsFiles.length; i++) {
+        for (let i = 0; i < rawJson.JsFiles.length; i++) {
             dbSource.JsFiles.push(jsfile_1.JsFile.createFromJson(rawJson.JsFiles[i]));
         }
-        for (var i = 0; i < rawJson.Rules.length; i++) {
+        for (let i = 0; i < rawJson.Rules.length; i++) {
             dbSource.Rules.push(rules_1.BaseRule.createFromJson(rawJson.Rules[i]));
         }
         //console.log(dbSource);
         return dbSource;
-    };
-    DatabaseSource.prototype.addToCache = function (maxRowDate, newCachedRoutine) {
+    }
+    addToCache(maxRowDate, newCachedRoutine) {
         if (this.CacheKey == null)
             this.CacheKey = shortid.generate();
         if (this.CachedRoutineList == null) {
@@ -153,30 +107,27 @@ var DatabaseSource = (function () {
         {
             // get those items that are existing and have been changed (Updated or Deleted)
             //!var changed = CachedRoutineList.Where(e => routineList.Count(chg => chg.Equals(e)) > 0).ToList();
-            var changed = this.CachedRoutineList.filter(function (e) { return newCachedRoutine.equals(e); });
+            let changed = this.CachedRoutineList.filter(e => newCachedRoutine.equals(e));
             if (changed.length > 0) {
                 // remove existing cached version as it will just be added again below
-                var ix = this.CachedRoutineList.indexOf(changed[0]);
+                let ix = this.CachedRoutineList.indexOf(changed[0]);
                 this.CachedRoutineList.splice(ix, 1);
-            }
-            else {
-                console.log("NEW NEW NEW ROUTINE!!!?", newCachedRoutine);
             }
             this.CachedRoutineList.push(newCachedRoutine);
         }
-    };
-    DatabaseSource.prototype.loadCache = function () {
+    }
+    loadCache() {
         try {
-            var cachePath = "./test/cache";
+            let cachePath = "./test/cache";
             if (!fs.existsSync(cachePath))
                 return;
-            var cacheFilePath = path.join(cachePath, this.CacheKey + ".json");
+            let cacheFilePath = path.join(cachePath, `${this.CacheKey}.json`);
             if (!fs.existsSync(cacheFilePath))
                 return;
             this.CachedRoutineList = [];
-            var data = fs.readFileSync(cacheFilePath, { encoding: "utf8" });
-            var allCacheEntries = JSON.parse(data);
-            for (var i = 0; i < allCacheEntries.length; i++) {
+            let data = fs.readFileSync(cacheFilePath, { encoding: "utf8" });
+            let allCacheEntries = JSON.parse(data);
+            for (let i = 0; i < allCacheEntries.length; i++) {
                 this.CachedRoutineList.push(cached_routine_1.CachedRoutine.createFromJson(allCacheEntries[i]));
             }
             /*
@@ -203,10 +154,10 @@ var DatabaseSource = (function () {
             //SessionLog.Exception(ex);
             throw ex; // TODO: HANDLE!!!!
         }
-    };
-    DatabaseSource.prototype.saveCache = function () {
+    }
+    saveCache() {
         try {
-            var cachePath = "./test/cache";
+            let cachePath = "./test/cache";
             if (!fs.existsSync(cachePath)) {
                 try {
                     shelljs.mkdir('-p', cachePath);
@@ -215,20 +166,16 @@ var DatabaseSource = (function () {
                     // TODO: Log
                 }
             }
-            var cacheFilePath = path.join(cachePath, this.CacheKey + ".json");
-            var json = JSON.stringify(this.CachedRoutineList);
+            let cacheFilePath = path.join(cachePath, `${this.CacheKey}.json`);
+            let json = JSON.stringify(this.CachedRoutineList);
             fs.writeFileSync(cacheFilePath, json, { encoding: "utf8" });
         }
         catch (ex) {
             throw ex; // TODO: handle
         }
-    };
-    Object.defineProperty(DatabaseSource.prototype, "cache", {
-        get: function () { return this.CachedRoutineList; },
-        enumerable: true,
-        configurable: true
-    });
-    DatabaseSource.prototype.addUpdateDatabaseConnection = function (isMetadataConnection, dbConnectionGuid, logicalName, dataSource, catalog, username, password) {
+    }
+    get cache() { return this.CachedRoutineList; }
+    addUpdateDatabaseConnection(isMetadataConnection, dbConnectionGuid, logicalName, dataSource, catalog, username, password) {
         if (isMetadataConnection) {
             if (this.MetadataConnection == null)
                 this.MetadataConnection = new connection_1.Connection();
@@ -239,13 +186,13 @@ var DatabaseSource = (function () {
                 this.ExecutionConnections = [];
             if (!dbConnectionGuid) {
                 // add new
-                var connection = new connection_1.Connection();
+                let connection = new connection_1.Connection();
                 connection.update(logicalName, dataSource, catalog, username, password);
                 connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
                 this.ExecutionConnections.push(connection);
             }
             else {
-                var existing = this.ExecutionConnections.find(function (c) { return c.Guid == dbConnectionGuid; });
+                let existing = this.ExecutionConnections.find(c => c.Guid == dbConnectionGuid);
                 if (existing == null) {
                     return { success: false, userError: "The specified connection does not exist and cannot be updated." };
                 }
@@ -253,151 +200,107 @@ var DatabaseSource = (function () {
             }
         }
         return { success: true };
-    };
-    DatabaseSource.prototype.deleteDatabaseConnection = function (dbConnectionGuid) {
-        var existing = this.ExecutionConnections.find(function (c) { return c.Guid == dbConnectionGuid; });
+    }
+    deleteDatabaseConnection(dbConnectionGuid) {
+        var existing = this.ExecutionConnections.find(c => c.Guid == dbConnectionGuid);
         if (existing == null) {
             return { success: false, userError: "The specified connection does not exist and cannot be updated." };
         }
         this.ExecutionConnections.splice(this.ExecutionConnections.indexOf(existing), 1);
         return { success: true };
-    };
-    DatabaseSource.prototype.checkForMissingOrmPreRequisitesOnDatabase = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var sqlScript, sqlConfig, con, request, res;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    sqlScript = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
-                                    sqlConfig = {
-                                        user: this.MetadataConnection.userID,
-                                        password: this.MetadataConnection.password,
-                                        server: this.MetadataConnection.dataSource,
-                                        database: this.MetadataConnection.initialCatalog,
-                                        stream: false,
-                                        options: {
-                                            encrypt: true
-                                        }
-                                    };
-                                    return [4 /*yield*/, new sql.Connection(sqlConfig).connect().catch(function (err) {
-                                            // TODO: Handle connection error
-                                            console.log("connection error", err);
-                                            reject(err);
-                                        })];
-                                case 1:
-                                    con = _a.sent();
-                                    request = new sql.Request(con);
-                                    request.output('err', sql.VarChar, null);
-                                    return [4 /*yield*/, request.query(sqlScript).catch(function (e) { return reject(e); })];
-                                case 2:
-                                    res = _a.sent();
-                                    con.close();
-                                    resolve(request.parameters["err"].value);
-                                    return [2 /*return*/];
-                            }
-                        });
-                    }); })];
-            });
+    }
+    checkForMissingOrmPreRequisitesOnDatabase() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                let sqlScript = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
+                var sqlConfig = {
+                    user: this.MetadataConnection.userID,
+                    password: this.MetadataConnection.password,
+                    server: this.MetadataConnection.dataSource,
+                    database: this.MetadataConnection.initialCatalog,
+                    stream: false,
+                    options: {
+                        encrypt: true
+                    }
+                };
+                let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                    // TODO: Handle connection error
+                    console.log("connection error", err);
+                    reject(err);
+                });
+                let request = new sql.Request(con);
+                request.output('err', sql.VarChar, null);
+                let res = yield request.query(sqlScript).catch(e => reject(e));
+                con.close();
+                resolve(request.parameters["err"].value);
+            }));
         });
-    };
-    DatabaseSource.prototype.InstallOrm = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var installSqlScript, sqlConfig, con, request, e_1;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    _a.trys.push([0, 3, , 4]);
-                                    installSqlScript = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });
-                                    ;
-                                    sqlConfig = {
-                                        user: this.MetadataConnection.userID,
-                                        password: this.MetadataConnection.password,
-                                        server: this.MetadataConnection.dataSource,
-                                        database: this.MetadataConnection.initialCatalog,
-                                        stream: false,
-                                        options: {
-                                            encrypt: true
-                                        }
-                                    };
-                                    return [4 /*yield*/, new sql.Connection(sqlConfig).connect().catch(function (err) {
-                                            reject(err);
-                                        })];
-                                case 1:
-                                    con = _a.sent();
-                                    request = new sql.Request(con);
-                                    request.output('err', sql.VarChar, null);
-                                    return [4 /*yield*/, request.query(installSqlScript).catch(function (e) { return reject(e); })];
-                                case 2:
-                                    _a.sent();
-                                    con.close();
-                                    resolve(true);
-                                    return [3 /*break*/, 4];
-                                case 3:
-                                    e_1 = _a.sent();
-                                    reject(e_1);
-                                    return [3 /*break*/, 4];
-                                case 4: return [2 /*return*/];
-                            }
-                        });
-                    }); })];
-            });
+    }
+    InstallOrm() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    let installSqlScript = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });
+                    ;
+                    var sqlConfig = {
+                        user: this.MetadataConnection.userID,
+                        password: this.MetadataConnection.password,
+                        server: this.MetadataConnection.dataSource,
+                        database: this.MetadataConnection.initialCatalog,
+                        stream: false,
+                        options: {
+                            encrypt: true
+                        }
+                    };
+                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                        reject(err);
+                    });
+                    let request = new sql.Request(con);
+                    request.output('err', sql.VarChar, null);
+                    yield request.query(installSqlScript).catch(e => reject(e));
+                    con.close();
+                    resolve(true);
+                }
+                catch (e) {
+                    reject(e);
+                }
+            }));
         });
-    };
-    DatabaseSource.prototype.UnInstallOrm = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var sqlConfig, con, request, e_2;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    _a.trys.push([0, 3, , 4]);
-                                    sqlConfig = {
-                                        user: this.MetadataConnection.userID,
-                                        password: this.MetadataConnection.password,
-                                        server: this.MetadataConnection.dataSource,
-                                        database: this.MetadataConnection.initialCatalog,
-                                        stream: false,
-                                        options: {
-                                            encrypt: true
-                                        }
-                                    };
-                                    return [4 /*yield*/, new sql.Connection(sqlConfig).connect().catch(function (err) {
-                                            reject(err);
-                                        })];
-                                case 1:
-                                    con = _a.sent();
-                                    request = new sql.Request(con);
-                                    return [4 /*yield*/, request.execute("orm.Uninstall").catch(function (e) { return reject(e); })];
-                                case 2:
-                                    _a.sent();
-                                    con.close();
-                                    resolve(true);
-                                    return [3 /*break*/, 4];
-                                case 3:
-                                    e_2 = _a.sent();
-                                    reject(e_2);
-                                    return [3 /*break*/, 4];
-                                case 4: return [2 /*return*/];
-                            }
-                        });
-                    }); })];
-            });
+    }
+    UnInstallOrm() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    var sqlConfig = {
+                        user: this.MetadataConnection.userID,
+                        password: this.MetadataConnection.password,
+                        server: this.MetadataConnection.dataSource,
+                        database: this.MetadataConnection.initialCatalog,
+                        stream: false,
+                        options: {
+                            encrypt: true
+                        }
+                    };
+                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                        reject(err);
+                    });
+                    let request = new sql.Request(con);
+                    yield request.execute("orm.Uninstall").catch(e => reject(e));
+                    con.close();
+                    resolve(true);
+                }
+                catch (e) {
+                    reject(e);
+                }
+            }));
         });
-    };
-    DatabaseSource.prototype.clearCache = function () {
+    }
+    clearCache() {
         try {
-            var cachePath = "./test/cache";
+            let cachePath = "./test/cache";
             if (!fs.existsSync(cachePath))
                 return;
-            var cacheFilePath = path.join(cachePath, this.CacheKey + ".json");
+            let cacheFilePath = path.join(cachePath, `${this.CacheKey}.json`);
             if (!fs.existsSync(cacheFilePath))
                 return;
             this.CachedRoutineList = [];
@@ -411,34 +314,33 @@ var DatabaseSource = (function () {
             //SessionLog.Exception(ex);
             throw ex; // TODO: HANDLE!!!!
         }
-    };
-    DatabaseSource.prototype.updatePluginList = function (pluginList) {
-        var _this = this;
+    }
+    updatePluginList(pluginList) {
         this.Plugins = [];
         if (!pluginList)
             return;
-        pluginList.forEach(function (p) {
-            var included = p.Included;
+        pluginList.forEach(p => {
+            let included = p.Included;
             if (included)
-                _this.Plugins.push(p);
+                this.Plugins.push(p);
         });
         return { success: true };
-    };
-    DatabaseSource.prototype.addJsFile = function (name) {
+    }
+    addJsFile(name) {
         if (this.JsFiles == null)
             this.JsFiles = [];
-        var existing = this.JsFiles.find(function (f) { return f.Filename.toLowerCase() == name.toLowerCase(); });
+        var existing = this.JsFiles.find(f => f.Filename.toLowerCase() == name.toLowerCase());
         if (existing != null) {
-            return { success: false, userError: "The output file '" + name + "' already exists against this data source." };
+            return { success: false, userError: `The output file '${name}' already exists against this data source.` };
         }
-        var jsfile = new jsfile_1.JsFile();
+        let jsfile = new jsfile_1.JsFile();
         jsfile.Filename = name;
         jsfile.Guid = shortid.generate();
         this.JsFiles.push(jsfile);
         return { success: true };
-    };
-    DatabaseSource.prototype.addRule = function (ruleType, txt) {
-        var rule = null;
+    }
+    addRule(ruleType, txt) {
+        let rule = null;
         switch (ruleType) {
             case rules_1.RuleType.Schema:
                 rule = new rules_1.SchemaRule(txt);
@@ -467,28 +369,27 @@ var DatabaseSource = (function () {
                 rule = new rules_1.RegexRule(txt);
                 break;
             default:
-                throw "Unsupported rule type: " + ruleType;
+                throw `Unsupported rule type: ${ruleType}`;
         }
         rule.Guid = shortid.generate();
         this.Rules.push(rule);
         return { success: true };
-    };
-    DatabaseSource.prototype.deleteRule = function (ruleGuid) {
-        var existingRule = this.Rules.find(function (r) { /*r!=null &&*/ return r.Guid == ruleGuid; });
+    }
+    deleteRule(ruleGuid) {
+        var existingRule = this.Rules.find(r => r.Guid == ruleGuid);
         if (existingRule == null) {
             return { success: false, userErrorMsg: "The specified rule was not found." };
         }
         this.Rules.splice(this.Rules.indexOf(existingRule), 1);
         return { success: true };
-    };
-    DatabaseSource.prototype.applyDbLevelRules = function () {
+    }
+    applyDbLevelRules() {
         this.applyRules(jsfile_1.JsFile.DBLevel);
-    };
-    DatabaseSource.prototype.applyRules = function (jsFileContext) {
-        var _this = this;
+    }
+    applyRules(jsFileContext) {
         if (this.CachedRoutineList == null)
             return;
-        this.CachedRoutineList.forEach(function (routine) {
+        this.CachedRoutineList.forEach(routine => {
             if (routine.RuleInstructions == null)
                 return;
             //if (routine.RuleInstructions.length == 1 
@@ -496,11 +397,47 @@ var DatabaseSource = (function () {
             delete routine.RuleInstructions[jsFileContext.Guid];
             if (routine.IsDeleted)
                 return;
-            var instruction = routine.applyRules(_this, jsFileContext);
+            let instruction = routine.applyRules(this, jsFileContext);
             routine.RuleInstructions[jsFileContext.Guid] = instruction;
         });
-    };
-    return DatabaseSource;
-}());
+    }
+    mayAccessDbSource(req) {
+        if (this.WhitelistedDomainsCsv == null) {
+            return { success: false, userErrorMsg: "No access list exists." };
+        }
+        let referer = req.header("Referer");
+        let host = req.host;
+        let whitelistedIPs = this.WhitelistedDomainsCsv.split(',');
+        let r = null;
+        whitelistedIPs.forEach(en => {
+            if (en.toLowerCase() == host.toLowerCase()) {
+                r = { success: true };
+                return;
+            }
+        });
+        if (r)
+            return r;
+        return { success: false, userErrorMsg: `The host (${host}) is not allowed to access this resource.` };
+    }
+    getSqlConnection(dbConnectionGuid) {
+        let decryptedConnection;
+        if (!dbConnectionGuid) {
+            decryptedConnection = this.MetadataConnection;
+        }
+        else {
+            var dbConnection = this.ExecutionConnections.find(con => con.Guid == dbConnectionGuid);
+            if (dbConnection != null) {
+                decryptedConnection = dbConnection;
+            }
+            else {
+                log_1.SessionLog.error(`The execution connection '${dbConnectionGuid}' not found in specified DB Source '${this.Name}' (${this.CacheKey}). Reverting to metadata connection.`);
+                decryptedConnection = this.MetadataConnection;
+            }
+        }
+        return {
+            user: decryptedConnection.userID, password: decryptedConnection.password, server: decryptedConnection.dataSource, database: decryptedConnection.initialCatalog
+        };
+    }
+}
 exports.DatabaseSource = DatabaseSource;
 //# sourceMappingURL=database-source.js.map
