@@ -25,16 +25,8 @@ import * as sql from 'mssql';
 export interface IJsDALPlugin {
     Name: string;
     Description: string;
+    Guid: string;
 
-    OnConnectionOpened(con: sql.Connection): Promise<void>;
+    OnConnectionOpened(con: sql.ConnectionPool, queryString: { [key:string]: string} ): Promise<void>;
 }
-
-class TestPlugin implements IJsDALPlugin {
-    Name: string;
-    Description: string;
-
-    public OnConnectionOpened(con: sql.Connection): Promise<void> {
-        return null;
-    }
-
-}
+ 

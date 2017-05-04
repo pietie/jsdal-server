@@ -283,7 +283,7 @@ export class DatabaseSource {
         return new Promise<string>(async (resolve, reject) => {
             let sqlScript: string = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
 
-            var sqlConfig = {
+            let sqlConfig:sql.config = {
                 user: this.MetadataConnection.userID,
                 password: this.MetadataConnection.password,
                 server: this.MetadataConnection.dataSource,
@@ -294,7 +294,7 @@ export class DatabaseSource {
                 }
             };
 
-            let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => {
+            let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                 // TODO: Handle connection error
                 console.log("connection error", err);
                 reject(err);
@@ -319,7 +319,7 @@ export class DatabaseSource {
             try {
                 let installSqlScript: string = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });;
 
-                var sqlConfig = {
+                let sqlConfig:sql.config = {
                     user: this.MetadataConnection.userID,
                     password: this.MetadataConnection.password,
                     server: this.MetadataConnection.dataSource,
@@ -330,7 +330,7 @@ export class DatabaseSource {
                     }
                 };
 
-                let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => {
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     reject(err);
                 });
 
@@ -366,7 +366,7 @@ export class DatabaseSource {
                     }
                 };
 
-                let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => {
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     reject(err);
                 });
 

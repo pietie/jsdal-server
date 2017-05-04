@@ -213,7 +213,7 @@ class DatabaseSource {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let sqlScript = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
-                var sqlConfig = {
+                let sqlConfig = {
                     user: this.MetadataConnection.userID,
                     password: this.MetadataConnection.password,
                     server: this.MetadataConnection.dataSource,
@@ -223,7 +223,7 @@ class DatabaseSource {
                         encrypt: true
                     }
                 };
-                let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     // TODO: Handle connection error
                     console.log("connection error", err);
                     reject(err);
@@ -242,7 +242,7 @@ class DatabaseSource {
                 try {
                     let installSqlScript = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });
                     ;
-                    var sqlConfig = {
+                    let sqlConfig = {
                         user: this.MetadataConnection.userID,
                         password: this.MetadataConnection.password,
                         server: this.MetadataConnection.dataSource,
@@ -252,7 +252,7 @@ class DatabaseSource {
                             encrypt: true
                         }
                     };
-                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         reject(err);
                     });
                     let request = new sql.Request(con);
@@ -281,7 +281,7 @@ class DatabaseSource {
                             encrypt: true
                         }
                     };
-                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         reject(err);
                     });
                     let request = new sql.Request(con);

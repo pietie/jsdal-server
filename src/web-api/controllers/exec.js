@@ -48,7 +48,7 @@ class ExecController {
                     });
                     //??? resolve(ApiResponse.Payload({ ret: "TODO:(" }));
                     let retVal = {};
-                    let dataContainers = {};
+                    let dataContainers = ExecController.toJsonDataset(execResult.results);
                     //!let dataContainers = execResult.results.ToJsonDS();
                     retVal.OutputParms = execResult.outputParms;
                     var keys = Object.keys(dataContainers);
@@ -69,17 +69,6 @@ class ExecController {
                             ret.Type = api_response_1.ApiResponseType.ExclamationModal;
                         }
                     }
-                    /*
-                                    var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ret);
-                    
-                                    response.Headers.Clear();
-                    
-                                    
-                                    //response.Headers.Add("Content-Type", "application/json");
-                                    response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                    
-                    
-                                    return response;*/
                     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
                     res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
                     res.setHeader("Content-Type", "application/json");
@@ -91,10 +80,24 @@ class ExecController {
             }));
         });
     }
+    static toJsonDataset(results) {
+        let ret = {};
+        if (results && results.recordsets) {
+            for (let i = 0; i < results.recordsets.length; i++) {
+                let rs = results.recordsets[i];
+                let fields = Object.keys(rs.columns).map(colName => { return { name: colName, type: rs.columns[colName].type.name }; });
+                let table = rs.toTable();
+                ret["Table" + i] = {
+                    Fields: fields,
+                    Data: table.rows
+                };
+            }
+        }
+        return ret;
+    }
     static execRoutineQuery(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 30) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                let outputParameterDictionary = {};
                 let routineCache = dbSource.cache;
                 let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
                 if (cachedRoutine == null) {
@@ -114,7 +117,7 @@ class ExecController {
                             encrypt: true
                         }
                     };
-                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         log_1.SessionLog.error(err.toString());
                         reject(err);
                         return;
@@ -122,7 +125,7 @@ class ExecController {
                     if (con == null)
                         return;
                     // PLUGINS
-                    ExecController.processPlugins(dbSource, queryString, con);
+                    yield ExecController.processPlugins(dbSource, queryString, con);
                     let cmd = new sql.Request(con);
                     cmd.stream = false; // TODO: In future consider streaming for async calls
                     if (cachedRoutine.Type == "PROCEDURE"
@@ -135,7 +138,6 @@ class ExecController {
                             //!cmd.CommandType = CommandType.Text;
                             //!cmd.CommandText = string.Format("select * from [{0}].[{1}]({2})", schemaName, routineName, parmCsvList);
                         }
-                        let outputParmLookup = [];
                         if (cachedRoutine.Parameters != null) {
                             cachedRoutine.Parameters.forEach(p => {
                                 let sqlType = ExecController.getSqlDbTypeFromParameterType(p.DataType);
@@ -165,64 +167,50 @@ class ExecController {
                                     cmd.input(parmName, sqlType, parmValue);
                                 }
                                 else {
-                                    outputParmLookup.push(parmName);
                                     cmd.output(parmName, sqlType);
                                 }
                             }); // foreach Parameter 
                         }
-                        //var da = new SqlDataAdapter(cmd);
-                        //var ds = new DataSet();
                         //!var executionTrackingEndFunction = ExecTracker.Track(dbSource.Name, cachedRoutine.Schema, cachedRoutine.Routine);
                         let res = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(e => {
                             //todo: handle execution error
                             console.error(e);
                         });
-                        // OUTPUT parameters
+                        /////////////////////
+                        // $select
+                        // ¯¯¯¯¯¯¯¯
+                        // Allows the user to only return certain fields
+                        // comma(,) splits fields and semi-colon(;) splits across table results
                         {
-                            if (outputParmLookup.length > 0) {
-                                // retrieve OUT-parameters and their values
-                                outputParmLookup.forEach(outParm => {
-                                    let val = null;
-                                    val = cmd.parameters[outParm].value;
-                                    //if (val == DBNull.Value) val = null;
-                                    outputParameterDictionary[outParm] = val;
-                                });
+                            if (queryString["$select"] && res.recordsets.length > 0) {
+                                let limitToFieldsCsv = queryString["$select"];
+                                if (limitToFieldsCsv && limitToFieldsCsv.trim() != "") {
+                                    let listPerTable = limitToFieldsCsv.split(';');
+                                    for (let tableIx = 0; tableIx < listPerTable.length; tableIx++) {
+                                        let fieldsToKeep = listPerTable[tableIx].split(',').map(s => s.trim());
+                                        if (fieldsToKeep.length > 0) {
+                                            let table = res.recordsets[tableIx];
+                                            let columns = Object.keys(table.columns);
+                                            for (let i = 0; i < columns.length; i++) {
+                                                //var match = fieldsToKeep.FirstOrDefault((k) => k.Key.Equals(table.Columns[i].ColumnName, StringComparison.OrdinalIgnoreCase));
+                                                let match = fieldsToKeep.find(f => f.toLowerCase() == columns[i].toLowerCase());
+                                                if (match == null) {
+                                                    delete res.recordsets[tableIx].columns[columns[i]];
+                                                    //    i--;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         //!executionTrackingEndFunction();
                         con.close();
-                        resolve({ results: "TODO", outputParms: outputParameterDictionary });
+                        resolve({ results: res, outputParms: res.output });
                     }
                     else if (cachedRoutine.Type == "FUNCTION") {
                         throw "Use ExecScalar for UDF calls";
                     }
-                    //     using (var con = new SqlConnection(dbSource.GetSqlConnectionString(dbConnectionGuid)))
-                    //     {
-                    //             if (queryString.ContainsKey("$select") && ds.Tables.Count > 0)
-                    //             {
-                    //                 string limitToFieldsCsv = queryString["$select"];
-                    //                 if (!string.IsNullOrEmpty(limitToFieldsCsv))
-                    //                 {
-                    //                     var listPerTable = limitToFieldsCsv.Split(new char[] { ';' }/*, StringSplitOptions.RemoveEmptyEntries*/);
-                    //                     for (int tableIx = 0; tableIx < listPerTable.Length; tableIx++)
-                    //                     {
-                    //                         var fieldsToKeep = listPerTable[tableIx].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToLookup(s => s.Trim());
-                    //                         if (fieldsToKeep.Count > 0)
-                    //                         {
-                    //                             var table = ds.Tables[tableIx];
-                    //                             for (int i = 0; i < table.Columns.Count; i++)
-                    //                             {
-                    //                                 var match = fieldsToKeep.FirstOrDefault((k) => k.Key.Equals(table.Columns[i].ColumnName, StringComparison.OrdinalIgnoreCase));
-                    //                                 if (match == null)
-                    //                                 {
-                    //                                     table.Columns.Remove(table.Columns[i]);
-                    //                                     i--;
-                    //                                 }
-                    //                             }
-                    //                         }
-                    //                     }
-                    //                 }
-                    //             }
                 }
                 catch (ex) {
                     reject(ex);
@@ -279,17 +267,15 @@ class ExecController {
         }
     }
     static processPlugins(dbSource, queryString, con) {
+        let promises = [];
         let pluginAssemblies = global["PluginAssemblies"];
         if (pluginAssemblies != null && dbSource.Plugins != null) {
             dbSource.Plugins.forEach(pluginGuid => {
                 let plugin = pluginAssemblies.find(p => p.Guid && p.Guid.toLowerCase() == pluginGuid.toLowerCase());
                 if (plugin != null) {
                     try {
-                        plugin.OnConnectionOpened(con, queryString);
-                        // var concrete = (jsDALPlugin)plugin.Assembly.CreateInstance(plugin.TypeInfo.FullName);
-                        // var initPluginMethod = typeof (jsDALPlugin).GetMethod("InitPlugin", BindingFlags.NonPublic | BindingFlags.Instance);//TODO: thie method signature can be cached?
-                        // initPluginMethod.Invoke(concrete, new object[] { queryString });
-                        // concrete.OnConnectionOpened(con);
+                        let prom = plugin.OnConnectionOpened(con, queryString);
+                        promises.push(prom);
                     }
                     catch (ex) {
                         log_1.SessionLog.error(`Failed to instantiate '${plugin.Name}' (${plugin.Guid})`);
@@ -301,6 +287,7 @@ class ExecController {
                 }
             });
         }
+        return Promise.all(promises);
     }
 }
 __decorate([

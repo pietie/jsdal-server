@@ -59,7 +59,7 @@ class Worker {
 
         let lastSavedDate: Date = new Date();
 
-        var sqlConfig = {
+        let sqlConfig:sql.config = {
             user: dbSource.userID,
             password: dbSource.password,
             server: dbSource.dataSource,
@@ -88,7 +88,7 @@ class Worker {
                 return;
             }
 
-            let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => {
+            let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                 // TODO: Handle connection error
                 SessionLog.error(err.toString());
                 console.log("connection error", err);

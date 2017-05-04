@@ -53,7 +53,7 @@ class Worker {
         return __awaiter(this, void 0, void 0, function* () {
             this.isRunning = true;
             let lastSavedDate = new Date();
-            var sqlConfig = {
+            let sqlConfig = {
                 user: dbSource.userID,
                 password: dbSource.password,
                 server: dbSource.dataSource,
@@ -77,7 +77,7 @@ class Worker {
                     setTimeout(() => this.run(dbSource), 2000);
                     return;
                 }
-                let con = yield new sql.Connection(sqlConfig).connect().catch(err => {
+                let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     // TODO: Handle connection error
                     log_1.SessionLog.error(err.toString());
                     console.log("connection error", err);

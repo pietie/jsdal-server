@@ -6,9 +6,9 @@ class OrmDAL {
         return new Promise((resolve, reject) => {
             (new sql.Request(con))
                 .input('maxRowver', sql.BigInt, maxRowDate)
-                .execute('orm.SprocGenGetRoutineListCnt').then(function (result) {
-                if (result && result.length > 0 && result[0].length > 0)
-                    resolve(result[0][0].CNT);
+                .execute('orm.SprocGenGetRoutineListCnt').then((result) => {
+                if (result && result.recordset && result.recordset.length > 0)
+                    resolve(result.recordset[0].CNT);
                 else
                     reject();
             }).catch(function (err) {

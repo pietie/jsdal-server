@@ -28,7 +28,7 @@ export class UtilController {
                                     connStr = string.Format("Data Source={0};Persist Security Info=False;Integrated Security=True", dataSource);
                                 }
                  */
-                var sqlConfig: sql.config = {
+                let sqlConfig: sql.config = {
                     user: user,
                     password: pass,
                     server: dataSource,
@@ -39,7 +39,7 @@ export class UtilController {
                     }
                 };
 
-                let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => { reject(err); });
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => { reject(err); });
                 let request = new sql.Request(con);
 
                 let ret: any = await request.query("select Name from sys.databases order by 1").catch(e => reject(e));
@@ -74,7 +74,7 @@ export class UtilController {
                 //         }
 
 
-                var sqlConfig: sql.config = {
+                let sqlConfig: sql.config = {
                     user: username,
                     password: password,
                     server: dataSource,
@@ -85,7 +85,7 @@ export class UtilController {
                     }
                 };
 
-                let con: sql.Connection = <sql.Connection>await new sql.Connection(sqlConfig).connect().catch(err => { resolve(ApiResponse.Exception(err)); });
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => { resolve(ApiResponse.Exception(err)); });
                 
                 con.close();
 

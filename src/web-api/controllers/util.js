@@ -39,7 +39,7 @@ class UtilController {
                                         connStr = string.Format("Data Source={0};Persist Security Info=False;Integrated Security=True", dataSource);
                                     }
                      */
-                    var sqlConfig = {
+                    let sqlConfig = {
                         user: user,
                         password: pass,
                         server: dataSource,
@@ -49,7 +49,7 @@ class UtilController {
                             encrypt: true
                         }
                     };
-                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => { reject(err); });
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => { reject(err); });
                     let request = new sql.Request(con);
                     let ret = yield request.query("select Name from sys.databases order by 1").catch(e => reject(e));
                     con.close();
@@ -76,7 +76,7 @@ class UtilController {
                     //         else {
                     //             connStr = string.Format("Data Source={0};Persist Security Info=False;Initial Catalog={1};Integrated Security=True", dataSource, catalog);
                     //         }
-                    var sqlConfig = {
+                    let sqlConfig = {
                         user: username,
                         password: password,
                         server: dataSource,
@@ -86,7 +86,7 @@ class UtilController {
                             encrypt: true
                         }
                     };
-                    let con = yield new sql.Connection(sqlConfig).connect().catch(err => { resolve(api_response_1.ApiResponse.Exception(err)); });
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => { resolve(api_response_1.ApiResponse.Exception(err)); });
                     con.close();
                     resolve(api_response_1.ApiResponse.Success());
                     // catch(SqlException se) {

@@ -4,13 +4,13 @@ import { RoutineParameter, ResultsetMetadata } from './../settings/object-model/
 
 export class OrmDAL {
 
-    public static SprocGenGetRoutineListCnt(con: sql.Connection, maxRowDate: number): Promise<number> {
+    public static SprocGenGetRoutineListCnt(con: sql.ConnectionPool, maxRowDate: number): Promise<number> {
         return new Promise<number>((resolve, reject) => {
             (<any>(new sql.Request(con)))
                 .input('maxRowver', sql.BigInt, maxRowDate)
-                .execute('orm.SprocGenGetRoutineListCnt').then(function (result) {
+                .execute('orm.SprocGenGetRoutineListCnt').then((result) => {
 
-                    if (result && result.length > 0 && result[0].length > 0) resolve(result[0][0].CNT);
+                    if (result && result.recordset && result.recordset.length > 0) resolve(result.recordset[0].CNT);
                     else reject();
 
                 }).catch(function (err) {
@@ -20,7 +20,7 @@ export class OrmDAL {
         });
     }
 
-    public static SprocGenGetRoutineListStream(con: sql.Connection, maxRowDate: number): sql.Request {
+    public static SprocGenGetRoutineListStream(con: sql.ConnectionPool, maxRowDate: number): sql.Request {
         let request = new sql.Request(con);
 
         request.stream = true;
@@ -33,7 +33,7 @@ export class OrmDAL {
     }
 
 
-    public static RoutineGetFmtOnlyResults(con: sql.Connection, schema: string, routine: string, parameterList: RoutineParameter[]): Promise<Array<ResultsetMetadata[]>> {
+    public static RoutineGetFmtOnlyResults(con: sql.ConnectionPool, schema: string, routine: string, parameterList: RoutineParameter[]): Promise<Array<ResultsetMetadata[]>> {
         return new Promise<Array<ResultsetMetadata[]>>((resolve, reject) => {
 
             let resultSets: Array<ResultsetMetadata[]> = null;
