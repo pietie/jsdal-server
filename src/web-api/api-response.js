@@ -36,6 +36,18 @@ class ApiResponse {
     }
 }
 exports.ApiResponse = ApiResponse;
+class ApiResponseScalar extends ApiResponse {
+    constructor() {
+        super();
+    }
+    static PayloadScalar(data, isDate) {
+        let ret = new ApiResponseScalar();
+        ret.Data = data;
+        ret.IsDate = isDate;
+        return ret;
+    }
+}
+exports.ApiResponseScalar = ApiResponseScalar;
 var ApiResponseType;
 (function (ApiResponseType) {
     ApiResponseType[ApiResponseType["Unknown"] = 0] = "Unknown";

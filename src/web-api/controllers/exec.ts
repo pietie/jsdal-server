@@ -1,4 +1,4 @@
-import { ApiResponse, ApiResponseType } from './../api-response'
+import { ApiResponse, ApiResponseScalar, ApiResponseType } from './../api-response'
 import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
 
@@ -41,16 +41,10 @@ export class ExecController {
                 });
 
 
-                //??? resolve(ApiResponse.Payload({ ret: "TODO:(" }));
-
-
                 let retVal: any = {};
                 let dataContainers = ExecController.toJsonDataset(execResult.results);
-                //!let dataContainers = execResult.results.ToJsonDS();
 
                 retVal.OutputParms = execResult.outputParms;
-
-
 
                 var keys = Object.keys(dataContainers);
 
@@ -90,6 +84,57 @@ export class ExecController {
             }
 
 
+        });
+    }
+
+    @route("/api/execScalar/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true)
+    public static async Scalar(req: Request, res: Response): Promise<ApiResponse> {
+
+        return new Promise<ApiResponse>(async (resolve, reject) => {
+
+            try {
+                let dbSourceGuid: string = req.params.dbSourceGuid;
+                let dbConnectionGuid: string = req.params.dbConnectionGuid;
+                let schema: string = req.params.schema;
+                let routine: string = req.params.routine;
+
+                let dbSources = SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
+                let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
+
+                let dbSource: DatabaseSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
+
+                if (dbSource == null) throw `The specified DB source '${dbSourceGuid}' was not found.`;
+
+                // make sure the source domain/IP is allowed access
+                let mayAccess = dbSource.mayAccessDbSource(req);
+                if (!mayAccess.success) {
+                    res.status(403).send(mayAccess.userErrorMsg);
+                    return undefined;
+                }
+
+                let scalar = await ExecController.execRoutineScalar(req, schema, routine, dbSource, dbConnectionGuid, req.query);
+
+                let ret;
+
+                if (scalar instanceof Date) {
+                    // convert to Javascript Date ticks
+                    //let ticks = ;//scalar.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+
+                    ret = ApiResponseScalar.PayloadScalar(scalar.getTime(), true);
+                }
+                else {
+                    ret = ApiResponse.Payload(scalar);
+                }
+
+                res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+                res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+                res.setHeader("Content-Type", "application/json");
+
+                resolve(ret);
+            }
+            catch (ex) {
+                resolve(ApiResponse.Exception(ex));
+            }
         });
     }
 
@@ -217,9 +262,6 @@ export class ExecController {
                             else {
                                 cmd.output(parmName, sqlType);
                             }
-
-
-
                         }); // foreach Parameter 
 
                     }
@@ -249,14 +291,12 @@ export class ExecController {
                                     if (fieldsToKeep.length > 0) {
                                         let table = res.recordsets[tableIx];
                                         let columns = Object.keys(table.columns);
- 
+
                                         for (let i = 0; i < columns.length; i++) {
-                                            //var match = fieldsToKeep.FirstOrDefault((k) => k.Key.Equals(table.Columns[i].ColumnName, StringComparison.OrdinalIgnoreCase));
-                                            let match = fieldsToKeep.find(f=>f.toLowerCase() == columns[i].toLowerCase());
+                                            let match = fieldsToKeep.find(f => f.toLowerCase() == columns[i].toLowerCase());
 
                                             if (match == null) {
                                                 delete res.recordsets[tableIx].columns[columns[i]];
-                                            //    i--;
                                             }
                                         }
 
@@ -287,9 +327,117 @@ export class ExecController {
             }
 
         });
-
-
     }
+
+    private static async execRoutineScalar(request: Request,
+        schemaName: string,
+        routineName: string,
+        dbSource: DatabaseSource,
+        dbConnectionGuid: string,
+        queryString: object,
+        commandTimeOutInSeconds: number = 30
+    ): Promise<ExecutionResult> {
+        return new Promise<ExecutionResult>(async (resolve, reject) => {
+
+            let routineCache = dbSource.cache;
+
+            let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+
+            if (cachedRoutine == null) {
+                throw `The routine [${schemaName}].[${routineName}] was not found.`;
+            }
+
+            try {
+
+                let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
+
+                let sqlConfig: sql.config = {
+                    user: dbConn.user,
+                    password: dbConn.password,
+                    server: dbConn.server,
+                    database: dbConn.database,
+                    connectionTimeout: 15000,
+                    requestTimeout: commandTimeOutInSeconds * 1000,
+                    stream: false,
+                    options: {
+                        encrypt: true
+                    }
+                };
+
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                    SessionLog.error(err.toString());
+                    reject(err);
+                    return;
+                });
+
+                if (con == null) return;
+
+                // PLUGINS
+                await ExecController.processPlugins(dbSource, queryString, con);
+
+                let cmd = new sql.Request(con);
+
+                cmd.stream = false; // TODO: In future consider streaming for async calls
+
+                if (cachedRoutine.Parameters != null) {
+                    cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").forEach(p => {
+
+                        let sqlType = ExecController.getSqlDbTypeFromParameterType(p.DataType);
+                        let parmValue = null;
+
+                        // trim leading '@'
+                        let parmName = p.ParameterName.substr(1, 99999);
+
+                        if (queryString[parmName]) {
+                            let val = queryString[parmName];
+
+                            // TODO: support jsDAL variables
+                            // look for special jsDAL Server variables
+                            //val = jsDALServerVariables.Parse(request, val);
+
+                            //!?parmValue = val == null ? DBNull.Value : ConvertParameterValue(sqlType, val);
+                            parmValue = val;// TODO:???
+                        }
+
+                        if (p.ParameterMode == "IN") {
+                            cmd.input(parmName, sqlType, parmValue);
+                        }
+                        else {
+                            cmd.output(parmName, sqlType);
+                        }
+                    }); // foreach Parameter 
+
+                }
+
+                let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
+                let result: sql.IResult<any>;
+
+                if (cachedRoutine.Type == "PROCEDURE") {
+                    //cmd.CommandType = CommandType.StoredProcedure;
+                    //cmd.CommandText = string.Format("[{0}].[{1}]", schemaName, routineName);
+                    throw "Scalar SPROC not yet supported. What do we expect? The value from RETURN??"; // what about output params on ExecScalar?
+                }
+                else if (cachedRoutine.Type == "FUNCTION") {
+                    result = await cmd.query(`select [${schemaName}].[${routineName}](${parmCsvList})`);
+
+                    if (result && result.recordset && result.recordset.length > 0) {
+                        resolve(result.recordset[0][""]);
+                    }
+                    else {
+                        resolve(null);
+                    }
+                }
+
+
+            }
+            catch (ex) {
+                reject(ex);
+            }
+
+        });
+    }
+
+
 
     private static getSqlDbTypeFromParameterType(parameterDataType: string): sql.ISqlTypeFactoryWithNoParams {
         switch (parameterDataType.toLowerCase()) {
@@ -508,63 +656,6 @@ export class ExecController {
             }
         }
 
-        [HttpGet]
-        [Route("api/execScalar/{dbSourceGuid}/{dbConnectionGuid}/{schema}/{routine}")] //e.g. /api/exec/vZero/
-        public HttpResponseMessage Scalar(Guid dbSourceGuid, Guid? dbConnectionGuid, string schema, string routine)
-        {
-            try
-            {
-                var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
-
-                // TODO: if not found...
-                if (dbSource == null)
-                {
-                    HttpResponseMessage ret = new HttpResponseMessage();
-
-                    //var ret = Request.CreateResponse<string>(System.Net.HttpStatusCode.NotFound, string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-                    ret.Content = new StringContent(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-                    ret.StatusCode = System.Net.HttpStatusCode.NotFound;
-                    ret.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
-                    return ret;
-                    //throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-                }
-
-                // make sure the source domain/IP is allowed access
-                string ue;
-                if (!dbSource.MayAccessDbSource(Request, out ue))
-                {
-                    return Request.CreateResponse<string>(System.Net.HttpStatusCode.Forbidden, ue);
-                }
-
-                var queryString = this.Request.GetQueryNameValuePairs();
-
-                var scalar = Database.ExecRoutineScalar(this.Request, schema, routine, dbSource, dbConnectionGuid, queryString.ToDictionary(t => t.Key, t => t.Value));
-
-                if (scalar is DateTime)
-                {
-                    var dt = (DateTime)scalar;
-
-                    // convert to Javascript Date ticks
-                    var ticks = dt.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-
-                    var ret = ApiResponseScalar.Payload(ticks, true);
-
-                    return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ret);
-                }
-
-                var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ApiResponse.Payload(scalar));
-
-                response.Headers.Clear();
-                response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-            }
-        }
 
         [HttpGet]
         [Route("api/execBatch")] 

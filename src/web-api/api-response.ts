@@ -1,3 +1,5 @@
+
+
 export class ApiResponse {
 
     constructor() {
@@ -14,7 +16,7 @@ export class ApiResponse {
 
     public static Success(): ApiResponse {
         let ret = new ApiResponse();
-        
+
         ret.Type = ApiResponseType.Success;
 
         return ret;
@@ -27,7 +29,7 @@ export class ApiResponse {
         return ret;
     }
 
-    public static InformationToast(msg: string, data:any = null): ApiResponse {
+    public static InformationToast(msg: string, data: any = null): ApiResponse {
         let ret = new ApiResponse();
         ret.Message = msg;
         ret.Type = ApiResponseType.InfoMsg;
@@ -37,7 +39,7 @@ export class ApiResponse {
 
     public static Exception(ex: Error | any): ApiResponse {
         let ret = new ApiResponse();
-        
+
         ret.Message = ex.toString();
         ret.Type = ApiResponseType.Exception;
 
@@ -46,16 +48,30 @@ export class ApiResponse {
 
     public static Payload(data: any): ApiResponse {
         let ret = new ApiResponse();
-        
+
         ret.Data = data;
         ret.Type = ApiResponseType.Success;
-        
+
         return ret;
     }
 
 
 }
 
+export class ApiResponseScalar extends ApiResponse {
+    constructor()
+    {
+        super();
+    }
+    public IsDate: boolean;
+
+    public static PayloadScalar(data: Object, isDate: boolean): ApiResponseScalar {
+        let ret = new ApiResponseScalar();
+        ret.Data = data;
+        ret.IsDate = isDate;
+        return ret;
+    }
+}
 
 export enum ApiResponseType {
     Unknown = 0,

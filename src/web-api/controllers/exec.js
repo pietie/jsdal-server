@@ -46,10 +46,8 @@ class ExecController {
                         resolve(api_response_1.ApiResponse.Exception(e));
                         return;
                     });
-                    //??? resolve(ApiResponse.Payload({ ret: "TODO:(" }));
                     let retVal = {};
                     let dataContainers = ExecController.toJsonDataset(execResult.results);
-                    //!let dataContainers = execResult.results.ToJsonDS();
                     retVal.OutputParms = execResult.outputParms;
                     var keys = Object.keys(dataContainers);
                     for (var i = 0; i < keys.length; i++) {
@@ -68,6 +66,46 @@ class ExecController {
                             ret.Title = "Action failed";
                             ret.Type = api_response_1.ApiResponseType.ExclamationModal;
                         }
+                    }
+                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+                    res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+                    res.setHeader("Content-Type", "application/json");
+                    resolve(ret);
+                }
+                catch (ex) {
+                    resolve(api_response_1.ApiResponse.Exception(ex));
+                }
+            }));
+        });
+    }
+    static Scalar(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    let dbSourceGuid = req.params.dbSourceGuid;
+                    let dbConnectionGuid = req.params.dbConnectionGuid;
+                    let schema = req.params.schema;
+                    let routine = req.params.routine;
+                    let dbSources = settings_instance_1.SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
+                    let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
+                    let dbSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
+                    if (dbSource == null)
+                        throw `The specified DB source '${dbSourceGuid}' was not found.`;
+                    // make sure the source domain/IP is allowed access
+                    let mayAccess = dbSource.mayAccessDbSource(req);
+                    if (!mayAccess.success) {
+                        res.status(403).send(mayAccess.userErrorMsg);
+                        return undefined;
+                    }
+                    let scalar = yield ExecController.execRoutineScalar(req, schema, routine, dbSource, dbConnectionGuid, req.query);
+                    let ret;
+                    if (scalar instanceof Date) {
+                        // convert to Javascript Date ticks
+                        //let ticks = ;//scalar.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+                        ret = api_response_1.ApiResponseScalar.PayloadScalar(scalar.getTime(), true);
+                    }
+                    else {
+                        ret = api_response_1.ApiResponse.Payload(scalar);
                     }
                     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
                     res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
@@ -192,11 +230,9 @@ class ExecController {
                                             let table = res.recordsets[tableIx];
                                             let columns = Object.keys(table.columns);
                                             for (let i = 0; i < columns.length; i++) {
-                                                //var match = fieldsToKeep.FirstOrDefault((k) => k.Key.Equals(table.Columns[i].ColumnName, StringComparison.OrdinalIgnoreCase));
                                                 let match = fieldsToKeep.find(f => f.toLowerCase() == columns[i].toLowerCase());
                                                 if (match == null) {
                                                     delete res.recordsets[tableIx].columns[columns[i]];
-                                                    //    i--;
                                                 }
                                             }
                                         }
@@ -210,6 +246,84 @@ class ExecController {
                     }
                     else if (cachedRoutine.Type == "FUNCTION") {
                         throw "Use ExecScalar for UDF calls";
+                    }
+                }
+                catch (ex) {
+                    reject(ex);
+                }
+            }));
+        });
+    }
+    static execRoutineScalar(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 30) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                let routineCache = dbSource.cache;
+                let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+                if (cachedRoutine == null) {
+                    throw `The routine [${schemaName}].[${routineName}] was not found.`;
+                }
+                try {
+                    let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
+                    let sqlConfig = {
+                        user: dbConn.user,
+                        password: dbConn.password,
+                        server: dbConn.server,
+                        database: dbConn.database,
+                        connectionTimeout: 15000,
+                        requestTimeout: commandTimeOutInSeconds * 1000,
+                        stream: false,
+                        options: {
+                            encrypt: true
+                        }
+                    };
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                        log_1.SessionLog.error(err.toString());
+                        reject(err);
+                        return;
+                    });
+                    if (con == null)
+                        return;
+                    // PLUGINS
+                    yield ExecController.processPlugins(dbSource, queryString, con);
+                    let cmd = new sql.Request(con);
+                    cmd.stream = false; // TODO: In future consider streaming for async calls
+                    if (cachedRoutine.Parameters != null) {
+                        cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").forEach(p => {
+                            let sqlType = ExecController.getSqlDbTypeFromParameterType(p.DataType);
+                            let parmValue = null;
+                            // trim leading '@'
+                            let parmName = p.ParameterName.substr(1, 99999);
+                            if (queryString[parmName]) {
+                                let val = queryString[parmName];
+                                // TODO: support jsDAL variables
+                                // look for special jsDAL Server variables
+                                //val = jsDALServerVariables.Parse(request, val);
+                                //!?parmValue = val == null ? DBNull.Value : ConvertParameterValue(sqlType, val);
+                                parmValue = val; // TODO:???
+                            }
+                            if (p.ParameterMode == "IN") {
+                                cmd.input(parmName, sqlType, parmValue);
+                            }
+                            else {
+                                cmd.output(parmName, sqlType);
+                            }
+                        }); // foreach Parameter 
+                    }
+                    let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
+                    let result;
+                    if (cachedRoutine.Type == "PROCEDURE") {
+                        //cmd.CommandType = CommandType.StoredProcedure;
+                        //cmd.CommandText = string.Format("[{0}].[{1}]", schemaName, routineName);
+                        throw "Scalar SPROC not yet supported. What do we expect? The value from RETURN??"; // what about output params on ExecScalar?
+                    }
+                    else if (cachedRoutine.Type == "FUNCTION") {
+                        result = yield cmd.query(`select [${schemaName}].[${routineName}](${parmCsvList})`);
+                        if (result && result.recordset && result.recordset.length > 0) {
+                            resolve(result.recordset[0][""]);
+                        }
+                        else {
+                            resolve(null);
+                        }
                     }
                 }
                 catch (ex) {
@@ -297,6 +411,12 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ExecController, "Query", null);
+__decorate([
+    decorators_1.route("/api/execScalar/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], ExecController, "Scalar", null);
 exports.ExecController = ExecController;
 /*
  [HttpPost]
@@ -430,63 +550,6 @@ exports.ExecController = ExecController;
             }
         }
 
-        [HttpGet]
-        [Route("api/execScalar/{dbSourceGuid}/{dbConnectionGuid}/{schema}/{routine}")] //e.g. /api/exec/vZero/
-        public HttpResponseMessage Scalar(Guid dbSourceGuid, Guid? dbConnectionGuid, string schema, string routine)
-        {
-            try
-            {
-                var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
-
-                // TODO: if not found...
-                if (dbSource == null)
-                {
-                    HttpResponseMessage ret = new HttpResponseMessage();
-
-                    //var ret = Request.CreateResponse<string>(System.Net.HttpStatusCode.NotFound, string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-                    ret.Content = new StringContent(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-                    ret.StatusCode = System.Net.HttpStatusCode.NotFound;
-                    ret.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
-                    return ret;
-                    //throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-                }
-
-                // make sure the source domain/IP is allowed access
-                string ue;
-                if (!dbSource.MayAccessDbSource(Request, out ue))
-                {
-                    return Request.CreateResponse<string>(System.Net.HttpStatusCode.Forbidden, ue);
-                }
-
-                var queryString = this.Request.GetQueryNameValuePairs();
-
-                var scalar = Database.ExecRoutineScalar(this.Request, schema, routine, dbSource, dbConnectionGuid, queryString.ToDictionary(t => t.Key, t => t.Value));
-
-                if (scalar is DateTime)
-                {
-                    var dt = (DateTime)scalar;
-
-                    // convert to Javascript Date ticks
-                    var ticks = dt.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-
-                    var ret = ApiResponseScalar.Payload(ticks, true);
-
-                    return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ret);
-                }
-
-                var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ApiResponse.Payload(scalar));
-
-                response.Headers.Clear();
-                response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-            }
-        }
 
         [HttpGet]
         [Route("api/execBatch")]
