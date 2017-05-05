@@ -1,5 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const log_1 = require("./../util/log");
+const exception_logger_1 = require("./../util/exception-logger");
 class ApiResponse {
     constructor() {
         this.ApiResponseVer = "1.0";
@@ -23,8 +25,10 @@ class ApiResponse {
         return ret;
     }
     static Exception(ex) {
+        log_1.SessionLog.error(ex.toString());
+        let id = exception_logger_1.ExceptionLogger.logException(ex);
         let ret = new ApiResponse();
-        ret.Message = ex.toString();
+        ret.Message = `Error occurred (${id})`;
         ret.Type = ApiResponseType.Exception;
         return ret;
     }

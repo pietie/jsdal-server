@@ -9,3 +9,4 @@ export * from './controllers/jsfile'
 
 export * from './controllers/rule'
 export * from './controllers/exec'
+export * from './controllers/exceptions'

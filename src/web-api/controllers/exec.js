@@ -43,11 +43,13 @@ class ExecController {
                         res.status(403).send(mayAccess.userErrorMsg);
                         return undefined;
                     }
-                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, isNonQuery ? req.body : req.query)
-                        .catch(e => {
-                        resolve(api_response_1.ApiResponse.Exception(e));
+                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, isNonQuery ? req.body : req.query);
+                    // .catch(e => {
+                    //     resolve(ApiResponse.Exception(e));
+                    //     return;
+                    // });
+                    if (execResult == undefined)
                         return;
-                    });
                     let retVal = {};
                     retVal.OutputParms = execResult.outputParms;
                     if (!isNonQuery) {
@@ -138,12 +140,12 @@ class ExecController {
     static execRoutineQuery(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 30) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                let routineCache = dbSource.cache;
-                let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
-                if (cachedRoutine == null) {
-                    throw `The routine [${schemaName}].[${routineName}] was not found.`;
-                }
                 try {
+                    let routineCache = dbSource.cache;
+                    let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+                    if (cachedRoutine == null) {
+                        throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
+                    }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
                     let sqlConfig = {
                         user: dbConn.user,
@@ -158,7 +160,6 @@ class ExecController {
                         }
                     };
                     let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                        log_1.SessionLog.error(err.toString());
                         reject(err);
                         return;
                     });
@@ -255,12 +256,12 @@ class ExecController {
     static execRoutineScalar(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 30) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                let routineCache = dbSource.cache;
-                let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
-                if (cachedRoutine == null) {
-                    throw `The routine [${schemaName}].[${routineName}] was not found.`;
-                }
                 try {
+                    let routineCache = dbSource.cache;
+                    let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+                    if (cachedRoutine == null) {
+                        throw `The routine [${schemaName}].[${routineName}] was not found.`;
+                    }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
                     let sqlConfig = {
                         user: dbConn.user,

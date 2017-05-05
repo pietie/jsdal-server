@@ -69,6 +69,7 @@ class Worker {
                 log_1.SessionLog.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
             }
             let x = 0;
+            let connectionErrorCnt = 0;
             while (this.isRunning) {
                 if (!dbSource.IsOrmInstalled) {
                     // try again in 2 seconds
@@ -78,12 +79,19 @@ class Worker {
                     return;
                 }
                 let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                    // TODO: Handle connection error
-                    log_1.SessionLog.error(err.toString());
+                    this.status = "Failed to open connection to database: " + err.toString();
+                    log_1.SessionLog.exception(err);
                     console.log("connection error", err);
                 });
-                //SessionLog.info(`${dbSource.Name} connected successfully.`);
                 try {
+                    if (!con) {
+                        connectionErrorCnt++;
+                        let waitMS = Math.min(3000 + (connectionErrorCnt * 3000), 300000 /*Max 5mins between tries*/);
+                        this.status = `Attempt: #${connectionErrorCnt + 1} (waiting for ${waitMS}ms). ` + this.status;
+                        yield thread_util_1.ThreadUtil.Sleep(waitMS);
+                        continue;
+                    }
+                    connectionErrorCnt = 0;
                     let routineCount = yield orm_dal_1.OrmDAL.SprocGenGetRoutineListCnt(con, this.maxRowDate);
                     let curRow = 0;
                     if (routineCount > 0) {

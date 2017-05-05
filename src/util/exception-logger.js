@@ -2,27 +2,29 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const shortid = require("shortid");
 class ExceptionLogger {
-    constructor() {
-        this.exceptionList = [];
+    static get exceptions() {
+        return ExceptionLogger.exceptionList;
     }
-    get exceptions() {
-        return this.exceptionList;
+    static getException(id) {
+        return ExceptionLogger.exceptionList.find(e => e.id == id);
     }
-    logException(ex) {
-        if (this.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {
+    static logException(ex) {
+        if (ExceptionLogger.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {
             // cull from the front
-            this.exceptionList.splice(0, this.exceptionList.length - ExceptionLogger.MAX_ENTRIES + 1);
+            ExceptionLogger.exceptionList.splice(0, ExceptionLogger.exceptionList.length - ExceptionLogger.MAX_ENTRIES + 1);
         }
         let ew = new ExceptionWrapper(ex);
-        this.exceptionList.push(ew);
+        ExceptionLogger.exceptionList.push(ew);
+        return ew.id;
     }
 }
 ExceptionLogger.MAX_ENTRIES = 1000;
+ExceptionLogger.exceptionList = [];
 exports.ExceptionLogger = ExceptionLogger;
 class ExceptionWrapper {
     constructor(ex) {
         this.created = new Date();
-        this.exceptionObject = ex;
+        this.exceptionObject = { message: ex.message, stack: ex.stack };
         this.id = shortid.generate();
     }
 }

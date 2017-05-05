@@ -6,7 +6,6 @@ import * as sql from 'mssql';
 
 export class UtilController {
 
-
     @route("/api/util/listdbs")
     public static async ListDBs(req): Promise<ApiResponse> {
 

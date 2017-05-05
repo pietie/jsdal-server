@@ -3,21 +3,28 @@ import * as shortid from 'shortid'
 export class ExceptionLogger {
     private static MAX_ENTRIES:number = 1000;
 
-    private exceptionList: ExceptionWrapper[] = [];
+    private static exceptionList: ExceptionWrapper[] = [];
 
-    public get exceptions() : ExceptionWrapper[]
+    public static get exceptions() : ExceptionWrapper[]
     {
-        return this.exceptionList;
+        return ExceptionLogger.exceptionList;
     }
 
-    logException(ex) {
-        if (this.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {
+    public static getException(id:string)
+    {
+        return ExceptionLogger.exceptionList.find(e=>e.id == id);
+    }
+
+    static logException(ex) : string {
+        if (ExceptionLogger.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {
             // cull from the front
-            this.exceptionList.splice(0, this.exceptionList.length - ExceptionLogger.MAX_ENTRIES + 1);
+            ExceptionLogger.exceptionList.splice(0, ExceptionLogger.exceptionList.length - ExceptionLogger.MAX_ENTRIES + 1);
         }
 
         let ew = new ExceptionWrapper(ex);
-        this.exceptionList.push(ew);
+        ExceptionLogger.exceptionList.push(ew);
+
+        return ew.id;
     }
 }
 
@@ -28,7 +35,7 @@ export class ExceptionWrapper {
 
     constructor(ex) {
         this.created = new Date();
-        this.exceptionObject = ex;
+        this.exceptionObject = { message: ex.message, stack: ex.stack };
         this.id = shortid.generate();
     }
 

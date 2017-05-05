@@ -20,7 +20,7 @@ export class WorkSpawner {
 
             WorkSpawner._workerList = [];
 
-          //!  dbSources = [dbSources[0]]; //TEMP 
+            //!  dbSources = [dbSources[0]]; //TEMP 
 
             async.each(dbSources, (source) => {
 
@@ -78,6 +78,9 @@ class Worker {
         }
 
         let x: number = 0;
+
+        let connectionErrorCnt:number = 0;
+
         while (this.isRunning) {
 
             if (!dbSource.IsOrmInstalled) {
@@ -89,15 +92,27 @@ class Worker {
             }
 
             let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                // TODO: Handle connection error
-                SessionLog.error(err.toString());
+                this.status = "Failed to open connection to database: " + err.toString();
+                SessionLog.exception(err);
+                
                 console.log("connection error", err);
             });
 
-
-            //SessionLog.info(`${dbSource.Name} connected successfully.`);
-
             try {
+
+                if (!con) {
+                    connectionErrorCnt++;
+
+                    let waitMS = Math.min(3000 + (connectionErrorCnt * 3000), 300000/*Max 5mins between tries*/);
+
+                    this.status = `Attempt: #${connectionErrorCnt+1} (waiting for ${waitMS}ms). ` + this.status;
+
+                    await ThreadUtil.Sleep(waitMS); 
+                    continue;
+                }
+
+                connectionErrorCnt = 0;
+
                 let routineCount = await OrmDAL.SprocGenGetRoutineListCnt(con, this.maxRowDate);
                 let curRow: number = 0;
 

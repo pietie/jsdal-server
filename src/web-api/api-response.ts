@@ -1,4 +1,6 @@
 
+import { SessionLog } from "./../util/log";
+import { ExceptionLogger } from "./../util/exception-logger";
 
 export class ApiResponse {
 
@@ -38,9 +40,12 @@ export class ApiResponse {
     }
 
     public static Exception(ex: Error | any): ApiResponse {
+        SessionLog.error(ex.toString());
+        let id = ExceptionLogger.logException(ex);
+        
         let ret = new ApiResponse();
 
-        ret.Message = ex.toString();
+        ret.Message = `Error occurred (${id})`;
         ret.Type = ApiResponseType.Exception;
 
         return ret;

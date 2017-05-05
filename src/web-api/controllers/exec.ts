@@ -42,12 +42,13 @@ export class ExecController {
                     dbSource,
                     dbConnectionGuid,
                     isNonQuery ? req.body : req.query
-                )
-                    .catch(e => {
-                        resolve(ApiResponse.Exception(e));
-                        return;
-                    });
+                );
+                    // .catch(e => {
+                    //     resolve(ApiResponse.Exception(e));
+                    //     return;
+                    // });
 
+                    if (execResult == undefined) return;
 
                 let retVal: any = {};
 
@@ -175,16 +176,15 @@ export class ExecController {
         commandTimeOutInSeconds: number = 30
     ): Promise<ExecutionResult> {
         return new Promise<ExecutionResult>(async (resolve, reject) => {
-
-            let routineCache = dbSource.cache;
-
-            let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
-
-            if (cachedRoutine == null) {
-                throw `The routine [${schemaName}].[${routineName}] was not found.`;
-            }
-
             try {
+
+                let routineCache = dbSource.cache;
+
+                let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+
+                if (cachedRoutine == null) {
+                    throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
+                }
 
                 let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
 
@@ -202,7 +202,6 @@ export class ExecController {
                 };
 
                 let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                    SessionLog.error(err.toString());
                     reject(err);
                     return;
                 });
@@ -341,15 +340,15 @@ export class ExecController {
     ): Promise<ExecutionResult> {
         return new Promise<ExecutionResult>(async (resolve, reject) => {
 
-            let routineCache = dbSource.cache;
-
-            let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
-
-            if (cachedRoutine == null) {
-                throw `The routine [${schemaName}].[${routineName}] was not found.`;
-            }
-
             try {
+
+                let routineCache = dbSource.cache;
+
+                let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+
+                if (cachedRoutine == null) {
+                    throw `The routine [${schemaName}].[${routineName}] was not found.`;
+                }
 
                 let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
 
