@@ -22,7 +22,7 @@ class WorkSpawner {
         try {
             let dbSources = settings_instance_1.SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources).reduce((prev, next) => { return prev.concat(next); });
             WorkSpawner._workerList = [];
-            dbSources = [dbSources[0]]; //TEMP 
+            //!  dbSources = [dbSources[0]]; //TEMP 
             async.each(dbSources, (source) => {
                 let worker = new Worker();
                 console.log(`Spawning new worker for ${source.Name}`);

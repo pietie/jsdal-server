@@ -532,7 +532,7 @@ export class DatabaseSource {
         }
 
         let referer = req.header("Referer");
-        let host = req.host;
+        let host = req.hostname;
         let whitelistedIPs = this.WhitelistedDomainsCsv.split(',');
 
         let r: any = null;

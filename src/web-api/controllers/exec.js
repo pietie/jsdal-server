@@ -23,10 +23,11 @@ const decorators_1 = require("./../decorators");
 const sql = require("mssql");
 const log_1 = require("./../../util/log");
 class ExecController {
-    static Query(req, res) {
+    static QueryAndNonQuery(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 try {
+                    let isNonQuery = req.method.toUpperCase() == "POST";
                     let dbSourceGuid = req.params.dbSourceGuid;
                     let dbConnectionGuid = req.params.dbConnectionGuid;
                     let schema = req.params.schema;
@@ -42,19 +43,22 @@ class ExecController {
                         res.status(403).send(mayAccess.userErrorMsg);
                         return undefined;
                     }
-                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, req.query).catch(e => {
+                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, isNonQuery ? req.body : req.query)
+                        .catch(e => {
                         resolve(api_response_1.ApiResponse.Exception(e));
                         return;
                     });
                     let retVal = {};
-                    let dataContainers = ExecController.toJsonDataset(execResult.results);
                     retVal.OutputParms = execResult.outputParms;
-                    var keys = Object.keys(dataContainers);
-                    for (var i = 0; i < keys.length; i++) {
-                        retVal[keys[i]] = dataContainers[keys[i]];
+                    if (!isNonQuery) {
+                        let dataContainers = ExecController.toJsonDataset(execResult.results);
+                        let keys = Object.keys(dataContainers);
+                        for (let i = 0; i < keys.length; i++) {
+                            retVal[keys[i]] = dataContainers[keys[i]];
+                        }
+                        retVal.HasResultSets = keys.length > 0;
+                        retVal.ResultSetKeys = keys;
                     }
-                    retVal.HasResultSets = keys.length > 0;
-                    retVal.ResultSetKeys = keys;
                     let ret = api_response_1.ApiResponse.Payload(retVal);
                     // TODO: Consider making this a plugin
                     if (execResult.outputParms != null && Object.keys(execResult.outputParms).length > 0) {
@@ -100,8 +104,6 @@ class ExecController {
                     let scalar = yield ExecController.execRoutineScalar(req, schema, routine, dbSource, dbConnectionGuid, req.query);
                     let ret;
                     if (scalar instanceof Date) {
-                        // convert to Javascript Date ticks
-                        //let ticks = ;//scalar.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
                         ret = api_response_1.ApiResponseScalar.PayloadScalar(scalar.getTime(), true);
                     }
                     else {
@@ -166,16 +168,8 @@ class ExecController {
                     yield ExecController.processPlugins(dbSource, queryString, con);
                     let cmd = new sql.Request(con);
                     cmd.stream = false; // TODO: In future consider streaming for async calls
-                    if (cachedRoutine.Type == "PROCEDURE"
-                        || cachedRoutine.Type == "TVF" /*TABLE-VALUED FUNCTION*/) {
-                        let isTVF = cachedRoutine.Type == "TVF" /*TABLE-VALUED FUNCTION*/;
-                        //!cmd.CommandType = CommandType.StoredProcedure;
-                        //!cmd.CommandText = string.Format("[{0}].[{1}]", schemaName, routineName);
-                        if (isTVF) {
-                            //!let parmCsvList = string.Join(",", cachedRoutine.Parameters.Where(p => !p.IsResult.Equals("YES", StringComparison.OrdinalIgnoreCase)).Select(p => p.ParameterName).ToArray());
-                            //!cmd.CommandType = CommandType.Text;
-                            //!cmd.CommandText = string.Format("select * from [{0}].[{1}]({2})", schemaName, routineName, parmCsvList);
-                        }
+                    let isTVF = cachedRoutine.Type == "TVF";
+                    if (cachedRoutine.Type == "PROCEDURE" || isTVF) {
                         if (cachedRoutine.Parameters != null) {
                             cachedRoutine.Parameters.forEach(p => {
                                 let sqlType = ExecController.getSqlDbTypeFromParameterType(p.DataType);
@@ -210,10 +204,14 @@ class ExecController {
                             }); // foreach Parameter 
                         }
                         //!var executionTrackingEndFunction = ExecTracker.Track(dbSource.Name, cachedRoutine.Schema, cachedRoutine.Routine);
-                        let res = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(e => {
-                            //todo: handle execution error
-                            console.error(e);
-                        });
+                        let res;
+                        if (isTVF) {
+                            let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
+                            res = yield cmd.query(`select * from [${schemaName}].[${routineName}](${parmCsvList})`).catch(reject);
+                        }
+                        else {
+                            res = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(reject);
+                        }
                         /////////////////////
                         // $select
                         // ¯¯¯¯¯¯¯¯
@@ -312,9 +310,8 @@ class ExecController {
                     let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
                     let result;
                     if (cachedRoutine.Type == "PROCEDURE") {
-                        //cmd.CommandType = CommandType.StoredProcedure;
-                        //cmd.CommandText = string.Format("[{0}].[{1}]", schemaName, routineName);
-                        throw "Scalar SPROC not yet supported. What do we expect? The value from RETURN??"; // what about output params on ExecScalar?
+                        result = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(reject);
+                        resolve(result.returnValue);
                     }
                     else if (cachedRoutine.Type == "FUNCTION") {
                         result = yield cmd.query(`select [${schemaName}].[${routineName}](${parmCsvList})`);
@@ -405,12 +402,11 @@ class ExecController {
     }
 }
 __decorate([
-    decorators_1.route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true) //e.g. /api/exec/vZero/
-    ,
+    decorators_1.route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], ExecController, "Query", null);
+], ExecController, "QueryAndNonQuery", null);
 __decorate([
     decorators_1.route("/api/execScalar/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true),
     __metadata("design:type", Function),
@@ -469,86 +465,7 @@ exports.ExecController = ExecController;
         
     
 
-        [HttpPost]
-        [Route("api/exec/{dbSourceGuid}/{dbConnectionGuid}/{schema}/{routine}")] //e.g. /api/exec/vZero/
-        public async Task<HttpResponseMessage> NonQuery(Guid dbSourceGuid, Guid? dbConnectionGuid, string schema, string routine)
-        {
-            try
-            {
-                var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
-
-                // TODO: if not found...
-                if (dbSource == null) throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-
-                // make sure the source domain/IP is allowed access
-                string ue;
-                if (!dbSource.MayAccessDbSource(Request, out ue))
-                {
-                    return Request.CreateResponse<string>(System.Net.HttpStatusCode.Forbidden, ue);
-                }
-
-
-                var contentBytes = await this.Request.Content.ReadAsByteArrayAsync();
-
-                var content = System.Text.Encoding.UTF8.GetString(contentBytes);
-
-                var sprocParams = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
-
-                //var queryString = this.Request.GetQueryNameValuePairs();
-
-
-                Dictionary<string, dynamic> outputParms;
-
-
-                var dataSet = Database.ExecRoutineQuery(this.Request, schema, routine, out outputParms, dbSource, dbConnectionGuid, sprocParams);
-
-                var retVal = (IDictionary<string, object>)new System.Dynamic.ExpandoObject();
-
-                var dataContainers = dataSet.ToJsonDS();
-
-                retVal.Add("OutputParms", outputParms);
-
-                var keys = dataContainers.Keys.ToList();
-
-                for (var i = 0; i < keys.Count; i++)
-                {
-                    retVal.Add(keys[i], dataContainers[keys[i]]);
-                }
-
-                retVal.Add("HasResultSets", keys.Count > 0);
-                retVal.Add("ResultSetKeys", keys.ToArray());
-
-                var ret = ApiResponse.Payload(retVal);
-
-                if (outputParms != null)
-                {
-                    var possibleUEParmNames = (new string[] { "usererrormsg", "usrerrmsg", "usererrormessage", "usererror", "usererrmsg" }).ToList();
-
-                    var ueKey = outputParms.Keys.FirstOrDefault(k => possibleUEParmNames.Contains(k.ToLower()));
-
-                    // if a user error msg is defined.
-                    if (!string.IsNullOrWhiteSpace(ueKey) && !string.IsNullOrWhiteSpace(outputParms[ueKey]))
-                    {
-                        ret.Message = outputParms[ueKey];
-                        ret.Title = "Action failed";
-                        ret.Type = ApiResponseType.ExclamationModal;
-                    }
-                }
-
-                var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ret);
-
-                response.Headers.Clear();
-                response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-
-                return response;
-
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-            }
-        }
+       
 
 
         [HttpGet]

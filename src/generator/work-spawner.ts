@@ -20,7 +20,7 @@ export class WorkSpawner {
 
             WorkSpawner._workerList = [];
 
-            dbSources = [dbSources[0]]; //TEMP 
+          //!  dbSources = [dbSources[0]]; //TEMP 
 
             async.each(dbSources, (source) => {
 
@@ -59,7 +59,7 @@ class Worker {
 
         let lastSavedDate: Date = new Date();
 
-        let sqlConfig:sql.config = {
+        let sqlConfig: sql.config = {
             user: dbSource.userID,
             password: dbSource.password,
             server: dbSource.dataSource,

@@ -33,6 +33,14 @@ var server = app.listen(9086, function () {
 // get an instance of the router for api routes
 var apiRoutes = express.Router();
 
+// // parse application/x-www-form-urlencoded 
+// apiRoutes.use(bodyParser.urlencoded({ extended: false }));
+
+// // parse application/json 
+// apiRoutes.use(bodyParser.json({ strict: false }));
+
+// apiRoutes.use(cors());
+
 // apply the routes to our application with the prefix /api
 app.use('/api', apiRoutes);
 
@@ -110,76 +118,47 @@ app.use('/token/validate', (req, res, next) => {
 
 });
 
-// // validate JWT 
-// apiRoutes.use((req, res, next) => {
+function authorise(req): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
 
-//     // look for token
-//     let token = req.body.token || req.query.token || req.headers['x-access-token'];
+        // look for token
+        let token = req.body.token || req.query.token || req.headers['x-access-token'];
 
-//     if (token) {
-//         // decode token
-//         jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
-//             if (err) {
+        if (token) {
+            // decode token
+            jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
+                if (err) {
+                    resolve({ status: 401, ret: { jwtfailed: true, message: err.toString() } });
+                } else {
+                    // allow next request in the chain
+                    resolve({ status: 200 });
+                }
+            });
 
-//                 return res.status(401).send({ jwtfailed: true, message: err.toString() });
+        } else {
+            // no token present
+            resolve({
+                status: 403, ret: {
+                    success: false,
+                    message: 'No token provided. (ref2)'
+                }
+            });
+        }
 
-//             } else {
-//                 // allow next request in the chain
-//                 next();
-//             }
-//         });
-
-//     } else {
-
-//         // no token present
-//         return res.status(403).send({
-//             success: false,
-//             message: 'No token provided. (ref2)'
-//         });
-
-//     }
-// });
-
-
-//console.log("ROUTES TO CONFIGURE!!!", global["WebRoutes"]);
-
-function authorise(req) {
-    // look for token
-    let token = req.body.token || req.query.token || req.headers['x-access-token'];
-
-    if (token) {
-        // decode token
-        jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
-            if (err) {
-                return { status: 401, ret: { jwtfailed: true, message: err.toString() } };
-            } else {
-                // allow next request in the chain
-                return { status: 200 };
-            }
-        });
-
-    } else {
-        // no token present
-        return {
-            status: 403, ret: {
-                success: false,
-                message: 'No token provided. (ref2)'
-            }
-        };
-    }
+    });
 }
 
 
-function processRequest(route, req, res) {
+async function processRequest(route, req, res) {
 
     if (!route.allowAnonymousAccess) {
-        let auth = authorise(req);
+        let auth = await authorise(req);
 
         if (auth.status != 200) {
             return res.status(auth.status).send(auth.ret);
         }
     }
- 
+
     let ret = route.target.call(this, req, res);
 
     // if the ret value is undefined assume the target call already handled the response
@@ -196,8 +175,6 @@ function processRequest(route, req, res) {
 
 // configure routes picked up from decorators
 if (global["WebRoutes"]) {
-
-    //console.log("\r\n\r\nROUTES ROUTES ROUTES\r\n", global["WebRoutes"]);
 
     for (let i = 0; i < global["WebRoutes"].length; i++) {
         let route: { get?: boolean, post?: boolean, put?: boolean, delete?: boolean, target: Function, path: string } = global["WebRoutes"][i];
@@ -221,4 +198,3 @@ if (global["WebRoutes"]) {
 
 // need this just to force the @route decorator to run on all other classes..not sure how this works...
 let a = new AuthController();
-

@@ -353,7 +353,10 @@ BEGIN
 				,mon.SchemaName
 				,mon.RoutineName
 				,mon.RoutineType
-				,mon.ReturnType
+				,case 
+					when UPPER(mon.RoutineType) = ''FUNCTION'' AND UPPER(mon.ReturnType) = ''TABLE'' then ''TVF''
+					else mon.RoutineType 
+			 	end  RoutineType
 				,cast(mon.rowver as bigint) rowver
 				,mon.IsDeleted
 				,mon.ResultsetXml

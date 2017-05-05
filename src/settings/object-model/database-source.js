@@ -406,7 +406,7 @@ class DatabaseSource {
             return { success: false, userErrorMsg: "No access list exists." };
         }
         let referer = req.header("Referer");
-        let host = req.host;
+        let host = req.hostname;
         let whitelistedIPs = this.WhitelistedDomainsCsv.split(',');
         let r = null;
         whitelistedIPs.forEach(en => {

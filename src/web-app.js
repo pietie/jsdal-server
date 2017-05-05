@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const cors = require("cors");
@@ -21,6 +29,11 @@ var server = app.listen(9086, function () {
 });
 // get an instance of the router for api routes
 var apiRoutes = express.Router();
+// // parse application/x-www-form-urlencoded 
+// apiRoutes.use(bodyParser.urlencoded({ extended: false }));
+// // parse application/json 
+// apiRoutes.use(bodyParser.json({ strict: false }));
+// apiRoutes.use(cors());
 // apply the routes to our application with the prefix /api
 app.use('/api', apiRoutes);
 // route to authenticate a user (POST http://localhost:8080/api/authenticate)
@@ -79,76 +92,56 @@ app.use('/token/validate', (req, res, next) => {
         });
     }
 });
-// // validate JWT 
-// apiRoutes.use((req, res, next) => {
-//     // look for token
-//     let token = req.body.token || req.query.token || req.headers['x-access-token'];
-//     if (token) {
-//         // decode token
-//         jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
-//             if (err) {
-//                 return res.status(401).send({ jwtfailed: true, message: err.toString() });
-//             } else {
-//                 // allow next request in the chain
-//                 next();
-//             }
-//         });
-//     } else {
-//         // no token present
-//         return res.status(403).send({
-//             success: false,
-//             message: 'No token provided. (ref2)'
-//         });
-//     }
-// });
-//console.log("ROUTES TO CONFIGURE!!!", global["WebRoutes"]);
 function authorise(req) {
-    // look for token
-    let token = req.body.token || req.query.token || req.headers['x-access-token'];
-    if (token) {
-        // decode token
-        jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
-            if (err) {
-                return { status: 401, ret: { jwtfailed: true, message: err.toString() } };
-            }
-            else {
-                // allow next request in the chain
-                return { status: 200 };
-            }
-        });
-    }
-    else {
-        // no token present
-        return {
-            status: 403, ret: {
-                success: false,
-                message: 'No token provided. (ref2)'
-            }
-        };
-    }
+    return new Promise((resolve, reject) => {
+        // look for token
+        let token = req.body.token || req.query.token || req.headers['x-access-token'];
+        if (token) {
+            // decode token
+            jwt.verify(token, SERVER_PRIVATE_KEY, (err, decoded) => {
+                if (err) {
+                    resolve({ status: 401, ret: { jwtfailed: true, message: err.toString() } });
+                }
+                else {
+                    // allow next request in the chain
+                    resolve({ status: 200 });
+                }
+            });
+        }
+        else {
+            // no token present
+            resolve({
+                status: 403, ret: {
+                    success: false,
+                    message: 'No token provided. (ref2)'
+                }
+            });
+        }
+    });
 }
 function processRequest(route, req, res) {
-    if (!route.allowAnonymousAccess) {
-        let auth = authorise(req);
-        if (auth.status != 200) {
-            return res.status(auth.status).send(auth.ret);
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!route.allowAnonymousAccess) {
+            let auth = yield authorise(req);
+            if (auth.status != 200) {
+                return res.status(auth.status).send(auth.ret);
+            }
         }
-    }
-    let ret = route.target.call(this, req, res);
-    // if the ret value is undefined assume the target call already handled the response
-    if (ret == undefined)
-        return;
-    // look for promise-like result
-    if (ret.then && ret.catch) {
-        ret.then(function (result) { res.send(result); });
-    }
-    else {
-        res.send(ret);
-    }
+        let ret = route.target.call(this, req, res);
+        // if the ret value is undefined assume the target call already handled the response
+        if (ret == undefined)
+            return;
+        // look for promise-like result
+        if (ret.then && ret.catch) {
+            ret.then(function (result) { res.send(result); });
+        }
+        else {
+            res.send(ret);
+        }
+    });
 }
 // configure routes picked up from decorators
 if (global["WebRoutes"]) {
-    //console.log("\r\n\r\nROUTES ROUTES ROUTES\r\n", global["WebRoutes"]);
     for (let i = 0; i < global["WebRoutes"].length; i++) {
         let route = global["WebRoutes"][i];
         if (route.get) {

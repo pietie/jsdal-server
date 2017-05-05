@@ -10,10 +10,11 @@ import { SessionLog } from "./../../util/log";
 
 export class ExecController {
 
-    @route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true) //e.g. /api/exec/vZero/
-    public static async Query(req: Request, res: Response): Promise<ApiResponse> {
+    @route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true)
+    public static async QueryAndNonQuery(req: Request, res: Response): Promise<ApiResponse> {
         return new Promise<ApiResponse>(async (resolve, reject) => {
             try {
+                let isNonQuery: Boolean = req.method.toUpperCase() == "POST";
 
                 let dbSourceGuid: string = req.params.dbSourceGuid;
                 let dbConnectionGuid: string = req.params.dbConnectionGuid;
@@ -35,25 +36,34 @@ export class ExecController {
                     return undefined;
                 }
 
-                let execResult: any = await ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, req.query).catch(e => {
-                    resolve(ApiResponse.Exception(e));
-                    return;
-                });
+                let execResult: any = await ExecController.execRoutineQuery(req,
+                    schema,
+                    routine,
+                    dbSource,
+                    dbConnectionGuid,
+                    isNonQuery ? req.body : req.query
+                )
+                    .catch(e => {
+                        resolve(ApiResponse.Exception(e));
+                        return;
+                    });
 
 
                 let retVal: any = {};
-                let dataContainers = ExecController.toJsonDataset(execResult.results);
 
                 retVal.OutputParms = execResult.outputParms;
 
-                var keys = Object.keys(dataContainers);
+                if (!isNonQuery) {
+                    let dataContainers = ExecController.toJsonDataset(execResult.results);
+                    let keys = Object.keys(dataContainers);
 
-                for (var i = 0; i < keys.length; i++) {
-                    retVal[keys[i]] = dataContainers[keys[i]];
+                    for (let i = 0; i < keys.length; i++) {
+                        retVal[keys[i]] = dataContainers[keys[i]];
+                    }
+
+                    retVal.HasResultSets = keys.length > 0;
+                    retVal.ResultSetKeys = keys;
                 }
-
-                retVal.HasResultSets = keys.length > 0;
-                retVal.ResultSetKeys = keys;
 
                 let ret = ApiResponse.Payload(retVal);
 
@@ -117,9 +127,6 @@ export class ExecController {
                 let ret;
 
                 if (scalar instanceof Date) {
-                    // convert to Javascript Date ticks
-                    //let ticks = ;//scalar.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-
                     ret = ApiResponseScalar.PayloadScalar(scalar.getTime(), true);
                 }
                 else {
@@ -209,21 +216,9 @@ export class ExecController {
 
                 cmd.stream = false; // TODO: In future consider streaming for async calls
 
-                if (cachedRoutine.Type == "PROCEDURE"
-                    || cachedRoutine.Type == "TVF"/*TABLE-VALUED FUNCTION*/) {
-                    let isTVF = cachedRoutine.Type == "TVF"/*TABLE-VALUED FUNCTION*/;
+                let isTVF = cachedRoutine.Type == "TVF";
 
-                    //!cmd.CommandType = CommandType.StoredProcedure;
-                    //!cmd.CommandText = string.Format("[{0}].[{1}]", schemaName, routineName);
-
-                    if (isTVF) {
-                        //!let parmCsvList = string.Join(",", cachedRoutine.Parameters.Where(p => !p.IsResult.Equals("YES", StringComparison.OrdinalIgnoreCase)).Select(p => p.ParameterName).ToArray());
-
-                        //!cmd.CommandType = CommandType.Text;
-                        //!cmd.CommandText = string.Format("select * from [{0}].[{1}]({2})", schemaName, routineName, parmCsvList);
-                    }
-
-
+                if (cachedRoutine.Type == "PROCEDURE" || isTVF) {
                     if (cachedRoutine.Parameters != null) {
                         cachedRoutine.Parameters.forEach(p => {
 
@@ -268,10 +263,17 @@ export class ExecController {
 
                     //!var executionTrackingEndFunction = ExecTracker.Track(dbSource.Name, cachedRoutine.Schema, cachedRoutine.Routine);
 
-                    let res: any = await cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(e => {
-                        //todo: handle execution error
-                        console.error(e);
-                    });
+                    let res: any;
+
+                    if (isTVF) {
+                        let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
+
+                        res = await cmd.query(`select * from [${schemaName}].[${routineName}](${parmCsvList})`).catch(reject);
+                    }
+                    else {
+
+                        res = await cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(reject);
+                    }
 
                     /////////////////////
                     // $select
@@ -410,12 +412,13 @@ export class ExecController {
                 }
 
                 let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
-                let result: sql.IResult<any>;
+                let result: sql.IResult<any> | sql.IProcedureResult<any> | any;
 
                 if (cachedRoutine.Type == "PROCEDURE") {
-                    //cmd.CommandType = CommandType.StoredProcedure;
-                    //cmd.CommandText = string.Format("[{0}].[{1}]", schemaName, routineName);
-                    throw "Scalar SPROC not yet supported. What do we expect? The value from RETURN??"; // what about output params on ExecScalar?
+
+                    result = await cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(reject);
+
+                    resolve(result.returnValue);
                 }
                 else if (cachedRoutine.Type == "FUNCTION") {
                     result = await cmd.query(`select [${schemaName}].[${routineName}](${parmCsvList})`);
@@ -427,8 +430,6 @@ export class ExecController {
                         resolve(null);
                     }
                 }
-
-
             }
             catch (ex) {
                 reject(ex);
@@ -575,86 +576,7 @@ export class ExecController {
         
     
 
-        [HttpPost]
-        [Route("api/exec/{dbSourceGuid}/{dbConnectionGuid}/{schema}/{routine}")] //e.g. /api/exec/vZero/
-        public async Task<HttpResponseMessage> NonQuery(Guid dbSourceGuid, Guid? dbConnectionGuid, string schema, string routine)
-        {
-            try
-            {
-                var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
-
-                // TODO: if not found...
-                if (dbSource == null) throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-
-                // make sure the source domain/IP is allowed access
-                string ue;
-                if (!dbSource.MayAccessDbSource(Request, out ue))
-                {
-                    return Request.CreateResponse<string>(System.Net.HttpStatusCode.Forbidden, ue);
-                }
-
-
-                var contentBytes = await this.Request.Content.ReadAsByteArrayAsync();
-
-                var content = System.Text.Encoding.UTF8.GetString(contentBytes);
-
-                var sprocParams = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
-
-                //var queryString = this.Request.GetQueryNameValuePairs();
-
-
-                Dictionary<string, dynamic> outputParms;
-
-
-                var dataSet = Database.ExecRoutineQuery(this.Request, schema, routine, out outputParms, dbSource, dbConnectionGuid, sprocParams);
-
-                var retVal = (IDictionary<string, object>)new System.Dynamic.ExpandoObject();
-
-                var dataContainers = dataSet.ToJsonDS();
-
-                retVal.Add("OutputParms", outputParms);
-
-                var keys = dataContainers.Keys.ToList();
-
-                for (var i = 0; i < keys.Count; i++)
-                {
-                    retVal.Add(keys[i], dataContainers[keys[i]]);
-                }
-
-                retVal.Add("HasResultSets", keys.Count > 0);
-                retVal.Add("ResultSetKeys", keys.ToArray());
-
-                var ret = ApiResponse.Payload(retVal);
-
-                if (outputParms != null)
-                {
-                    var possibleUEParmNames = (new string[] { "usererrormsg", "usrerrmsg", "usererrormessage", "usererror", "usererrmsg" }).ToList();
-
-                    var ueKey = outputParms.Keys.FirstOrDefault(k => possibleUEParmNames.Contains(k.ToLower()));
-
-                    // if a user error msg is defined.
-                    if (!string.IsNullOrWhiteSpace(ueKey) && !string.IsNullOrWhiteSpace(outputParms[ueKey]))
-                    {
-                        ret.Message = outputParms[ueKey];
-                        ret.Title = "Action failed";
-                        ret.Type = ApiResponseType.ExclamationModal;
-                    }
-                }
-
-                var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ret);
-
-                response.Headers.Clear();
-                response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-
-                return response;
-
-            }
-            catch (Exception ex)
-            {
-                return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-            }
-        }
+       
 
 
         [HttpGet]
