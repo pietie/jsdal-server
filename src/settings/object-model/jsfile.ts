@@ -15,6 +15,11 @@ export class JsFile {
         this.Rules = [];
         this.Guid = guid;
     }
+    
+    public incrementVersion()
+    {
+        this.Version++;
+    }
 
     public static createFromJson(rawJson: any): JsFile {
         let jsfile = new JsFile();

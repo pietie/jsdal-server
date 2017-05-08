@@ -438,6 +438,18 @@ class DatabaseSource {
             user: decryptedConnection.userID, password: decryptedConnection.password, server: decryptedConnection.dataSource, database: decryptedConnection.initialCatalog
         };
     }
+    get outputDir() {
+        return path.resolve(`./generated/${this.CacheKey}`);
+    }
+    outputFilePath(jsFile) {
+        return path.join(this.outputDir, jsFile.Filename);
+    }
+    outputTypeScriptTypingsFilePath(jsFile) {
+        return path.join(this.outputDir, jsFile.Filename.substring(0, jsFile.Filename.lastIndexOf('.')) + ".d.ts");
+    }
+    minifiedOutputFilePath(jsFile) {
+        return path.join(this.outputDir, jsFile.Filename.substring(0, jsFile.Filename.length - 3) + ".min.js");
+    }
 }
 exports.DatabaseSource = DatabaseSource;
 //# sourceMappingURL=database-source.js.map

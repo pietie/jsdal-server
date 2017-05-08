@@ -8,6 +8,9 @@ class JsFile {
         this.Guid = guid;
     }
     static get DBLevel() { return JsFile._dbLevel; }
+    incrementVersion() {
+        this.Version++;
+    }
     static createFromJson(rawJson) {
         let jsfile = new JsFile();
         jsfile.Filename = rawJson.Filename;

@@ -283,7 +283,7 @@ export class DatabaseSource {
         return new Promise<string>(async (resolve, reject) => {
             let sqlScript: string = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
 
-            let sqlConfig:sql.config = {
+            let sqlConfig: sql.config = {
                 user: this.MetadataConnection.userID,
                 password: this.MetadataConnection.password,
                 server: this.MetadataConnection.dataSource,
@@ -319,7 +319,7 @@ export class DatabaseSource {
             try {
                 let installSqlScript: string = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });;
 
-                let sqlConfig:sql.config = {
+                let sqlConfig: sql.config = {
                     user: this.MetadataConnection.userID,
                     password: this.MetadataConnection.password,
                     server: this.MetadataConnection.dataSource,
@@ -572,5 +572,22 @@ export class DatabaseSource {
         return {
             user: decryptedConnection.userID, password: decryptedConnection.password, server: decryptedConnection.dataSource, database: decryptedConnection.initialCatalog
         };
+    }
+
+
+    public get outputDir(): string {
+        return path.resolve(`./generated/${this.CacheKey}`);
+    }
+
+    public outputFilePath(jsFile: JsFile): string {
+        return path.join(this.outputDir, jsFile.Filename);
+    }
+
+    public outputTypeScriptTypingsFilePath(jsFile:JsFile): string {
+        return path.join(this.outputDir, jsFile.Filename.substring(0, jsFile.Filename.lastIndexOf('.')) + ".d.ts");
+    }
+
+    public minifiedOutputFilePath(jsFile:JsFile): string {
+        return path.join(this.outputDir, jsFile.Filename.substring(0, jsFile.Filename.length - 3) + ".min.js");
     }
 }

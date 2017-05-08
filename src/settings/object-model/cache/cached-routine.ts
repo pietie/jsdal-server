@@ -26,7 +26,7 @@ export class CachedRoutine {
     public RowVer: number;
     public Parameters: RoutineParameter[];
     public ResultSetRowver: number;
-    public ResultSetMetadata: Array<ResultsetMetadata>;
+    public ResultSetMetadata: ResultsetMetadata[];
     public ResultSetError: string;
     public RoutineParsingRowver: number;
     public jsDALMetadata: any;
