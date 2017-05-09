@@ -44,7 +44,7 @@ export class OrmDAL {
             let parms = parameterList.filter(p => p.IsResult != "YES").map(p => p.ParameterName + ' = null');
 
             // TODO: Get 'brackettedName' like in C# dbCmd.CommandText = GetBrackettedName(schema, routine);
-            let query: string = `set fmtonly on; exec ${schema}.${routine} ${parms.join(',')};`
+            let query: string = `set fmtonly on; exec [${schema}].[${routine}] ${parms.join(',')};`
 
 
             request.on('recordset', (columns: any[]) => {

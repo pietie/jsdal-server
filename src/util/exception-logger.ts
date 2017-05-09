@@ -35,7 +35,12 @@ export class ExceptionWrapper {
 
     constructor(ex) {
         this.created = new Date();
-        this.exceptionObject = { message: ex.message, stack: ex.stack };
+
+        let msg = ex;
+
+        if (typeof(ex) == "object" && typeof(ex.message) !== "undefined" ) msg = ex.message;
+
+        this.exceptionObject = { message: msg, stack: ex.stack };
         this.id = shortid.generate();
     }
 

@@ -45,7 +45,7 @@ export class ApiResponse {
         
         let ret = new ApiResponse();
 
-        ret.Message = `Error occurred (${id})`;
+        ret.Message = `Error ref: ${id}`;
         ret.Type = ApiResponseType.Exception;
 
         return ret;

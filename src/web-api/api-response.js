@@ -28,7 +28,7 @@ class ApiResponse {
         log_1.SessionLog.error(ex.toString());
         let id = exception_logger_1.ExceptionLogger.logException(ex);
         let ret = new ApiResponse();
-        ret.Message = `Error occurred (${id})`;
+        ret.Message = `Error ref: ${id}`;
         ret.Type = ApiResponseType.Exception;
         return ret;
     }

@@ -17,11 +17,13 @@
     "express": "^4.14.1",
     "jsonwebtoken": "^7.3.0",
     "keypair": "^1.0.1",
+    "momentjs": "^2.0.0",
     "mssql": "^4.0.4",
     "node-connection-string-builder": "0.0.1",
     "shelljs": "^0.7.6",
     "shortid": "^2.2.6",
     "tedious": "^1.14.0",
+    "uglify-js": "^3.0.1",
     "xml2js": "^0.4.17"
   },
   "devDependencies": {
@@ -35,6 +37,7 @@
     "@types/reflect-metadata": "0.0.5",
     "@types/shelljs": "^0.6.0",
     "@types/shortid": "0.0.28",
+    "@types/uglify-js": "^2.6.28",
     "@types/xml2js": "0.0.32",
     "reflect-metadata": "^0.1.9"
   }

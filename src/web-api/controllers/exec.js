@@ -21,6 +21,7 @@ const api_response_1 = require("./../api-response");
 const settings_instance_1 = require("./../../settings/settings-instance");
 const decorators_1 = require("./../decorators");
 const sql = require("mssql");
+const moment = require("moment");
 const log_1 = require("./../../util/log");
 class ExecController {
     static QueryAndNonQuery(req, res) {
@@ -152,7 +153,7 @@ class ExecController {
                         password: dbConn.password,
                         server: dbConn.server,
                         database: dbConn.database,
-                        connectionTimeout: 15000,
+                        connectionTimeout: 30000,
                         requestTimeout: commandTimeOutInSeconds * 1000,
                         stream: false,
                         options: {
@@ -182,8 +183,15 @@ class ExecController {
                                     // TODO: support jsDAL variables
                                     // look for special jsDAL Server variables
                                     //val = jsDALServerVariables.Parse(request, val);
-                                    //!?parmValue = val == null ? DBNull.Value : ConvertParameterValue(sqlType, val);
-                                    parmValue = val; // TODO:!!!!
+                                    if (val == null) {
+                                        parmValue = null;
+                                    }
+                                    else {
+                                        parmValue = ExecController.convertParameterValue(sqlType, val);
+                                        // TODO: Workaround for issue for datetime conversions - see https://github.com/patriksimek/node-mssql/issues/377
+                                        if (sqlType == sql.DateTime)
+                                            sqlType = sql.NVarChar;
+                                    }
                                 }
                                 else {
                                     //     if (p.HasDefault) // fall back to default parameter value if one exists
@@ -208,10 +216,10 @@ class ExecController {
                         let res;
                         if (isTVF) {
                             let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
-                            res = yield cmd.query(`select * from [${schemaName}].[${routineName}](${parmCsvList})`).catch(reject);
+                            res = yield cmd.query(`select * from [${schemaName}].[${routineName}](${parmCsvList})`);
                         }
                         else {
-                            res = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(reject);
+                            res = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`);
                         }
                         /////////////////////
                         // $select
@@ -311,7 +319,7 @@ class ExecController {
                     let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
                     let result;
                     if (cachedRoutine.Type == "PROCEDURE") {
-                        result = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`).catch(reject);
+                        result = yield cmd.execute(`[${cachedRoutine.Schema}].[${cachedRoutine.Routine}]`);
                         resolve(result.returnValue);
                     }
                     else if (cachedRoutine.Type == "FUNCTION") {
@@ -400,6 +408,41 @@ class ExecController {
             });
         }
         return Promise.all(promises);
+    }
+    static convertParameterValue(sqlType, value) {
+        if (sqlType == sql.Date || sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
+            //return Date.parse(value);
+            let mom = moment(Date.parse(value));
+            // TODO: temporary fix for tedious Date issue
+            return mom.format("YYYY-MM-DD hh:mm:ss.SSS A");
+            //        return dt.toString();
+            //return dt;
+        }
+        return value;
+        /*    let valueType = value.GetType();
+    
+            if (valueType == typeof (string) && ((string)value).Equals("null", StringComparison.OrdinalIgnoreCase))
+            {
+                return DBNull.Value;
+            }
+    
+            switch (sqlType) {
+                case SqlDbType.UniqueIdentifier:
+                    if (valueType == typeof (Guid)) { return value; }
+    
+                    if (valueType == typeof (String)) {
+                        return new Guid((string)value);
+                    }
+                    throw new NotSupportedException("SqlDbType.UniqueIdentifier::Unsupported data type: " + valueType);
+                case SqlDbType.DateTime:
+                    return value;
+                case SqlDbType.Bit:
+                    return ConvertToSqlBit(value, valueType);
+                case SqlDbType.VarBinary:
+                    return ConvertToSqlVarbinary(value, valueType);
+                default:
+                    return value;
+            }*/
     }
 }
 __decorate([

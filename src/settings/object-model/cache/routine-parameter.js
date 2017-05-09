@@ -72,6 +72,8 @@ class RoutineParameter {
                 return "string";
             case "binary":
                 return "Blob"; // TODO: Not sure about this one...worst case, make it a string                
+            case "numeric":
+                return "number";
             default:
                 throw new Error("getDataTypeForTypeScript::Unsupported data type: " + dataType);
         }
