@@ -2,6 +2,7 @@ import * as SqlConnectionStringBuilder from 'node-connection-string-builder';
 import * as crypto from 'crypto';
 import * as keypair from 'keypair';
 import * as fs from 'fs';
+import * as path from 'path';
 
 const KEY_FILEPATH: string = "./conn.key";
 
@@ -26,10 +27,13 @@ function decrypt(text) {
 if (!fs.existsSync(KEY_FILEPATH)) {
     try {// TODO: Replace console.log and console.error with Session Log
         console.log("Creating private key for Connections...");
+        console.log("\t", path.resolve(KEY_FILEPATH));
 
         let newKey = keypair().private;
 
         fs.writeFileSync(KEY_FILEPATH, newKey, { encoding: "utf8" });
+
+        console.log("...private key created.");
     }
     catch (e) {
         console.error(e);

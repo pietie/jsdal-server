@@ -1,8 +1,9 @@
 import { SettingsInstance } from './settings/settings-instance'
 import { WorkSpawner } from './generator/work-spawner'
 
-import './web-app';
 
+import './web-app';
+ 
 import * as fs from 'fs'
 
 SettingsInstance.loadSettingsFromFile().then(() => {

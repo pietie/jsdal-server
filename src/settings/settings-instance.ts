@@ -1,8 +1,8 @@
-import * as fs from 'fs'
-import * as async from 'async'
+import * as fs from 'fs';
+import * as async from 'async';
 
-import { JsDalServerConfig } from './object-model'
-
+import { JsDalServerConfig } from './object-model';
+ 
 export class SettingsInstance {
     private static _instance: JsDalServerConfig;
 

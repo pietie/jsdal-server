@@ -2,7 +2,9 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "~/*": ["./src/*"]
+            "~/*": [
+                "./src/*"
+            ]
         },
         "target": "es2016",
         "module": "commonjs",
@@ -10,17 +12,21 @@
         "sourceMap": true,
         "removeComments": false,
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
+        "emitDecoratorMetadata": true, 
         "lib": [
             "es6"
         ],
         "types": [
             "node"
         ],
-        
         "typeRoots": [
             "node_modules/@types"
         ]
-        
-    }
+    },
+    "exclude": [
+        "node_modules",
+        "generated",
+        "resources",
+        "build"
+    ]
 }

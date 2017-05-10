@@ -2,7 +2,9 @@
 
 *.jsDAL
 generated/*
+build/*
 *.key
+*.err
 
 *.js.map
 

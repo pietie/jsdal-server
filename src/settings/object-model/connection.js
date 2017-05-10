@@ -4,6 +4,7 @@ const SqlConnectionStringBuilder = require("node-connection-string-builder");
 const crypto = require("crypto");
 const keypair = require("keypair");
 const fs = require("fs");
+const path = require("path");
 const KEY_FILEPATH = "./conn.key";
 let algorithm = 'aes-256-ctr';
 let connectionPrivateKey = null;
@@ -23,8 +24,10 @@ function decrypt(text) {
 if (!fs.existsSync(KEY_FILEPATH)) {
     try {
         console.log("Creating private key for Connections...");
+        console.log("\t", path.resolve(KEY_FILEPATH));
         let newKey = keypair().private;
         fs.writeFileSync(KEY_FILEPATH, newKey, { encoding: "utf8" });
+        console.log("...private key created.");
     }
     catch (e) {
         console.error(e);
