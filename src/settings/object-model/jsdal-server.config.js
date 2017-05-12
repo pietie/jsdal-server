@@ -6,12 +6,14 @@ class JsDalServerConfig {
         this.ProjectList = [];
     }
     static createFromJson(rawJson) {
-        if (!rawJson || typeof (rawJson.ProjectList) === undefined)
+        if (!rawJson)
             return null;
         let config = new JsDalServerConfig();
         config.Settings = Settings.createFromJson(rawJson.Settings);
-        for (var e in rawJson.ProjectList) {
-            config.ProjectList.push(project_1.Project.createFromJson(rawJson.ProjectList[e]));
+        if (typeof (rawJson.ProjectList) !== "undefined") {
+            for (var e in rawJson.ProjectList) {
+                config.ProjectList.push(project_1.Project.createFromJson(rawJson.ProjectList[e]));
+            }
         }
         return config;
     }
@@ -71,12 +73,31 @@ class Settings {
         this.DbSource_CheckForChangesInMilliseconds = 200;
     }
     static createFromJson(rawJson) {
-        if (!rawJson || typeof (rawJson.ProjectList) === undefined)
+        if (!rawJson)
             return null;
         let settings = new Settings();
         settings.DbSource_CheckForChangesInMilliseconds = rawJson.DbSource_CheckForChangesInMilliseconds;
+        settings.WebServer = WebServerSettings.createFromJson(rawJson);
         return settings;
     }
 }
 exports.Settings = Settings;
+// TODO: move to another file
+class WebServerSettings {
+    constructor() {
+        this.EnableSSL = false;
+    }
+    static createFromJson(rawJson) {
+        if (!rawJson || typeof (rawJson.WebServer) === "undefined")
+            return null;
+        let settings = new WebServerSettings();
+        settings.HttpServerHostname = rawJson.WebServer.HttpServerHostname;
+        settings.HttpServerPort = rawJson.WebServer.HttpServerPort;
+        settings.EnableSSL = !!rawJson.WebServer.EnableSSL;
+        settings.HttpsServerHostname = rawJson.WebServer.HttpsServerHostname;
+        settings.HttpsServerPort = rawJson.WebServer.HttpsServerPort;
+        return settings;
+    }
+}
+exports.WebServerSettings = WebServerSettings;
 //# sourceMappingURL=jsdal-server.config.js.map

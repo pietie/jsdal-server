@@ -7,7 +7,7 @@ class SettingsInstance {
         return SettingsInstance._instance;
     }
     static get settingsFilePath() {
-        return "./test/jsdal-server.json";
+        return "./jsdal-server.json";
     }
     static saveSettingsToFile() {
         try {

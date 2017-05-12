@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const settings_instance_1 = require("./settings/settings-instance");
 const work_spawner_1 = require("./generator/work-spawner");
-require("./web-app");
 const fs = require("fs");
 settings_instance_1.SettingsInstance.loadSettingsFromFile().then(() => {
     work_spawner_1.WorkSpawner.Start();
     CompileListOfAvailablePlugins();
+    require('./web-app');
 });
 global["PluginAssemblies"] = []; // TOOD: Wrap nicely in a class?
 function CompileListOfAvailablePlugins() {

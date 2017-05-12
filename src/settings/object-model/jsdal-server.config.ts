@@ -9,14 +9,16 @@ export class JsDalServerConfig {
     }
 
     public static createFromJson(rawJson: any): JsDalServerConfig {
-        if (!rawJson || typeof (rawJson.ProjectList) === undefined) return null;
+        if (!rawJson) return null;
 
         let config = new JsDalServerConfig();
 
         config.Settings = Settings.createFromJson(rawJson.Settings);
 
-        for (var e in rawJson.ProjectList) {
-            config.ProjectList.push(Project.createFromJson(rawJson.ProjectList[e]));
+        if (typeof (rawJson.ProjectList) !== "undefined") {
+            for (var e in rawJson.ProjectList) {
+                config.ProjectList.push(Project.createFromJson(rawJson.ProjectList[e]));
+            }
         }
 
         return config;
@@ -31,8 +33,7 @@ export class JsDalServerConfig {
         return (existing && existing.length > 0);
     }
 
-    public getProject(name:string) : Project
-    {
+    public getProject(name: string): Project {
         if (!name) return null;
 
         let existing = this.ProjectList.filter(p => p.Name.toLowerCase() == name.toLowerCase());
@@ -95,12 +96,38 @@ export class JsDalServerConfig {
 export class Settings {
 
     public DbSource_CheckForChangesInMilliseconds: number = 200;
+    public WebServer: WebServerSettings;
 
     public static createFromJson(rawJson: any): Settings {
-        if (!rawJson || typeof (rawJson.ProjectList) === undefined) return null;
+        if (!rawJson) return null;
         let settings = new Settings();
 
         settings.DbSource_CheckForChangesInMilliseconds = rawJson.DbSource_CheckForChangesInMilliseconds;
+        settings.WebServer = WebServerSettings.createFromJson(rawJson);
+
+        return settings;
+    }
+}
+
+// TODO: move to another file
+export class WebServerSettings {
+    public HttpServerHostname: string;
+    public HttpServerPort: number;
+
+    public EnableSSL?: boolean = false;
+    public HttpsServerHostname?: string;
+    public HttpsServerPort?: number;
+
+    public static createFromJson(rawJson: any): WebServerSettings {
+        if (!rawJson || typeof (rawJson.WebServer) === "undefined") return null;
+        let settings = new WebServerSettings();
+
+        settings.HttpServerHostname = rawJson.WebServer.HttpServerHostname;
+        settings.HttpServerPort = rawJson.WebServer.HttpServerPort;
+
+        settings.EnableSSL = !!rawJson.WebServer.EnableSSL;
+        settings.HttpsServerHostname = rawJson.WebServer.HttpsServerHostname;
+        settings.HttpsServerPort = rawJson.WebServer.HttpsServerPort;
 
         return settings;
     }

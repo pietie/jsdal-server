@@ -12,13 +12,18 @@ const inquirer = require("inquirer");
 const fs = require("fs");
 const path = require("path");
 const child_process_1 = require("child_process");
+const moment = require("moment");
 class NssmWrapper {
     static installService(serviceName, displayName = "jsDAL server") {
         let cmd = `${NssmWrapper.exePath} install "${serviceName}" "${NssmWrapper.nodePath}" "${NssmWrapper.scriptPath} run"`;
         cmd += `& ${NssmWrapper.exePath} set "${serviceName}" DisplayName "${displayName}"`;
-        cmd += `& ${NssmWrapper.exePath} set "${serviceName}" AppDirectory "${__dirname}"`;
-        cmd += `& ${NssmWrapper.exePath} set "${serviceName}" Description "Generates JavaScript data-access layer tor MS SQL sprocs."`;
+        cmd += `& ${NssmWrapper.exePath} set "${serviceName}" AppDirectory "${path.resolve('./')}"`;
+        cmd += `& ${NssmWrapper.exePath} set "${serviceName}" Description "Generates JavaScript data-access layer for MS SQL sprocs."`;
         cmd += `& ${NssmWrapper.exePath} set "${serviceName}" Start SERVICE_AUTO_START`;
+        console.log('-----');
+        console.log(`\tSetting DisplayName to:\t${displayName}`);
+        console.log(`\tSetting AppDirectory to:\t${path.resolve('./')}`);
+        console.log('-----');
         child_process_1.exec(cmd, (err, stdout) => {
             if (err) {
                 console.error(err);
@@ -46,8 +51,13 @@ NssmWrapper.exePath = path.resolve('./tools/nssm.exe');
 NssmWrapper.nodePath = process.argv[0];
 NssmWrapper.scriptPath = process.argv[1];
 function overrideStdOutput() {
-    var logStream = fs.createWriteStream(process.argv[1] + ".log");
-    var errStream = fs.createWriteStream(process.argv[1] + ".err");
+    let logDir = path.resolve('./log');
+    if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir);
+    }
+    let filename = moment().format("YYYY-MM-DD");
+    let logStream = fs.createWriteStream(path.join(logDir, `${filename}.log`), { 'flags': 'a' });
+    let errStream = fs.createWriteStream(path.join(logDir, `${filename}.err`), { 'flags': 'a' });
     process.__defineGetter__('stdout', function () {
         return logStream;
     });
@@ -57,7 +67,7 @@ function overrideStdOutput() {
     process.on('uncaughtException', function (err) {
         console.error((err && err.stack) ? err.stack : err);
     });
-    console.info("Setting up....", new Date());
+    console.info("%s\r\n------------------------\r\n", moment().format("HH:mm:ss"));
 }
 function mainManualStartup() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -150,6 +160,7 @@ let args = process.argv;
 let availableStartupCmds = ["run", "install", "uninstall", "uninstall (choose)"];
 if (!args || args.length <= 2 || availableStartupCmds.indexOf(args[2].toLowerCase()) == -1) {
     mainManualStartup();
+    overrideStdOutput();
 }
 else {
     overrideStdOutput();

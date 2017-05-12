@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as async from 'async';
 
-import { JsDalServerConfig } from './object-model';
+import { JsDalServerConfig, Settings } from './object-model';
  
 export class SettingsInstance {
     private static _instance: JsDalServerConfig;
@@ -11,7 +11,7 @@ export class SettingsInstance {
     }
 
     public static get settingsFilePath(): string {
-        return "./test/jsdal-server.json";
+        return "./jsdal-server.json";
     }
 
     public static saveSettingsToFile() {
@@ -37,10 +37,10 @@ export class SettingsInstance {
 
                         let settingsInst = JsDalServerConfig.createFromJson(JSON.parse(data));
 
-
                         settingsInst.ProjectList.forEach(p => p.DatabaseSources.forEach(dbs => {
                             dbs.loadCache();
                         }));
+
 
                         SettingsInstance._instance = settingsInst;
 

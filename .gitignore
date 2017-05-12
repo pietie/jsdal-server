@@ -2,9 +2,13 @@
 
 *.jsDAL
 generated/*
+cache/*
 build/*
 *.key
 *.err
+*.pem
+*.key
+jsdal-server.json
 
 *.js.map
 

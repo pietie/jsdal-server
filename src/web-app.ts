@@ -1,10 +1,15 @@
 import * as express from 'express';
+import * as http from 'http';
+import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as cors from 'cors';
 import * as bodyParser from 'body-parser';
 
 import * as keypair from 'keypair';
 import * as jwt from 'jsonwebtoken';
 
+import { SettingsInstance } from './settings/settings-instance'
 import { AuthController } from './web-api'
 
 let app = express();
@@ -18,17 +23,52 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ strict: false }));
 
 app.use('/', express.static('web'));
-
 app.use(cors());
 
-var server = app.listen(9086, function () {
-    var host = server.address().address;
-    var port = server.address().port;
+app.use(function (req, res, next) {
+    let url:string = req.url.toLowerCase();
 
-    console.log(`Web server listening at http://${host}:${port}`);
-
+    if (url.startsWith("/api/") || url.startsWith("/token/")) {
+        next();
+        return;
+    }
+    
+    res.sendFile( path.resolve("./web/index.html"));
 });
 
+
+let webServerSettings = SettingsInstance.Instance.Settings.WebServer;
+
+if (!webServerSettings) webServerSettings = { HttpServerHostname: "localhost", HttpServerPort: 9086, EnableSSL: false };
+
+let httpServer = http.createServer(app).listen(
+    {
+        host: webServerSettings.HttpServerHostname,
+        port: webServerSettings.HttpServerPort
+    }, () => {
+        let host = httpServer.address().address;
+        let port = httpServer.address().port;
+
+        console.log(`Web server listening at http://${host}:${port}`);
+    }
+);
+
+if (webServerSettings.EnableSSL) {
+    let httpsServer = https.createServer({
+        key: fs.readFileSync('key.pem'), // TODO: Make file names and locations configurable?
+        cert: fs.readFileSync('cert.pem')
+    }, app).listen({
+        host: webServerSettings.HttpsServerHostname,
+        port: webServerSettings.HttpsServerPort
+
+    }, () => {
+        let host = httpsServer.address().address;
+        let port = httpsServer.address().port;
+
+        console.log(`Web server listening at https://${host}:${port}`);
+    });
+
+}
 
 // get an instance of the router for api routes
 var apiRoutes = express.Router();
@@ -48,20 +88,16 @@ app.use('/api', apiRoutes);
 apiRoutes.post('/authenticate', (req, res) => {
     console.log("body", req.body);
 
-    // TODO: find user
-
-    // find the user
-    //User.findOne({
-    //name: req.body.name
-    //}, (err, user) => 
-
     {
 
         //        if (err) throw err;
 
         // TODO: Auth users here from some DB or config
-        let user = { name: "test", password: "abc123" };
+        let availableUsers = [{ name: "test", password: "abc123" }];
 
+        //let user = { name: "test", password: "abc123" };
+
+        let user = availableUsers.find(a => a.name === req.body.username);
 
         if (!user) {
             res.status(400).json({ success: false, message: 'Authentication failed' });

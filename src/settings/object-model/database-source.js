@@ -118,7 +118,7 @@ class DatabaseSource {
     }
     loadCache() {
         try {
-            let cachePath = "./test/cache";
+            let cachePath = "./cache";
             if (!fs.existsSync(cachePath))
                 return;
             let cacheFilePath = path.join(cachePath, `${this.CacheKey}.json`);
@@ -157,7 +157,7 @@ class DatabaseSource {
     }
     saveCache() {
         try {
-            let cachePath = "./test/cache";
+            let cachePath = "./cache";
             if (!fs.existsSync(cachePath)) {
                 try {
                     shelljs.mkdir('-p', cachePath);
@@ -297,7 +297,7 @@ class DatabaseSource {
     }
     clearCache() {
         try {
-            let cachePath = "./test/cache";
+            let cachePath = "./cache";
             if (!fs.existsSync(cachePath))
                 return;
             let cacheFilePath = path.join(cachePath, `${this.CacheKey}.json`);

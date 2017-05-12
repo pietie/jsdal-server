@@ -2,10 +2,10 @@
   "name": "jsdal-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "start.js",
   "scripts": {
     "start": "node src/start run",
-    "build": "webpack"
+    "build": "rmdir build /s /q & mkdir build & for %I in (resources web tools) do xcopy %I \"build/%I\" /I/Y & webpack"
   },
   "author": "",
   "license": "ISC",

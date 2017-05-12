@@ -158,7 +158,7 @@ export class DatabaseSource {
 
     public loadCache() {
         try {
-            let cachePath: string = "./test/cache";
+            let cachePath: string = "./cache";
 
             if (!fs.existsSync(cachePath)) return;
 
@@ -206,7 +206,7 @@ export class DatabaseSource {
 
     public saveCache() {
         try {
-            let cachePath: string = "./test/cache";
+            let cachePath: string = "./cache";
 
             if (!fs.existsSync(cachePath)) {
                 try {
@@ -391,7 +391,7 @@ export class DatabaseSource {
     public clearCache() {
 
         try {
-            let cachePath: string = "./test/cache";
+            let cachePath: string = "./cache";
 
             if (!fs.existsSync(cachePath)) return;
 
