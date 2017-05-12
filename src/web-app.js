@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const http = require("http");
 const https = require("https");
+const compression = require("compression");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
@@ -21,6 +22,7 @@ const settings_instance_1 = require("./settings/settings-instance");
 const web_api_1 = require("./web-api");
 let app = express();
 const SERVER_PRIVATE_KEY = keypair().private;
+app.use(compression());
 // parse application/x-www-form-urlencoded 
 app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json 

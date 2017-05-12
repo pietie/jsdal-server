@@ -79,7 +79,7 @@ function overrideStdOutput() {
         console.error((err && err.stack) ? err.stack : err);
     });
 
-    console.info("%s\r\n------------------------\r\n", moment().format("HH:mm:ss"));
+    console.info("\r\n%s\r\n------------------------\r\n", moment().format("HH:mm:ss"));
 }
 
 async function mainManualStartup() {
@@ -149,7 +149,7 @@ async function mainManualStartup() {
 
 class CmdExecutor {
     public static run() {
-        console.info("\r\nStarting application...")
+        console.info("Starting application...")
         require('./app');
     }
 
@@ -184,7 +184,6 @@ let availableStartupCmds = ["run", "install", "uninstall", "uninstall (choose)"]
 
 if (!args || args.length <= 2 || availableStartupCmds.indexOf(args[2].toLowerCase()) == -1) {
     mainManualStartup();
-    overrideStdOutput();
 }
 else {
     overrideStdOutput();

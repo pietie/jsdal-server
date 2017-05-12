@@ -1,6 +1,7 @@
 import * as express from 'express';
 import * as http from 'http';
 import * as https from 'https';
+import * as compression from 'compression';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cors from 'cors';
@@ -15,6 +16,8 @@ import { AuthController } from './web-api'
 let app = express();
 
 const SERVER_PRIVATE_KEY = keypair().private;
+
+app.use(compression());
 
 // parse application/x-www-form-urlencoded 
 app.use(bodyParser.urlencoded({ extended: false }));
