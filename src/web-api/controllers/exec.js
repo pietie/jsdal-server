@@ -412,7 +412,7 @@ class ExecController {
     static convertParameterValue(sqlType, value) {
         if (sqlType == sql.Date || sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
             //return Date.parse(value);
-            let mom = moment(Date.parse(value));
+            let mom = moment.utc(value);
             // TODO: temporary fix for tedious Date issue
             return mom.format("YYYY-MM-DD hh:mm:ss.SSS A");
             //        return dt.toString();
