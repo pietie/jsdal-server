@@ -27,12 +27,14 @@ class ExecController {
     static QueryAndNonQuery(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                let debugInfo = "";
                 try {
                     let isNonQuery = req.method.toUpperCase() == "POST";
                     let dbSourceGuid = req.params.dbSourceGuid;
                     let dbConnectionGuid = req.params.dbConnectionGuid;
                     let schema = req.params.schema;
                     let routine = req.params.routine;
+                    debugInfo += `[${schema}].[${routine}]`;
                     let dbSources = settings_instance_1.SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
                     let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
                     let dbSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
@@ -80,7 +82,7 @@ class ExecController {
                     resolve(ret);
                 }
                 catch (ex) {
-                    resolve(api_response_1.ApiResponse.Exception(ex));
+                    resolve(api_response_1.ApiResponse.Exception(ex, debugInfo));
                 }
             }));
         });
@@ -138,7 +140,7 @@ class ExecController {
         }
         return ret;
     }
-    static execRoutineQuery(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 30) {
+    static execRoutineQuery(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 60) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -153,7 +155,7 @@ class ExecController {
                         password: dbConn.password,
                         server: dbConn.server,
                         database: dbConn.database,
-                        connectionTimeout: 30000,
+                        connectionTimeout: 1000 * 60,
                         requestTimeout: commandTimeOutInSeconds * 1000,
                         stream: false,
                         options: {
@@ -213,6 +215,10 @@ class ExecController {
                             }); // foreach Parameter 
                         }
                         //!var executionTrackingEndFunction = ExecTracker.Track(dbSource.Name, cachedRoutine.Schema, cachedRoutine.Routine);
+                        //                     cmd.on("error", (a,b)=>
+                        //                     {
+                        // let aaa = a;
+                        //                     });
                         let res;
                         if (isTVF) {
                             let parmCsvList = cachedRoutine.Parameters.filter(p => p.IsResult == null || p.IsResult.toUpperCase() != "YES").map(p => p.ParameterName);
@@ -276,7 +282,7 @@ class ExecController {
                         password: dbConn.password,
                         server: dbConn.server,
                         database: dbConn.database,
-                        connectionTimeout: 15000,
+                        connectionTimeout: 1000 * 60,
                         requestTimeout: commandTimeOutInSeconds * 1000,
                         stream: false,
                         options: {

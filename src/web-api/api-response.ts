@@ -39,10 +39,20 @@ export class ApiResponse {
         return ret;
     }
 
-    public static Exception(ex: Error | any): ApiResponse {
-        SessionLog.error(ex.toString());
+    public static Exception(ex: Error | any, additionalInfo?: string): ApiResponse {
+        SessionLog.exception(ex);
+
+        if (additionalInfo && additionalInfo != "") {
+            if (typeof (ex) === "string") {
+                ex = additionalInfo + ";" + ex;
+            }
+            else if (typeof (ex.message) !== "undefined") {
+                ex.message = additionalInfo + ";" + ex.message;
+            }
+        }
+
         let id = ExceptionLogger.logException(ex);
-        
+
         let ret = new ApiResponse();
 
         ret.Message = `Error ref: ${id}`;
@@ -64,8 +74,7 @@ export class ApiResponse {
 }
 
 export class ApiResponseScalar extends ApiResponse {
-    constructor()
-    {
+    constructor() {
         super();
     }
     public IsDate: boolean;

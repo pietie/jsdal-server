@@ -75,8 +75,8 @@ class Worker {
             password: dbSource.password,
             server: dbSource.dataSource,
             database: dbSource.initialCatalog,
-            connectionTimeout: 1000*30, //TODO:make configurable
-            requestTimeout: 1000*30,//TODO:make configurable
+            connectionTimeout: 1000 * 60, //TODO:make configurable
+            requestTimeout: 1000 * 60,//TODO:make configurable
             stream: false,
             options: {
                 encrypt: true
@@ -109,6 +109,7 @@ class Worker {
 
                 let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     this.status = "Failed to open connection to database: " + err.toString();
+                    SessionLog.error("Failed to open conneciton to database.");
                     SessionLog.exception(err);
 
                     console.log("connection error", err);
@@ -277,11 +278,9 @@ class Worker {
                     {
                         // call save for final changes 
                         dbSource.saveCache();
-
-                        console.log("PROMISE done. Always save here? call generate here?");
+                        this.generateOutputFiles(dbSource);
                     }
 
-                    this.generateOutputFiles(dbSource);
 
                 } // if (routineCount > 0) 
                 /* TODO: !!
@@ -295,6 +294,8 @@ class Worker {
 
             }
             catch (e) {
+                SessionLog.error("reached catch handler ref: ab123");
+                SessionLog.exception(e);
                 console.log("or catch here?", e.toString());
             }
 

@@ -288,6 +288,8 @@ export class DatabaseSource {
                 password: this.MetadataConnection.password,
                 server: this.MetadataConnection.dataSource,
                 database: this.MetadataConnection.initialCatalog,
+                connectionTimeout: 1000 * 30, //TODO:make configurable
+                requestTimeout: 1000 * 30,//TODO:make configurable
                 stream: false, // You can enable streaming globally
                 options: {
                     encrypt: true
@@ -324,6 +326,8 @@ export class DatabaseSource {
                     password: this.MetadataConnection.password,
                     server: this.MetadataConnection.dataSource,
                     database: this.MetadataConnection.initialCatalog,
+                    connectionTimeout: 1000 * 60, //TODO:make configurable
+                    requestTimeout: 1000 * 60,//TODO:make configurable
                     stream: false, // You can enable streaming globally
                     options: {
                         encrypt: true
@@ -360,6 +364,8 @@ export class DatabaseSource {
                     password: this.MetadataConnection.password,
                     server: this.MetadataConnection.dataSource,
                     database: this.MetadataConnection.initialCatalog,
+                    connectionTimeout: 1000 * 60, //TODO:make configurable
+                    requestTimeout: 1000 * 60,//TODO:make configurable
                     stream: false, // You can enable streaming globally
                     options: {
                         encrypt: true
@@ -583,11 +589,11 @@ export class DatabaseSource {
         return path.join(this.outputDir, jsFile.Filename);
     }
 
-    public outputTypeScriptTypingsFilePath(jsFile:JsFile): string {
+    public outputTypeScriptTypingsFilePath(jsFile: JsFile): string {
         return path.join(this.outputDir, jsFile.Filename.substring(0, jsFile.Filename.lastIndexOf('.')) + ".d.ts");
     }
 
-    public minifiedOutputFilePath(jsFile:JsFile): string {
+    public minifiedOutputFilePath(jsFile: JsFile): string {
         return path.join(this.outputDir, jsFile.Filename.substring(0, jsFile.Filename.length - 3) + ".min.js");
     }
 }

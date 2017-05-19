@@ -14,6 +14,8 @@ export class ExecController {
     @route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true)
     public static async QueryAndNonQuery(req: Request, res: Response): Promise<ApiResponse> {
         return new Promise<ApiResponse>(async (resolve, reject) => {
+            
+            let debugInfo:string = "";
             try {
                 let isNonQuery: Boolean = req.method.toUpperCase() == "POST";
 
@@ -21,6 +23,8 @@ export class ExecController {
                 let dbConnectionGuid: string = req.params.dbConnectionGuid;
                 let schema: string = req.params.schema;
                 let routine: string = req.params.routine;
+
+                debugInfo+= `[${schema}].[${routine}]`;
 
                 let dbSources = SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
                 let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
@@ -92,7 +96,7 @@ export class ExecController {
 
             }
             catch (ex) {
-                resolve(ApiResponse.Exception(ex));
+                resolve(ApiResponse.Exception(ex, debugInfo));
             }
 
 
@@ -174,7 +178,7 @@ export class ExecController {
         dbSource: DatabaseSource,
         dbConnectionGuid: string,
         queryString: object,
-        commandTimeOutInSeconds: number = 30
+        commandTimeOutInSeconds: number = 60
     ): Promise<ExecutionResult> {
         return new Promise<ExecutionResult>(async (resolve, reject) => {
             try {
@@ -194,7 +198,7 @@ export class ExecController {
                     password: dbConn.password,
                     server: dbConn.server,
                     database: dbConn.database,
-                    connectionTimeout: 30000, // TODO: make configurable
+                    connectionTimeout: 1000 * 60, // TODO: make configurable
                     requestTimeout: commandTimeOutInSeconds * 1000,
                     stream: false,
                     options: {
@@ -270,6 +274,11 @@ export class ExecController {
                     }
 
                     //!var executionTrackingEndFunction = ExecTracker.Track(dbSource.Name, cachedRoutine.Schema, cachedRoutine.Routine);
+
+//                     cmd.on("error", (a,b)=>
+//                     {
+// let aaa = a;
+//                     });
 
                     let res: any;
 
@@ -365,7 +374,7 @@ export class ExecController {
                     password: dbConn.password,
                     server: dbConn.server,
                     database: dbConn.database,
-                    connectionTimeout: 15000,
+                    connectionTimeout: 1000 * 60,
                     requestTimeout: commandTimeOutInSeconds * 1000,
                     stream: false,
                     options: {

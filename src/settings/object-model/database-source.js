@@ -218,6 +218,8 @@ class DatabaseSource {
                     password: this.MetadataConnection.password,
                     server: this.MetadataConnection.dataSource,
                     database: this.MetadataConnection.initialCatalog,
+                    connectionTimeout: 1000 * 30,
+                    requestTimeout: 1000 * 30,
                     stream: false,
                     options: {
                         encrypt: true
@@ -247,6 +249,8 @@ class DatabaseSource {
                         password: this.MetadataConnection.password,
                         server: this.MetadataConnection.dataSource,
                         database: this.MetadataConnection.initialCatalog,
+                        connectionTimeout: 1000 * 60,
+                        requestTimeout: 1000 * 60,
                         stream: false,
                         options: {
                             encrypt: true
@@ -276,6 +280,8 @@ class DatabaseSource {
                         password: this.MetadataConnection.password,
                         server: this.MetadataConnection.dataSource,
                         database: this.MetadataConnection.initialCatalog,
+                        connectionTimeout: 1000 * 60,
+                        requestTimeout: 1000 * 60,
                         stream: false,
                         options: {
                             encrypt: true

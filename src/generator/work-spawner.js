@@ -63,8 +63,8 @@ class Worker {
                 password: dbSource.password,
                 server: dbSource.dataSource,
                 database: dbSource.initialCatalog,
-                connectionTimeout: 1000 * 30,
-                requestTimeout: 1000 * 30,
+                connectionTimeout: 1000 * 60,
+                requestTimeout: 1000 * 60,
                 stream: false,
                 options: {
                     encrypt: true
@@ -88,6 +88,7 @@ class Worker {
                 try {
                     let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         this.status = "Failed to open connection to database: " + err.toString();
+                        log_1.SessionLog.error("Failed to open conneciton to database.");
                         log_1.SessionLog.exception(err);
                         console.log("connection error", err);
                     });
@@ -207,9 +208,8 @@ class Worker {
                         {
                             // call save for final changes 
                             dbSource.saveCache();
-                            console.log("PROMISE done. Always save here? call generate here?");
+                            this.generateOutputFiles(dbSource);
                         }
-                        this.generateOutputFiles(dbSource);
                     } // if (routineCount > 0) 
                     /* TODO: !!
                                     if (this.IsRulesDirty || this.IsOutputFilesDirty) {
@@ -221,6 +221,8 @@ class Worker {
                                     */
                 }
                 catch (e) {
+                    log_1.SessionLog.error("reached catch handler ref: ab123");
+                    log_1.SessionLog.exception(e);
                     console.log("or catch here?", e.toString());
                 }
                 yield thread_util_1.ThreadUtil.Sleep(settings_instance_1.SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);

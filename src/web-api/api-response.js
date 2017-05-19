@@ -24,8 +24,16 @@ class ApiResponse {
         ret.Data = data;
         return ret;
     }
-    static Exception(ex) {
-        log_1.SessionLog.error(ex.toString());
+    static Exception(ex, additionalInfo) {
+        log_1.SessionLog.exception(ex);
+        if (additionalInfo && additionalInfo != "") {
+            if (typeof (ex) === "string") {
+                ex = additionalInfo + ";" + ex;
+            }
+            else if (typeof (ex.message) !== "undefined") {
+                ex.message = additionalInfo + ";" + ex.message;
+            }
+        }
         let id = exception_logger_1.ExceptionLogger.logException(ex);
         let ret = new ApiResponse();
         ret.Message = `Error ref: ${id}`;

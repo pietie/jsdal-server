@@ -27,6 +27,25 @@ class ExceptionsController {
             return api_response_1.ApiResponse.Exception(ex);
         }
     }
+    static getRecentExceptions(req, res) {
+        try {
+            let n = parseInt(req.params.n);
+            if (n > 500)
+                n = 500;
+            //let ret = ExceptionLogger.getTopN(n).sort((a, b) => b.created >= a.created?1:0); // sort desc based on create date
+            let ret = exception_logger_1.ExceptionLogger.getTopN(n).sort((a, b) => {
+                if (a.created > b.created)
+                    return -1;
+                if (b.created > a.created)
+                    return 1;
+                return 0;
+            }); // sort desc based on create date
+            return api_response_1.ApiResponse.Payload(ret);
+        }
+        catch (ex) {
+            return api_response_1.ApiResponse.Exception(ex);
+        }
+    }
 }
 __decorate([
     decorators_1.route("/api/exception/:id"),
@@ -34,5 +53,11 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], ExceptionsController, "getException", null);
+__decorate([
+    decorators_1.route("/api/exception/top/:n"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], ExceptionsController, "getRecentExceptions", null);
 exports.ExceptionsController = ExceptionsController;
 //# sourceMappingURL=exceptions.js.map

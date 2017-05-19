@@ -1,21 +1,26 @@
 import * as shortid from 'shortid'
 
 export class ExceptionLogger {
-    private static MAX_ENTRIES:number = 1000;
+    private static MAX_ENTRIES: number = 1000;
 
     private static exceptionList: ExceptionWrapper[] = [];
 
-    public static get exceptions() : ExceptionWrapper[]
-    {
+    public static get exceptions(): ExceptionWrapper[] {
         return ExceptionLogger.exceptionList;
     }
 
-    public static getException(id:string)
-    {
-        return ExceptionLogger.exceptionList.find(e=>e.id == id);
+    public static getException(id: string) {
+        return ExceptionLogger.exceptionList.find(e => e.id == id);
     }
 
-    static logException(ex) : string {
+    public static getTopN(n: number): ExceptionWrapper[] {
+        if (n <= 0) return [];
+        let ix = ExceptionLogger.exceptionList.length - n;
+        if (ix < 0) ix = 0;
+        return ExceptionLogger.exceptionList.slice(ix);
+    }
+
+    static logException(ex): string {
         if (ExceptionLogger.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {
             // cull from the front
             ExceptionLogger.exceptionList.splice(0, ExceptionLogger.exceptionList.length - ExceptionLogger.MAX_ENTRIES + 1);
@@ -38,7 +43,7 @@ export class ExceptionWrapper {
 
         let msg = ex;
 
-        if (typeof(ex) == "object" && typeof(ex.message) !== "undefined" ) msg = ex.message;
+        if (typeof (ex) == "object" && typeof (ex.message) !== "undefined") msg = ex.message;
 
         this.exceptionObject = { message: msg, stack: ex.stack };
         this.id = shortid.generate();

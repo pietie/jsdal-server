@@ -8,6 +8,14 @@ class ExceptionLogger {
     static getException(id) {
         return ExceptionLogger.exceptionList.find(e => e.id == id);
     }
+    static getTopN(n) {
+        if (n <= 0)
+            return [];
+        let ix = ExceptionLogger.exceptionList.length - n;
+        if (ix < 0)
+            ix = 0;
+        return ExceptionLogger.exceptionList.slice(ix);
+    }
     static logException(ex) {
         if (ExceptionLogger.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {
             // cull from the front
