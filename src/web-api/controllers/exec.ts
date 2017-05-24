@@ -8,6 +8,7 @@ import { Request, Response } from "@types/express";
 import * as sql from 'mssql';
 import * as moment from 'moment';
 import { SessionLog } from "./../../util/log";
+import { jsDALServerVariables } from "./../jsdal-server-variables";
 
 export class ExecController {
 
@@ -234,10 +235,9 @@ export class ExecController {
 
                             if (queryString[parmName]) {
                                 let val = queryString[parmName];
-
-                                // TODO: support jsDAL variables
+                                
                                 // look for special jsDAL Server variables
-                                //val = jsDALServerVariables.Parse(request, val);
+                                val = jsDALServerVariables.parse(request, val);
 
                                 if (val == null) {
                                     parmValue = null;

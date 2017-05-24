@@ -23,6 +23,7 @@ const decorators_1 = require("./../decorators");
 const sql = require("mssql");
 const moment = require("moment");
 const log_1 = require("./../../util/log");
+const jsdal_server_variables_1 = require("./../jsdal-server-variables");
 class ExecController {
     static QueryAndNonQuery(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -182,9 +183,8 @@ class ExecController {
                                 let parmName = p.ParameterName.substr(1, 99999);
                                 if (queryString[parmName]) {
                                     let val = queryString[parmName];
-                                    // TODO: support jsDAL variables
                                     // look for special jsDAL Server variables
-                                    //val = jsDALServerVariables.Parse(request, val);
+                                    val = jsdal_server_variables_1.jsDALServerVariables.parse(request, val);
                                     if (val == null) {
                                         parmValue = null;
                                     }
