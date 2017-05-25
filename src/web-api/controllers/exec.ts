@@ -548,6 +548,11 @@ export class ExecController {
 
             //return dt;
         }
+        else if (sqlType == sql.Bit)
+        {
+            let v = value.toString().toLowerCase();
+            return value == "true" || value == "1" || value == "yes";
+        }
 
         return value;
         /*    let valueType = value.GetType();
