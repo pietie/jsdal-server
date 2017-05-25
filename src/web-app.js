@@ -49,9 +49,11 @@ let httpServer = http.createServer(app).listen({
     console.log(`Web server listening at http://${host}:${port}`);
 });
 if (webServerSettings.EnableSSL) {
+    //key: fs.readFileSync('key.pem'), // TODO: Make file names and locations configurable?
+    //cert: fs.readFileSync('cert.pem')
     let httpsServer = https.createServer({
-        key: fs.readFileSync('key.pem'),
-        cert: fs.readFileSync('cert.pem')
+        pfx: fs.readFileSync('cert.pfx'),
+        passphrase: fs.readFileSync('certpass.pass', { encoding: 'utf8' })
     }, app).listen({
         host: webServerSettings.HttpsServerHostname,
         port: webServerSettings.HttpsServerPort
