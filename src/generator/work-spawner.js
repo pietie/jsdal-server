@@ -18,8 +18,12 @@ const js_generator_1 = require("./js-generator");
 const async = require("async");
 const sql = require("mssql");
 const fs = require("fs");
+const shortid = require("shortid");
 const xml2js = require("xml2js");
 class WorkSpawner {
+    static get workerList() {
+        return WorkSpawner._workerList;
+    }
     static Start() {
         try {
             let dbSources = settings_instance_1.SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources).reduce((prev, next) => { return prev.concat(next); });
@@ -30,6 +34,8 @@ class WorkSpawner {
             //!  dbSources = [dbSources[0]]; //TEMP 
             async.each(dbSources, (source) => {
                 let worker = new Worker();
+                worker.name = source.Name;
+                worker.description = `${source.dataSource}; ${source.initialCatalog} `;
                 console.log(`Spawning new worker for ${source.Name}`);
                 WorkSpawner._workerList.push(worker);
                 worker.run(source);
@@ -48,7 +54,10 @@ class Worker {
     constructor() {
         this.isRunning = false;
         this.maxRowDate = 0;
+        this._id = shortid.generate();
     }
+    get id() { return this._id; }
+    get running() { return this.isRunning; }
     get status() { return this._status; }
     set status(val) { this._status = val; }
     stop() {
@@ -77,6 +86,7 @@ class Worker {
             }
             let x = 0;
             let connectionErrorCnt = 0;
+            let con;
             while (this.isRunning) {
                 if (!dbSource.IsOrmInstalled) {
                     // try again in 2 seconds
@@ -86,12 +96,15 @@ class Worker {
                     return;
                 }
                 try {
-                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                        this.status = "Failed to open connection to database: " + err.toString();
-                        log_1.SessionLog.error("Failed to open conneciton to database.");
-                        log_1.SessionLog.exception(err);
-                        console.log("connection error", err);
-                    });
+                    // reconnect if necessary 
+                    if (con && !con.connected) {
+                        con = (yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                            this.status = "Failed to open connection to database: " + err.toString();
+                            log_1.SessionLog.error("Failed to open conneciton to database.");
+                            log_1.SessionLog.exception(err);
+                            console.log("connection error", err);
+                        }));
+                    }
                     if (!con) {
                         connectionErrorCnt++;
                         let waitMS = Math.min(3000 + (connectionErrorCnt * 3000), 300000 /*Max 5mins between tries*/);
@@ -226,6 +239,9 @@ class Worker {
                     console.log("or catch here?", e.toString());
                 }
                 yield thread_util_1.ThreadUtil.Sleep(settings_instance_1.SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);
+            }
+            if (con && con.connected) {
+                con.close();
             }
         });
     }

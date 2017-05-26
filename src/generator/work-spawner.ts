@@ -11,6 +11,7 @@ import { JsFileGenerator } from './js-generator'
 import * as async from 'async'
 import * as sql from 'mssql';
 import * as fs from 'fs';
+import * as shortid from 'shortid';
 
 import * as xml2js from 'xml2js'
 
@@ -20,6 +21,10 @@ export class WorkSpawner {
     public static TEMPLATE_RoutineContainer: string;
     public static TEMPLATE_Routine: string;
     public static TEMPLATE_TypescriptDefinitions: string;
+
+    public static get workerList(): Worker[] {
+        return WorkSpawner._workerList;
+    }
 
     public static Start() {
         try {
@@ -36,6 +41,9 @@ export class WorkSpawner {
             async.each(dbSources, (source) => {
 
                 let worker = new Worker();
+
+                worker.name = source.Name;
+                worker.description = `${source.dataSource}; ${source.initialCatalog} `;
 
                 console.log(`Spawning new worker for ${source.Name}`);
                 WorkSpawner._workerList.push(worker);
@@ -58,8 +66,19 @@ class Worker {
     private maxRowDate: number = 0;
     private _status: string;
 
+    private _id: string;
+
+    public get id(): string { return this._id; }
+    public get running(): boolean { return this.isRunning; }
+    public name: string;
+    public description: string;
+
     public get status(): string { return this._status; }
     public set status(val: string) { this._status = val; }
+
+    constructor() {
+        this._id = shortid.generate();
+    }
 
     public stop() {
         this.isRunning = false;
@@ -93,6 +112,7 @@ class Worker {
         let x: number = 0;
 
         let connectionErrorCnt: number = 0;
+        let con: sql.ConnectionPool;
 
         while (this.isRunning) {
 
@@ -107,13 +127,16 @@ class Worker {
 
             try {
 
-                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                    this.status = "Failed to open connection to database: " + err.toString();
-                    SessionLog.error("Failed to open conneciton to database.");
-                    SessionLog.exception(err);
+                // reconnect if necessary 
+                if (con && !con.connected) {
+                    con = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                        this.status = "Failed to open connection to database: " + err.toString();
+                        SessionLog.error("Failed to open conneciton to database.");
+                        SessionLog.exception(err);
 
-                    console.log("connection error", err);
-                });
+                        console.log("connection error", err);
+                    });
+                }
 
                 if (!con) {
                     connectionErrorCnt++;
@@ -291,7 +314,6 @@ class Worker {
                                     GenerateOutputFiles();
                                 }
                                 */
-
             }
             catch (e) {
                 SessionLog.error("reached catch handler ref: ab123");
@@ -300,6 +322,11 @@ class Worker {
             }
 
             await ThreadUtil.Sleep(SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);
+        }
+
+        if (con && con.connected)
+        {
+            con.close(); 
         }
 
     }
