@@ -38,6 +38,7 @@ class MemoryLog {
     }
     get Entries() { return this._entries; }
 }
+exports.MemoryLog = MemoryLog;
 class LogEntry {
     constructor() {
         this.CreateDate = new Date();

@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const api_response_1 = require("./../api-response");
 const decorators_1 = require("./../decorators");
 const work_spawner_1 = require("./../../generator/work-spawner");
-const log_1 = require("./../../util/log");
 class WorkersController {
     static getAllWokers(req, res) {
         try {
@@ -25,7 +24,13 @@ class WorkersController {
     }
     static getWorkerLog(req, res) {
         let workerName = req.params.id;
-        return api_response_1.ApiResponse.Payload(log_1.SessionLog.entries);
+        let worker = work_spawner_1.WorkSpawner.getWorker(workerName);
+        if (worker) {
+            return api_response_1.ApiResponse.Payload(worker.log.Entries);
+        }
+        else {
+            return api_response_1.ApiResponse.Payload(null);
+        }
     }
 }
 __decorate([

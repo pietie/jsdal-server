@@ -21,6 +21,9 @@ const fs = require("fs");
 const shortid = require("shortid");
 const xml2js = require("xml2js");
 class WorkSpawner {
+    static getWorker(name) {
+        return WorkSpawner._workerList.find(wl => wl.name == name);
+    }
     static get workerList() {
         return WorkSpawner._workerList;
     }
@@ -55,11 +58,13 @@ class Worker {
         this.isRunning = false;
         this.maxRowDate = 0;
         this._id = shortid.generate();
+        this._log = new log_1.MemoryLog();
     }
     get id() { return this._id; }
     get running() { return this.isRunning; }
     get status() { return this._status; }
     set status(val) { this._status = val; }
+    get log() { return this._log; }
     stop() {
         this.isRunning = false;
     }
@@ -83,16 +88,16 @@ class Worker {
             if (cache != null && cache.length > 0) {
                 this.maxRowDate = Math.max(...cache.map(c => c.RowVer));
                 log_1.SessionLog.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
+                this._log.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
             }
             let x = 0;
             let connectionErrorCnt = 0;
             let con;
             while (this.isRunning) {
                 if (!dbSource.IsOrmInstalled) {
-                    // try again in 2 seconds
+                    // try again in 10 seconds
                     this.status = `Waiting for ORM to be installed.`;
-                    console.log(this.status);
-                    setTimeout(() => this.run(dbSource), 2000);
+                    setTimeout(() => this.run(dbSource), 10000);
                     return;
                 }
                 try {
@@ -102,6 +107,8 @@ class Worker {
                             this.status = "Failed to open connection to database: " + err.toString();
                             log_1.SessionLog.error("Failed to open conneciton to database.");
                             log_1.SessionLog.exception(err);
+                            this._log.error("Failed to open conneciton to database.");
+                            this._log.exception(err);
                             console.log("connection error", err);
                         }));
                     }

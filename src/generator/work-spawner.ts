@@ -1,4 +1,4 @@
-import { SessionLog } from './../util/log'
+import { SessionLog, MemoryLog } from './../util/log'
 import { ThreadUtil } from './../util/thread-util'
 import { SettingsInstance } from './../settings/settings-instance'
 import { DatabaseSource, JsFile } from './../settings/object-model'
@@ -21,6 +21,11 @@ export class WorkSpawner {
     public static TEMPLATE_RoutineContainer: string;
     public static TEMPLATE_Routine: string;
     public static TEMPLATE_TypescriptDefinitions: string;
+
+    public static getWorker(name:string) : Worker
+    {
+        return WorkSpawner._workerList.find(wl=>wl.name == name);
+    }
 
     public static get workerList(): Worker[] {
         return WorkSpawner._workerList;
@@ -68,6 +73,8 @@ class Worker {
 
     private _id: string;
 
+    private _log:MemoryLog;
+
     public get id(): string { return this._id; }
     public get running(): boolean { return this.isRunning; }
     public name: string;
@@ -76,8 +83,11 @@ class Worker {
     public get status(): string { return this._status; }
     public set status(val: string) { this._status = val; }
 
+    public get log(): MemoryLog { return this._log; }
+
     constructor() {
         this._id = shortid.generate();
+        this._log = new MemoryLog();
     }
 
     public stop() {
@@ -107,6 +117,7 @@ class Worker {
         if (cache != null && cache.length > 0) {
             this.maxRowDate = Math.max(...cache.map(c => c.RowVer));
             SessionLog.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
+            this._log.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
         }
 
         let x: number = 0;
@@ -117,10 +128,9 @@ class Worker {
         while (this.isRunning) {
 
             if (!dbSource.IsOrmInstalled) {
-                // try again in 2 seconds
+                // try again in 10 seconds
                 this.status = `Waiting for ORM to be installed.`;
-                console.log(this.status);
-                setTimeout(() => this.run(dbSource), 2000);
+                setTimeout(() => this.run(dbSource), 10000);
                 return;
             }
 
@@ -133,6 +143,9 @@ class Worker {
                         this.status = "Failed to open connection to database: " + err.toString();
                         SessionLog.error("Failed to open conneciton to database.");
                         SessionLog.exception(err);
+
+                        this._log.error("Failed to open conneciton to database.");
+                        this._log.exception(err);
 
                         console.log("connection error", err);
                     });

@@ -10,7 +10,7 @@ export class WorkersController {
     @route("/api/workers")
     public static getAllWokers(req: Request, res: Response): ApiResponse {
         try {
-            let ret = WorkSpawner.workerList.map(wl=>{ return { id: wl.id, name: wl.name, desc: wl.description, status: wl.status, isRunning: wl.running }; });
+            let ret = WorkSpawner.workerList.map(wl => { return { id: wl.id, name: wl.name, desc: wl.description, status: wl.status, isRunning: wl.running }; });
 
             return ApiResponse.Payload(ret);
         }
@@ -21,12 +21,16 @@ export class WorkersController {
     }
 
     @route('/api/workers/:id')
-    public static getWorkerLog(req: Request, res: Response) : ApiResponse
-    {
-
+    public static getWorkerLog(req: Request, res: Response): ApiResponse {
         let workerName = req.params.id;
+        let worker = WorkSpawner.getWorker(workerName);
 
-        return ApiResponse.Payload(SessionLog.entries);
+        if (worker) {
+            return ApiResponse.Payload(worker.log.Entries);
+        }
+        else {
+            return ApiResponse.Payload(null);
+        }
     }
 }
 

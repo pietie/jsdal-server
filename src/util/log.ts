@@ -2,7 +2,7 @@ import * as chalk from 'chalk'
 
 
 
-class MemoryLog {
+export class MemoryLog {
 
     private _maxEntries: number;
 
