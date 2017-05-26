@@ -128,7 +128,7 @@ class Worker {
             try {
 
                 // reconnect if necessary 
-                if (con && !con.connected) {
+                if (!con || !con.connected) {
                     con = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         this.status = "Failed to open connection to database: " + err.toString();
                         SessionLog.error("Failed to open conneciton to database.");
