@@ -2,6 +2,8 @@ import * as express from 'express';
 import * as http from 'http';
 import * as https from 'https';
 import * as compression from 'compression';
+import * as multer from 'multer';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cors from 'cors';
@@ -24,6 +26,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // parse application/json 
 app.use(bodyParser.json({ strict: false }));
+
+// parse multipart/form-data
+let memStorage =  multer.memoryStorage();
+// TODO: consider warning from docs:   Make sure that you always handle the files that a user uploads. Never add multer as a global middleware since a malicious user could upload files to a route that you didn't anticipate. Only use this function on routes where you are handling the uploaded files.
+//!app.use(multer({ storage: memStorage, limits: { fileSize/*bytes*/: 1024*1024 * 10 } }).any()); // TODO: make max file size configurable
 
 app.use('/', express.static('web'));
 app.use(cors());

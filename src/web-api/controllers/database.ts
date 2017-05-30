@@ -637,7 +637,7 @@ export class DatabaseController {
         if (whitelist != null) {
             //Select(w => w.TrimEnd('\r')
             var ar = whitelist.split('\n').map(w => w.trim()).filter(w => w && w != "");
-            console.log("ar", ar);
+
             if (ar.length > 0) {
                 cs.WhitelistedDomainsCsv = ar.join(',');
             }

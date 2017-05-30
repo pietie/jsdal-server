@@ -4,7 +4,7 @@ class jsDALServerVariables {
     static parse(request, val) {
         if (val == null)
             return val;
-        if (!val.toLowerCase().startsWith(jsDALServerVariables.PREFIX_MARKER.toLowerCase()))
+        if (!val.toString().toLowerCase().startsWith(jsDALServerVariables.PREFIX_MARKER.toLowerCase()))
             return val;
         // remove the prefix
         val = val.substring(jsDALServerVariables.PREFIX_MARKER.length + 1);

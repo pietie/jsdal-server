@@ -7,16 +7,73 @@ import { Request, Response } from "@types/express";
 
 import * as sql from 'mssql';
 import * as moment from 'moment';
+import * as shortid from 'shortid';
+
 import { SessionLog } from "./../../util/log";
 import { jsDALServerVariables } from "./../jsdal-server-variables";
+import { BlobStore } from "./../blob-store";
+
+import * as multer from 'multer';
+
+// parse multipart/form-data
+let memStorage = multer.memoryStorage();
+// TODO: consider warning from docs:   Make sure that you always handle the files that a user uploads. Never add multer as a global middleware since a malicious user could upload files to a route that you didn't anticipate. Only use this function on routes where you are handling the uploaded files.
+let blobUploader = multer({ storage: memStorage, limits: { fileSize/*bytes*/: 1024 * 1024 * 10 } }).any(); // TODO: make max file size configurable
 
 export class ExecController {
+    
+
+    @route("/api/blob", { get: false, post: true }, true)
+    public static async prepareBlob(req: Request, res: Response): Promise<ApiResponse> {
+        return new Promise<ApiResponse>((resolve, reject) => {
+
+            try {
+                blobUploader(req, res, (err) => {
+                    if (err) {
+                        res.status(500).send(err.toString());
+                        //?reject(err);
+                        return;
+                    }
+
+
+                    let keyList: string[] = [];
+
+                    (<any>req.files).forEach(f => {
+                        let id = shortid.generate();
+
+                        BlobStore.add(id, f.buffer);
+                        keyList.push(id);
+
+                        // buffer:Uint8Array[1407] [0, 1, 245 …]
+                        // encoding:"7bit"
+                        // fieldname:"chrome.dll.sig"
+                        // mimetype:"application/octet-stream"
+                        // originalname:"chrome.dll.sig"
+
+                    });
+
+                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+                    res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+                    res.setHeader("Content-Type", "application/json");
+
+                    resolve(ApiResponse.Payload(keyList));
+                });
+
+
+            }
+            catch (ex) {
+                resolve(ApiResponse.Exception(ex));
+            }
+
+        });
+    }
+
 
     @route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true)
     public static async QueryAndNonQuery(req: Request, res: Response): Promise<ApiResponse> {
         return new Promise<ApiResponse>(async (resolve, reject) => {
-            
-            let debugInfo:string = "";
+
+            let debugInfo: string = "";
             try {
                 let isNonQuery: Boolean = req.method.toUpperCase() == "POST";
 
@@ -25,7 +82,7 @@ export class ExecController {
                 let schema: string = req.params.schema;
                 let routine: string = req.params.routine;
 
-                debugInfo+= `[${schema}].[${routine}]`;
+                debugInfo += `[${schema}].[${routine}]`;
 
                 let dbSources = SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
                 let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
@@ -235,7 +292,7 @@ export class ExecController {
 
                             if (queryString[parmName]) {
                                 let val = queryString[parmName];
-                                
+
                                 // look for special jsDAL Server variables
                                 val = jsDALServerVariables.parse(request, val);
 
@@ -275,10 +332,10 @@ export class ExecController {
 
                     //!var executionTrackingEndFunction = ExecTracker.Track(dbSource.Name, cachedRoutine.Schema, cachedRoutine.Routine);
 
-//                     cmd.on("error", (a,b)=>
-//                     {
-// let aaa = a;
-//                     });
+                    //                     cmd.on("error", (a,b)=>
+                    //                     {
+                    // let aaa = a;
+                    //                     });
 
                     let res: any;
 
@@ -538,7 +595,7 @@ export class ExecController {
     }
 
     private static convertParameterValue(sqlType: sql.ISqlTypeFactoryWithNoParams, value: any): any {
- 
+
         if (sqlType == sql.Date || sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
             //return Date.parse(value);
             let mom = moment.utc(value);
@@ -548,8 +605,7 @@ export class ExecController {
 
             //return dt;
         }
-        else if (sqlType == sql.Bit)
-        {
+        else if (sqlType == sql.Bit) {
             let v = value.toString().toLowerCase();
             return value == "true" || value == "1" || value == "yes";
         }
@@ -579,263 +635,215 @@ export class ExecController {
                 default:
                     return value;
             }*/
-        }
-    
     }
-    
-    
-    /*
-     [HttpPost]
-            [Route("api/blob")]
-            [ValidateMimeMultipartContentFilter]
-            public async Task<HttpResponseMessage> PrepareBlob() // TODO: Need some way of enforcing a max upload size
-            {
-                try
-                {
-                    if (!Request.Content.IsMimeMultipartContent()) throw new Exception("api/blob/prepare expects multi-part content to be posted");
-    
-    
-                    var memProvider = await this.Request.Content.ReadAsMultipartAsync(new MultipartMemoryStreamProvider());
-    
-                    
-                    var filesUploaded = (memProvider.Contents.Select(async i =>
-                    {
-                        return new
-                        {
-                            i.Headers.ContentDisposition.Name,
-                            Data = await i.ReadAsByteArrayAsync()
-                        };
-    
-                    })).Select(i => i.Result);//.ToList();
-    
-                    List<Guid> keyList = new List<Guid>();
-    
-                    foreach (var f in filesUploaded)
-                    {
-                        Guid key = Guid.NewGuid();
-    
-                        keyList.Add(key);
-                        BlobStore.Add(key, f.Data);
-                    }
-    
-                    var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ApiResponse.Payload(string.Join(",", keyList.ToArray())));
-    
-                    response.Headers.Clear();
-                    response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                    response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-    
-                    return response;
-                }
-                catch (Exception ex)
-                {
-                    return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-                }
-            }
-    
-            
-        
-    
-           
-    
-    
-            [HttpGet]
-            [Route("api/execBatch")] 
-            public HttpResponseMessage Batch(string batch, [FromUri] string options)
-            {
-                try
-                {
-                    // do not allow JsonConvert to touch dates. Dates should continue on as plain strings so ADO.NET can convert them correctly (they should be coming in ISO-formatted)
-                    var callList = JsonConvert.DeserializeObject<dynamic>(batch, new JsonSerializerSettings() { DateParseHandling = DateParseHandling.None });
-                    var retList = new List<dynamic>();
-    
-                    foreach (dynamic call in callList)
-                    {
-                        int callIx = call["Ix"];
-                        try
-                        {
-                            dynamic routine = call["Routine"];
-                            Guid dbSourceGuid = routine["dbSource"];
-                            Guid? dbConnectionGuid = null;
-    
-                            if (routine["dbConnection"] != null)
-                            {
-                                Guid g = Guid.Empty;
-    
-                                if (Guid.TryParse(routine["dbConnection"].ToString(), out g))
-                                {
-                                    dbConnectionGuid = g;
-                                }
-                            }
-    
-    
-                            string schema = routine["schema"];
-                            string name = routine["routine"];
-    
-                            var parametersAndValues = new Dictionary<string, string>();
-                            var parmArray = routine["params"] as JObject;
-    
-                            if (parmArray != null)
-                            {
-                                parametersAndValues = parmArray.ToObject<Dictionary<string, string>>();
-                            }
-                            
-    
-                            //string parms = routine["params"];
-                            string fieldSelectList = routine["$select"];
-    
-                            var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
-                            if (dbSource == null) throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-    
-                            // make sure the source domain/IP is allowed access
-                            string ue;
-                            if (!dbSource.MayAccessDbSource(Request, out ue))
-                            {
-                                return Request.CreateResponse<string>(System.Net.HttpStatusCode.Forbidden, ue);
-                            }
-    
-    
-                            Dictionary<string, dynamic> outputParms = null;
-    
-                            if (!string.IsNullOrWhiteSpace(fieldSelectList)) parametersAndValues.Add("$select", fieldSelectList);
-    
-                            if (!string.IsNullOrWhiteSpace(options))
-                            {
-                                var uri = new Uri("http://dummy.com?" + options);
-                                var optionVC = uri.ParseQueryString();
-    
-                                foreach (var k in optionVC.AllKeys)
-                                {
-                                    parametersAndValues.Add(k, optionVC[k].ToString());
-                                }
-                            }
-    
-                            var routineCache = dbSource.GetCache();
-    
-                            var cachedRoutine = routineCache.FirstOrDefault(r => r.Schema.Equals(schema, StringComparison.OrdinalIgnoreCase) && r.Routine.Equals(name, StringComparison.OrdinalIgnoreCase));
-    
-                            if (cachedRoutine == null)
-                            {
-                                // TODO: Decide what to do here? 
-                                throw new Exception("TODO: Decide what todo....routine not found");
-                            }
-    
-                            var output = (IDictionary<string, object>)new System.Dynamic.ExpandoObject();
-    
-                            output.Add("Ix", callIx);
-    
-                            if (cachedRoutine.Type.Equals("FUNCTION", StringComparison.CurrentCultureIgnoreCase))
-                            {
-                                var scalar = Database.ExecRoutineScalar(this.Request, schema, name, dbSource, dbConnectionGuid, parametersAndValues);
-    
-                                if (scalar is DateTime)
-                                {
-                                    var dt = (DateTime)scalar;
-    
-                                    // convert to Javascript Date ticks
-                                    var ticks = dt.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-                                    // TODO: ?????????????
-                                    scalar = ApiResponseScalar.Payload(ticks, true);
-    
-                                    //return ret;
-                                }
-    
-                                output.Add("Data", scalar);
-    
-                            }
-                            else
-                            {
-                                var ds = Database.ExecRoutineQuery(this.Request, schema, name, out outputParms, dbSource, dbConnectionGuid, parametersAndValues);
-    
-                                var dataContainers = ds.ToJsonDS();
-    
-                                output.Add("OutputParms", outputParms);
-    
-                                var keys = dataContainers.Keys.ToList();
-    
-                                for (var i = 0; i < keys.Count; i++)
-                                {
-                                    output.Add(keys[i], dataContainers[keys[i]]);
-                                }
-    
-                                output.Add("HasResultSets", keys.Count > 0);
-                                output.Add("ResultSetKeys", keys.ToArray());
-                            }
-    
-    
-                            var ret = ApiResponse.Payload(output);
-    
-                            if (outputParms != null)
-                            {
-                                var possibleUEParmNames = (new string[] { "usererrormsg", "usrerrmsg", "usererrormessage", "usererror", "usererrmsg" }).ToList();
-    
-                                var ueKey = outputParms.Keys.FirstOrDefault(k => possibleUEParmNames.Contains(k.ToLower()));
-    
-                                // if a user error msg is defined.
-                                if (!string.IsNullOrWhiteSpace(ueKey) && !string.IsNullOrWhiteSpace(outputParms[ueKey]))
-                                {
-                                    ret.Message = outputParms[ueKey];
-                                    ret.Title = "Action failed";
-                                    ret.Type = ApiResponseType.ExclamationModal;
-                                }
-                            }
-    
-                            retList.Add(ret);
-    
-                        }
-                        catch (Exception ex)
-                        {
-                            return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-                        }
-    
-                    }
-                    //HttpContext.Current.Response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                    //HttpContext.Current.Response.AddHeader("Pragma", "no-cache"); // HTTP 1.0.
-                    //HttpContext.Current.Response.AddHeader("Expires", "0"); // Proxies.
-    
-    
-                    var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ApiResponse.Payload(retList));
-    
-                    response.Headers.Clear();
-                    //response.Headers.CacheControl.Private = true;
-                    response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
-                    response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
-                    
-                    //response.Headers.Add("Expires", "0"); // Proxies
-    
-                    return response;
-                    //return ApiResponse.Payload(retList);
-                    //var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
-    
-                    //// TODO: if not found...
-                    //if (dbSource == null) throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
-    
-                    //var queryString = this.Request.GetQueryNameValuePairs();
-    
-                    //var scalar = Database.ExecRoutineScalar(schema, routine, dbSource, queryString.ToDictionary(t => t.Key, t => t.Value));
-    
-                    //if (scalar is DateTime)
-                    //{
-                    //    var dt = (DateTime)scalar;
-    
-                    //    // convert to Javascript Date ticks
-                    //    var ticks = dt.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-    
-                    //    var ret = ApiResponseScalar.Payload(ticks, true);
-    
-                    //    return ret;
-                    //}
-    
-                    //return ApiResponse.Payload(scalar);
-                }
-                catch (Exception ex)
-                {
-                    return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
-                }
-            }
-    
-    */
 
-        class ExecutionResult {
-            results: any;
-            outputParms: { [key: string]: any };
+}
+
+
+/*
+ 
+ 
+       
+ 
+ 
+        [HttpGet]
+        [Route("api/execBatch")] 
+        public HttpResponseMessage Batch(string batch, [FromUri] string options)
+        {
+            try
+            {
+                // do not allow JsonConvert to touch dates. Dates should continue on as plain strings so ADO.NET can convert them correctly (they should be coming in ISO-formatted)
+                var callList = JsonConvert.DeserializeObject<dynamic>(batch, new JsonSerializerSettings() { DateParseHandling = DateParseHandling.None });
+                var retList = new List<dynamic>();
+ 
+                foreach (dynamic call in callList)
+                {
+                    int callIx = call["Ix"];
+                    try
+                    {
+                        dynamic routine = call["Routine"];
+                        Guid dbSourceGuid = routine["dbSource"];
+                        Guid? dbConnectionGuid = null;
+ 
+                        if (routine["dbConnection"] != null)
+                        {
+                            Guid g = Guid.Empty;
+ 
+                            if (Guid.TryParse(routine["dbConnection"].ToString(), out g))
+                            {
+                                dbConnectionGuid = g;
+                            }
+                        }
+ 
+ 
+                        string schema = routine["schema"];
+                        string name = routine["routine"];
+ 
+                        var parametersAndValues = new Dictionary<string, string>();
+                        var parmArray = routine["params"] as JObject;
+ 
+                        if (parmArray != null)
+                        {
+                            parametersAndValues = parmArray.ToObject<Dictionary<string, string>>();
+                        }
+                        
+ 
+                        //string parms = routine["params"];
+                        string fieldSelectList = routine["$select"];
+ 
+                        var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
+                        if (dbSource == null) throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
+ 
+                        // make sure the source domain/IP is allowed access
+                        string ue;
+                        if (!dbSource.MayAccessDbSource(Request, out ue))
+                        {
+                            return Request.CreateResponse<string>(System.Net.HttpStatusCode.Forbidden, ue);
+                        }
+ 
+ 
+                        Dictionary<string, dynamic> outputParms = null;
+ 
+                        if (!string.IsNullOrWhiteSpace(fieldSelectList)) parametersAndValues.Add("$select", fieldSelectList);
+ 
+                        if (!string.IsNullOrWhiteSpace(options))
+                        {
+                            var uri = new Uri("http://dummy.com?" + options);
+                            var optionVC = uri.ParseQueryString();
+ 
+                            foreach (var k in optionVC.AllKeys)
+                            {
+                                parametersAndValues.Add(k, optionVC[k].ToString());
+                            }
+                        }
+ 
+                        var routineCache = dbSource.GetCache();
+ 
+                        var cachedRoutine = routineCache.FirstOrDefault(r => r.Schema.Equals(schema, StringComparison.OrdinalIgnoreCase) && r.Routine.Equals(name, StringComparison.OrdinalIgnoreCase));
+ 
+                        if (cachedRoutine == null)
+                        {
+                            // TODO: Decide what to do here? 
+                            throw new Exception("TODO: Decide what todo....routine not found");
+                        }
+ 
+                        var output = (IDictionary<string, object>)new System.Dynamic.ExpandoObject();
+ 
+                        output.Add("Ix", callIx);
+ 
+                        if (cachedRoutine.Type.Equals("FUNCTION", StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            var scalar = Database.ExecRoutineScalar(this.Request, schema, name, dbSource, dbConnectionGuid, parametersAndValues);
+ 
+                            if (scalar is DateTime)
+                            {
+                                var dt = (DateTime)scalar;
+ 
+                                // convert to Javascript Date ticks
+                                var ticks = dt.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+                                // TODO: ?????????????
+                                scalar = ApiResponseScalar.Payload(ticks, true);
+ 
+                                //return ret;
+                            }
+ 
+                            output.Add("Data", scalar);
+ 
+                        }
+                        else
+                        {
+                            var ds = Database.ExecRoutineQuery(this.Request, schema, name, out outputParms, dbSource, dbConnectionGuid, parametersAndValues);
+ 
+                            var dataContainers = ds.ToJsonDS();
+ 
+                            output.Add("OutputParms", outputParms);
+ 
+                            var keys = dataContainers.Keys.ToList();
+ 
+                            for (var i = 0; i < keys.Count; i++)
+                            {
+                                output.Add(keys[i], dataContainers[keys[i]]);
+                            }
+ 
+                            output.Add("HasResultSets", keys.Count > 0);
+                            output.Add("ResultSetKeys", keys.ToArray());
+                        }
+ 
+ 
+                        var ret = ApiResponse.Payload(output);
+ 
+                        if (outputParms != null)
+                        {
+                            var possibleUEParmNames = (new string[] { "usererrormsg", "usrerrmsg", "usererrormessage", "usererror", "usererrmsg" }).ToList();
+ 
+                            var ueKey = outputParms.Keys.FirstOrDefault(k => possibleUEParmNames.Contains(k.ToLower()));
+ 
+                            // if a user error msg is defined.
+                            if (!string.IsNullOrWhiteSpace(ueKey) && !string.IsNullOrWhiteSpace(outputParms[ueKey]))
+                            {
+                                ret.Message = outputParms[ueKey];
+                                ret.Title = "Action failed";
+                                ret.Type = ApiResponseType.ExclamationModal;
+                            }
+                        }
+ 
+                        retList.Add(ret);
+ 
+                    }
+                    catch (Exception ex)
+                    {
+                        return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
+                    }
+ 
+                }
+                //HttpContext.Current.Response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
+                //HttpContext.Current.Response.AddHeader("Pragma", "no-cache"); // HTTP 1.0.
+                //HttpContext.Current.Response.AddHeader("Expires", "0"); // Proxies.
+ 
+ 
+                var response = Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.OK, ApiResponse.Payload(retList));
+ 
+                response.Headers.Clear();
+                //response.Headers.CacheControl.Private = true;
+                response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0"); // HTTP 1.1.
+                response.Headers.Add("Pragma", "no-cache"); // HTTP 1.0.
+                
+                //response.Headers.Add("Expires", "0"); // Proxies
+ 
+                return response;
+                //return ApiResponse.Payload(retList);
+                //var dbSource = Settings.Instance.ProjectList.SelectMany(p => p.Value.DatabaseSources).FirstOrDefault(dbs => dbs.CacheKey == dbSourceGuid);
+ 
+                //// TODO: if not found...
+                //if (dbSource == null) throw new Exception(string.Format("The specified DB source '{0}' was not found.", dbSourceGuid));
+ 
+                //var queryString = this.Request.GetQueryNameValuePairs();
+ 
+                //var scalar = Database.ExecRoutineScalar(schema, routine, dbSource, queryString.ToDictionary(t => t.Key, t => t.Value));
+ 
+                //if (scalar is DateTime)
+                //{
+                //    var dt = (DateTime)scalar;
+ 
+                //    // convert to Javascript Date ticks
+                //    var ticks = dt.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+ 
+                //    var ret = ApiResponseScalar.Payload(ticks, true);
+ 
+                //    return ret;
+                //}
+ 
+                //return ApiResponse.Payload(scalar);
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateResponse<ApiResponse>(System.Net.HttpStatusCode.InternalServerError, ApiResponse.Exception(ex));
+            }
         }
+ 
+*/
+
+class ExecutionResult {
+    results: any;
+    outputParms: { [key: string]: any };
+}
