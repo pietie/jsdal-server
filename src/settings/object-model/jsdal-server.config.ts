@@ -114,6 +114,7 @@ export class WebServerSettings {
     public HttpServerHostname: string;
     public HttpServerPort: number;
 
+    public EnableBasicHttp?: boolean = true;
     public EnableSSL?: boolean = false;
     public HttpsServerHostname?: string;
     public HttpsServerPort?: number;
@@ -125,6 +126,7 @@ export class WebServerSettings {
         settings.HttpServerHostname = rawJson.WebServer.HttpServerHostname;
         settings.HttpServerPort = rawJson.WebServer.HttpServerPort;
 
+        settings.EnableBasicHttp = !!rawJson.WebServer.EnableBasicHttp;
         settings.EnableSSL = !!rawJson.WebServer.EnableSSL;
         settings.HttpsServerHostname = rawJson.WebServer.HttpsServerHostname;
         settings.HttpsServerPort = rawJson.WebServer.HttpsServerPort;

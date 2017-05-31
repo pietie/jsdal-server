@@ -85,6 +85,7 @@ exports.Settings = Settings;
 // TODO: move to another file
 class WebServerSettings {
     constructor() {
+        this.EnableBasicHttp = true;
         this.EnableSSL = false;
     }
     static createFromJson(rawJson) {
@@ -93,6 +94,7 @@ class WebServerSettings {
         let settings = new WebServerSettings();
         settings.HttpServerHostname = rawJson.WebServer.HttpServerHostname;
         settings.HttpServerPort = rawJson.WebServer.HttpServerPort;
+        settings.EnableBasicHttp = !!rawJson.WebServer.EnableBasicHttp;
         settings.EnableSSL = !!rawJson.WebServer.EnableSSL;
         settings.HttpsServerHostname = rawJson.WebServer.HttpsServerHostname;
         settings.HttpsServerPort = rawJson.WebServer.HttpsServerPort;

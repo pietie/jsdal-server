@@ -17,11 +17,10 @@ import * as multer from 'multer';
 
 // parse multipart/form-data
 let memStorage = multer.memoryStorage();
-// TODO: consider warning from docs:   Make sure that you always handle the files that a user uploads. Never add multer as a global middleware since a malicious user could upload files to a route that you didn't anticipate. Only use this function on routes where you are handling the uploaded files.
 let blobUploader = multer({ storage: memStorage, limits: { fileSize/*bytes*/: 1024 * 1024 * 10 } }).any(); // TODO: make max file size configurable
 
 export class ExecController {
-    
+
 
     @route("/api/blob", { get: false, post: true }, true)
     public static async prepareBlob(req: Request, res: Response): Promise<ApiResponse> {
@@ -31,10 +30,8 @@ export class ExecController {
                 blobUploader(req, res, (err) => {
                     if (err) {
                         res.status(500).send(err.toString());
-                        //?reject(err);
                         return;
                     }
-
 
                     let keyList: string[] = [];
 
@@ -69,13 +66,22 @@ export class ExecController {
     }
 
 
+    @route("/api/execnq/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true)
+    public static async execNonQuery(req: Request, res: Response): Promise<ApiResponse> {
+        return ExecController.execQueryAndNonQuery(req, res, true);
+    }
+
     @route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true)
-    public static async QueryAndNonQuery(req: Request, res: Response): Promise<ApiResponse> {
+    public static async execQuery(req: Request, res: Response): Promise<ApiResponse> {
+        return ExecController.execQueryAndNonQuery(req, res, false);
+    }
+
+    public static async execQueryAndNonQuery(req: Request, res: Response, isNonQuery: boolean): Promise<ApiResponse> {
         return new Promise<ApiResponse>(async (resolve, reject) => {
 
             let debugInfo: string = "";
             try {
-                let isNonQuery: Boolean = req.method.toUpperCase() == "POST";
+                let isPOST = req.method === "POST";
 
                 let dbSourceGuid: string = req.params.dbSourceGuid;
                 let dbConnectionGuid: string = req.params.dbConnectionGuid;
@@ -104,7 +110,7 @@ export class ExecController {
                     routine,
                     dbSource,
                     dbConnectionGuid,
-                    isNonQuery ? req.body : req.query
+                    isPOST ? req.body : req.query
                 );
                 // .catch(e => {
                 //     resolve(ApiResponse.Exception(e));
@@ -609,32 +615,33 @@ export class ExecController {
             let v = value.toString().toLowerCase();
             return value == "true" || value == "1" || value == "yes";
         }
+        else if (sqlType == sql.VarBinary) {
+            return ExecController.convertToSqlBinary(value);
+        }
 
         return value;
-        /*    let valueType = value.GetType();
-    
-            if (valueType == typeof (string) && ((string)value).Equals("null", StringComparison.OrdinalIgnoreCase))
-            {
-                return DBNull.Value;
+    }
+
+    private static convertToSqlBinary(value: any) {
+        if (typeof (value) === "string") {
+
+            let str: string = value.toString().toLowerCase();
+            let blobRefPrefix = "blobRef:";
+
+            if (str.startsWith(blobRefPrefix.toLowerCase())) {
+                let key: string = str.substring(blobRefPrefix.length);
+
+                if (!BlobStore.exists(key)) throw new Error(`Invalid, non-existent or expired blob reference specified: '${str}'`);
+
+                return BlobStore.get(key);
             }
-    
-            switch (sqlType) {
-                case SqlDbType.UniqueIdentifier:
-                    if (valueType == typeof (Guid)) { return value; }
-    
-                    if (valueType == typeof (String)) {
-                        return new Guid((string)value);
-                    }
-                    throw new NotSupportedException("SqlDbType.UniqueIdentifier::Unsupported data type: " + valueType);
-                case SqlDbType.DateTime:
-                    return value;
-                case SqlDbType.Bit:
-                    return ConvertToSqlBit(value, valueType);
-                case SqlDbType.VarBinary:
-                    return ConvertToSqlVarbinary(value, valueType);
-                default:
-                    return value;
-            }*/
+            else {
+                // assume a base64 string was posted for the binary data
+                return Buffer.from(str, 'base64');
+            }
+        }
+
+        return value;
     }
 
 }

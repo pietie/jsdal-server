@@ -28,7 +28,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ strict: false }));
 
 // parse multipart/form-data
-let memStorage =  multer.memoryStorage();
+let memStorage = multer.memoryStorage();
 // TODO: consider warning from docs:   Make sure that you always handle the files that a user uploads. Never add multer as a global middleware since a malicious user could upload files to a route that you didn't anticipate. Only use this function on routes where you are handling the uploaded files.
 //!app.use(multer({ storage: memStorage, limits: { fileSize/*bytes*/: 1024*1024 * 10 } }).any()); // TODO: make max file size configurable
 
@@ -36,40 +36,42 @@ app.use('/', express.static('web'));
 app.use(cors());
 
 app.use(function (req, res, next) {
-    let url:string = req.url.toLowerCase();
+    let url: string = req.url.toLowerCase();
 
     if (url.startsWith("/api/") || url.startsWith("/token/")) {
         next();
         return;
     }
-    
-    res.sendFile( path.resolve("./web/index.html"));
+
+    res.sendFile(path.resolve("./web/index.html"));
 });
 
 
 let webServerSettings = SettingsInstance.Instance.Settings.WebServer;
 
-if (!webServerSettings) webServerSettings = { HttpServerHostname: "localhost", HttpServerPort: 9086, EnableSSL: false };
+if (!webServerSettings) webServerSettings = { HttpServerHostname: "localhost", HttpServerPort: 9086, EnableSSL: false, EnableBasicHttp: true };
 
-let httpServer = http.createServer(app).listen(
-    {
-        host: webServerSettings.HttpServerHostname,
-        port: webServerSettings.HttpServerPort
-    }, () => {
-        let host = httpServer.address().address;
-        let port = httpServer.address().port;
+if (webServerSettings.EnableBasicHttp) {
+    let httpServer = http.createServer(app).listen(
+        {
+            host: webServerSettings.HttpServerHostname,
+            port: webServerSettings.HttpServerPort
+        }, () => {
+            let host = httpServer.address().address;
+            let port = httpServer.address().port;
 
-        console.log(`Web server listening at http://${host}:${port}`);
-    }
-);
+            console.log(`Web server listening at http://${host}:${port}`);
+        }
+    );
+}
 
 if (webServerSettings.EnableSSL) {
 
-//key: fs.readFileSync('key.pem'), // TODO: Make file names and locations configurable?
-        //cert: fs.readFileSync('cert.pem')
+    //key: fs.readFileSync('key.pem'), // TODO: Make file names and locations configurable?
+    //cert: fs.readFileSync('cert.pem')
     let httpsServer = https.createServer({
-          pfx: <any>fs.readFileSync('cert.pfx'),
-          passphrase: fs.readFileSync('certpass.pass', { encoding: 'utf8' })
+        pfx: <any>fs.readFileSync('cert.pfx'),
+        passphrase: fs.readFileSync('certpass.pass', { encoding: 'utf8' })
     }, app).listen({
         host: webServerSettings.HttpsServerHostname,
         port: webServerSettings.HttpsServerPort

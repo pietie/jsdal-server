@@ -29,7 +29,6 @@ const blob_store_1 = require("./../blob-store");
 const multer = require("multer");
 // parse multipart/form-data
 let memStorage = multer.memoryStorage();
-// TODO: consider warning from docs:   Make sure that you always handle the files that a user uploads. Never add multer as a global middleware since a malicious user could upload files to a route that you didn't anticipate. Only use this function on routes where you are handling the uploaded files.
 let blobUploader = multer({ storage: memStorage, limits: { fileSize /*bytes*/: 1024 * 1024 * 10 } }).any(); // TODO: make max file size configurable
 class ExecController {
     static prepareBlob(req, res) {
@@ -39,7 +38,6 @@ class ExecController {
                     blobUploader(req, res, (err) => {
                         if (err) {
                             res.status(500).send(err.toString());
-                            //?reject(err);
                             return;
                         }
                         let keyList = [];
@@ -65,12 +63,22 @@ class ExecController {
             });
         });
     }
-    static QueryAndNonQuery(req, res) {
+    static execNonQuery(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return ExecController.execQueryAndNonQuery(req, res, true);
+        });
+    }
+    static execQuery(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return ExecController.execQueryAndNonQuery(req, res, false);
+        });
+    }
+    static execQueryAndNonQuery(req, res, isNonQuery) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let debugInfo = "";
                 try {
-                    let isNonQuery = req.method.toUpperCase() == "POST";
+                    let isPOST = req.method === "POST";
                     let dbSourceGuid = req.params.dbSourceGuid;
                     let dbConnectionGuid = req.params.dbConnectionGuid;
                     let schema = req.params.schema;
@@ -87,7 +95,7 @@ class ExecController {
                         res.status(403).send(mayAccess.userErrorMsg);
                         return undefined;
                     }
-                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, isNonQuery ? req.body : req.query);
+                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, isPOST ? req.body : req.query);
                     // .catch(e => {
                     //     resolve(ApiResponse.Exception(e));
                     //     return;
@@ -468,31 +476,27 @@ class ExecController {
             let v = value.toString().toLowerCase();
             return value == "true" || value == "1" || value == "yes";
         }
+        else if (sqlType == sql.VarBinary) {
+            return ExecController.convertToSqlBinary(value);
+        }
         return value;
-        /*    let valueType = value.GetType();
-    
-            if (valueType == typeof (string) && ((string)value).Equals("null", StringComparison.OrdinalIgnoreCase))
-            {
-                return DBNull.Value;
+    }
+    static convertToSqlBinary(value) {
+        if (typeof (value) === "string") {
+            let str = value.toString().toLowerCase();
+            let blobRefPrefix = "blobRef:";
+            if (str.startsWith(blobRefPrefix.toLowerCase())) {
+                let key = str.substring(blobRefPrefix.length);
+                if (!blob_store_1.BlobStore.exists(key))
+                    throw new Error(`Invalid, non-existent or expired blob reference specified: '${str}'`);
+                return blob_store_1.BlobStore.get(key);
             }
-    
-            switch (sqlType) {
-                case SqlDbType.UniqueIdentifier:
-                    if (valueType == typeof (Guid)) { return value; }
-    
-                    if (valueType == typeof (String)) {
-                        return new Guid((string)value);
-                    }
-                    throw new NotSupportedException("SqlDbType.UniqueIdentifier::Unsupported data type: " + valueType);
-                case SqlDbType.DateTime:
-                    return value;
-                case SqlDbType.Bit:
-                    return ConvertToSqlBit(value, valueType);
-                case SqlDbType.VarBinary:
-                    return ConvertToSqlVarbinary(value, valueType);
-                default:
-                    return value;
-            }*/
+            else {
+                // assume a base64 string was posted for the binary data
+                return Buffer.from(str, 'base64');
+            }
+        }
+        return value;
     }
 }
 __decorate([
@@ -502,11 +506,17 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ExecController, "prepareBlob", null);
 __decorate([
+    decorators_1.route("/api/execnq/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], ExecController, "execNonQuery", null);
+__decorate([
     decorators_1.route("/api/exec/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true, post: true }, true),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], ExecController, "QueryAndNonQuery", null);
+], ExecController, "execQuery", null);
 __decorate([
     decorators_1.route("/api/execScalar/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true),
     __metadata("design:type", Function),

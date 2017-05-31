@@ -44,15 +44,17 @@ app.use(function (req, res, next) {
 });
 let webServerSettings = settings_instance_1.SettingsInstance.Instance.Settings.WebServer;
 if (!webServerSettings)
-    webServerSettings = { HttpServerHostname: "localhost", HttpServerPort: 9086, EnableSSL: false };
-let httpServer = http.createServer(app).listen({
-    host: webServerSettings.HttpServerHostname,
-    port: webServerSettings.HttpServerPort
-}, () => {
-    let host = httpServer.address().address;
-    let port = httpServer.address().port;
-    console.log(`Web server listening at http://${host}:${port}`);
-});
+    webServerSettings = { HttpServerHostname: "localhost", HttpServerPort: 9086, EnableSSL: false, EnableBasicHttp: true };
+if (webServerSettings.EnableBasicHttp) {
+    let httpServer = http.createServer(app).listen({
+        host: webServerSettings.HttpServerHostname,
+        port: webServerSettings.HttpServerPort
+    }, () => {
+        let host = httpServer.address().address;
+        let port = httpServer.address().port;
+        console.log(`Web server listening at http://${host}:${port}`);
+    });
+}
 if (webServerSettings.EnableSSL) {
     //key: fs.readFileSync('key.pem'), // TODO: Make file names and locations configurable?
     //cert: fs.readFileSync('cert.pem')
