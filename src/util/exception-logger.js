@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const shortid = require("shortid");
+const mssql_1 = require("mssql");
 class ExceptionLogger {
     static get exceptions() {
         return ExceptionLogger.exceptionList;
@@ -33,8 +34,13 @@ class ExceptionWrapper {
     constructor(ex) {
         this.created = new Date();
         let msg = ex;
-        if (typeof (ex) == "object" && typeof (ex.message) !== "undefined")
+        if (ex instanceof mssql_1.RequestError) {
+            let re = ex;
+            msg = `Procedure ##${re.procName}##, Line ${re.lineNumber}, Message: ${re.message}, Error ${re.number}, Level ${re.class}, State ${re.state}`;
+        }
+        else if (typeof (ex) == "object" && typeof (ex.message) !== "undefined") {
             msg = ex.message;
+        }
         this.exceptionObject = { message: msg, stack: ex.stack };
         this.id = shortid.generate();
     }

@@ -1,4 +1,5 @@
 import * as shortid from 'shortid'
+import { RequestError } from "mssql";
 
 export class ExceptionLogger {
     private static MAX_ENTRIES: number = 1000;
@@ -43,7 +44,14 @@ export class ExceptionWrapper {
 
         let msg = ex;
 
-        if (typeof (ex) == "object" && typeof (ex.message) !== "undefined") msg = ex.message;
+        if (ex instanceof RequestError) {
+            let re:any = ex;
+
+            msg = `Procedure ##${re.procName}##, Line ${re.lineNumber}, Message: ${re.message}, Error ${re.number}, Level ${re.class}, State ${re.state}`;
+        }
+        else if (typeof (ex) == "object" && typeof (ex.message) !== "undefined") {
+            msg = ex.message;
+        }
 
         this.exceptionObject = { message: msg, stack: ex.stack };
         this.id = shortid.generate();
