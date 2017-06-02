@@ -14,6 +14,7 @@ import * as jwt from 'jsonwebtoken';
 
 import { SettingsInstance } from './settings/settings-instance'
 import { AuthController } from './web-api'
+import { UserManagement } from "./util/user-management";
 
 let app = express();
 
@@ -101,27 +102,19 @@ app.use('/api', apiRoutes);
 
 // route to authenticate a user (POST http://localhost:8080/api/authenticate)
 apiRoutes.post('/authenticate', (req, res) => {
-    console.log("body", req.body);
 
     {
+        let isValid = UserManagement.validate(req.body.username, req.body.password);
 
-        //        if (err) throw err;
-
-        // TODO: Auth users here from some DB or config
-        let availableUsers = [{ name: "test", password: "abc123" }];
-
-        //let user = { name: "test", password: "abc123" };
-
-        let user = availableUsers.find(a => a.name === req.body.username);
-
-        if (!user) {
+        if (!isValid) {
             res.status(400).json({ success: false, message: 'Authentication failed' });
-        } else if (user) {
+        } else {
 
             // check if password matches
-            if (user.password != req.body.password) {
-                res.status(400).json({ success: false, message: 'Authentication failed' });
-            } else {
+            // if (user.password != req.body.password) {
+            //     res.status(400).json({ success: false, message: 'Authentication failed' });
+            // } else 
+            {
 
                 let timeoutInHours = 24;
 

@@ -12,7 +12,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const api_response_1 = require("./../api-response");
 const decorators_1 = require("./../decorators");
 const log_1 = require("./../../util/log");
+const user_management_1 = require("./../../util/user-management");
 class MainController {
+    static isFirstTimeSetupComplete() {
+        return api_response_1.ApiResponse.Payload(user_management_1.UserManagement.adminUserExists);
+    }
+    static performFirstTimeSetup(req, res) {
+        //return ApiResponse.Payload(UserManagement.adminUserExists);
+        if (req.body.adminUser) {
+            user_management_1.UserManagement.addUser({ username: req.body.adminUser.username, password: req.body.adminUser.password, isAdmin: true });
+            user_management_1.UserManagement.saveToFile();
+        }
+        return api_response_1.ApiResponse.Success();
+    }
     static getStats() {
         let mu = process.memoryUsage();
         let now = new Date();
@@ -32,6 +44,18 @@ class MainController {
         return api_response_1.ApiResponse.Payload(log_1.SessionLog.entries);
     }
 }
+__decorate([
+    decorators_1.route('/api/main/issetupcomplete', { get: true }, true),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], MainController, "isFirstTimeSetupComplete", null);
+__decorate([
+    decorators_1.route('/api/main/1sttimesetup', { post: true }, true),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], MainController, "performFirstTimeSetup", null);
 __decorate([
     decorators_1.route('/api/main/stats'),
     __metadata("design:type", Function),

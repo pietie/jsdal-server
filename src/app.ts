@@ -2,6 +2,9 @@ import { SettingsInstance } from './settings/settings-instance'
 import { WorkSpawner } from './generator/work-spawner'
 
 import * as fs from 'fs'
+import { UserManagement } from "./util/user-management";
+
+UserManagement.loadUsersFromFile();
 
 SettingsInstance.loadSettingsFromFile().then(() => {
   WorkSpawner.Start();

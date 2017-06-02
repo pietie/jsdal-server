@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const settings_instance_1 = require("./settings/settings-instance");
 const work_spawner_1 = require("./generator/work-spawner");
 const fs = require("fs");
+const user_management_1 = require("./util/user-management");
+user_management_1.UserManagement.loadUsersFromFile();
 settings_instance_1.SettingsInstance.loadSettingsFromFile().then(() => {
     work_spawner_1.WorkSpawner.Start();
     CompileListOfAvailablePlugins();

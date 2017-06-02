@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as async from 'async';
 
 import { JsDalServerConfig, Settings } from './object-model';
- 
+import { ExceptionLogger } from "./../util/exception-logger";
+
 export class SettingsInstance {
     private static _instance: JsDalServerConfig;
 
@@ -21,8 +22,7 @@ export class SettingsInstance {
             fs.writeFileSync(SettingsInstance.settingsFilePath, json, { encoding: "utf8" });
         }
         catch (ex) {
-            console.error(ex);
-            //!SessionLog.Exception(ex);
+            ExceptionLogger.logException(ex);
         }
     }
 
@@ -54,8 +54,7 @@ export class SettingsInstance {
                 });
             }
             catch (e) {
-                console.error(e);
-                // TODO: Error handler
+                ExceptionLogger.logException(e);
                 reject(e);
             }
 

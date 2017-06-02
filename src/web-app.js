@@ -21,6 +21,7 @@ const keypair = require("keypair");
 const jwt = require("jsonwebtoken");
 const settings_instance_1 = require("./settings/settings-instance");
 const web_api_1 = require("./web-api");
+const user_management_1 = require("./util/user-management");
 let app = express();
 const SERVER_PRIVATE_KEY = keypair().private;
 app.use(compression());
@@ -81,22 +82,17 @@ var apiRoutes = express.Router();
 app.use('/api', apiRoutes);
 // route to authenticate a user (POST http://localhost:8080/api/authenticate)
 apiRoutes.post('/authenticate', (req, res) => {
-    console.log("body", req.body);
     {
-        //        if (err) throw err;
-        // TODO: Auth users here from some DB or config
-        let availableUsers = [{ name: "test", password: "abc123" }];
-        //let user = { name: "test", password: "abc123" };
-        let user = availableUsers.find(a => a.name === req.body.username);
-        if (!user) {
+        let isValid = user_management_1.UserManagement.validate(req.body.username, req.body.password);
+        if (!isValid) {
             res.status(400).json({ success: false, message: 'Authentication failed' });
         }
-        else if (user) {
+        else {
             // check if password matches
-            if (user.password != req.body.password) {
-                res.status(400).json({ success: false, message: 'Authentication failed' });
-            }
-            else {
+            // if (user.password != req.body.password) {
+            //     res.status(400).json({ success: false, message: 'Authentication failed' });
+            // } else 
+            {
                 let timeoutInHours = 24;
                 let expiresEpoch = new Date().getTime() + (timeoutInHours * 3600000 /*convert to ms*/);
                 var token = jwt.sign({ name: "Some name" }, SERVER_PRIVATE_KEY, {

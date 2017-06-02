@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("fs");
 const object_model_1 = require("./object-model");
+const exception_logger_1 = require("./../util/exception-logger");
 class SettingsInstance {
     static get Instance() {
         return SettingsInstance._instance;
@@ -15,8 +16,7 @@ class SettingsInstance {
             fs.writeFileSync(SettingsInstance.settingsFilePath, json, { encoding: "utf8" });
         }
         catch (ex) {
-            console.error(ex);
-            //!SessionLog.Exception(ex);
+            exception_logger_1.ExceptionLogger.logException(ex);
         }
     }
     static loadSettingsFromFile() {
@@ -40,8 +40,7 @@ class SettingsInstance {
                 });
             }
             catch (e) {
-                console.error(e);
-                // TODO: Error handler
+                exception_logger_1.ExceptionLogger.logException(e);
                 reject(e);
             }
         });
