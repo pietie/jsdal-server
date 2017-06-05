@@ -22,9 +22,8 @@ export class WorkSpawner {
     public static TEMPLATE_Routine: string;
     public static TEMPLATE_TypescriptDefinitions: string;
 
-    public static getWorker(name:string) : Worker
-    {
-        return WorkSpawner._workerList.find(wl=>wl.name == name);
+    public static getWorker(name: string): Worker {
+        return WorkSpawner._workerList.find(wl => wl.name == name);
     }
 
     public static get workerList(): Worker[] {
@@ -41,7 +40,7 @@ export class WorkSpawner {
 
             WorkSpawner._workerList = [];
 
-            //!  dbSources = [dbSources[0]]; //TEMP 
+            //dbSources = [dbSources[2]]; //TEMP 
 
             async.each(dbSources, (source) => {
 
@@ -73,7 +72,7 @@ class Worker {
 
     private _id: string;
 
-    private _log:MemoryLog;
+    private _log: MemoryLog;
 
     public get id(): string { return this._id; }
     public get running(): boolean { return this.isRunning; }
@@ -119,8 +118,6 @@ class Worker {
             SessionLog.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
             this._log.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
         }
-
-        let x: number = 0;
 
         let connectionErrorCnt: number = 0;
         let con: sql.ConnectionPool;
@@ -168,9 +165,9 @@ class Worker {
                 let curRow: number = 0;
 
                 if (routineCount > 0) {
-                    x++;
-                    SessionLog.info(`${x}. ${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
+                    SessionLog.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
                     this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
+
 
                     await new Promise<any>(async (resolve, reject) => {
 
@@ -181,6 +178,10 @@ class Worker {
 
                         // for every row
                         genGetRoutineListStream.on('row', async (row) => {
+
+                            if (routineCount < 2) {
+                                SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}][${row.RoutineName}] changed.`)
+                            }
 
                             stillProcessingCnt++;
 
@@ -286,6 +287,7 @@ class Worker {
 
                         genGetRoutineListStream.on('done', (affected) => {
                             isDone = true;
+                            
                             dbSource.saveCache();
                         });
 
@@ -337,9 +339,8 @@ class Worker {
             await ThreadUtil.Sleep(SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);
         }
 
-        if (con && con.connected)
-        {
-            con.close(); 
+        if (con && con.connected) {
+            con.close();
         }
 
     }

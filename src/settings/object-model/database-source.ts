@@ -220,7 +220,6 @@ export class DatabaseSource {
             let cacheFilePath = path.join(cachePath, `${this.CacheKey}.json`);
 
             let json = JSON.stringify(this.CachedRoutineList);
-
             fs.writeFileSync(cacheFilePath, json, { encoding: "utf8" });
         }
         catch (ex) {

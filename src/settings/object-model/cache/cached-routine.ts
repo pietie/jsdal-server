@@ -56,6 +56,8 @@ export class CachedRoutine {
 
         cachedRoutine.Parameters = rawJson.Parameters;
 
+        cachedRoutine.jsDALMetadata = rawJson.jsDALMetadata;
+
         return cachedRoutine;
     }
 

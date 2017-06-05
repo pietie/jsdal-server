@@ -34,7 +34,7 @@ class WorkSpawner {
             WorkSpawner.TEMPLATE_Routine = fs.readFileSync('./resources/RoutineTemplate.txt', { encoding: "utf8" });
             WorkSpawner.TEMPLATE_TypescriptDefinitions = fs.readFileSync('./resources/TypeScriptDefinitionsContainer.d.ts', { encoding: "utf8" });
             WorkSpawner._workerList = [];
-            //!  dbSources = [dbSources[0]]; //TEMP 
+            //dbSources = [dbSources[2]]; //TEMP 
             async.each(dbSources, (source) => {
                 let worker = new Worker();
                 worker.name = source.Name;
@@ -90,7 +90,6 @@ class Worker {
                 log_1.SessionLog.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
                 this._log.info(`${dbSource.Name}\tMaxRowDate from cache = ${this.maxRowDate}`);
             }
-            let x = 0;
             let connectionErrorCnt = 0;
             let con;
             while (this.isRunning) {
@@ -123,8 +122,7 @@ class Worker {
                     let routineCount = yield orm_dal_1.OrmDAL.SprocGenGetRoutineListCnt(con, this.maxRowDate);
                     let curRow = 0;
                     if (routineCount > 0) {
-                        x++;
-                        log_1.SessionLog.info(`${x}. ${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`);
+                        log_1.SessionLog.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`);
                         this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
                         yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                             let genGetRoutineListStream = orm_dal_1.OrmDAL.SprocGenGetRoutineListStream(con, this.maxRowDate);
@@ -132,6 +130,9 @@ class Worker {
                             let isDone = false;
                             // for every row
                             genGetRoutineListStream.on('row', (row) => __awaiter(this, void 0, void 0, function* () {
+                                if (routineCount < 2) {
+                                    log_1.SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}][${row.RoutineName}] changed.`);
+                                }
                                 stillProcessingCnt++;
                                 let newCachedRoutine = new cached_routine_1.CachedRoutine();
                                 newCachedRoutine.Routine = row.RoutineName;

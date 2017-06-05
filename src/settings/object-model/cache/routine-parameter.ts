@@ -47,6 +47,8 @@ export class RoutineParameter {
                 return "number";
             case "bigint":
                 return "number";
+                case "real":
+                return "number";
             case "bit":
                 return "boolean";
             case "nvarchar":

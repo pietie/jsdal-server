@@ -205,6 +205,7 @@ class ExecController {
                             throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
                         }
                         let capResp = yield ExecController.validateGoogleRecaptcha(req.headers["captcha-val"]);
+                        res.setHeader("captcha-ret", capResp.success ? "1" : "0");
                         if (capResp.success)
                             return { success: true };
                         else
@@ -246,6 +247,9 @@ class ExecController {
                 try {
                     let routineCache = dbSource.cache;
                     let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
+                    if (routineName == "RegisterManually") {
+                        console.log(` exec on dbSource ${dbSource.CacheKey}...${cachedRoutine.jsDALMetadata != null ? "YES" : "NO"}`);
+                    }
                     if (cachedRoutine == null) {
                         throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
                     }

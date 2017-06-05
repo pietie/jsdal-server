@@ -27,6 +27,7 @@ class CachedRoutine {
         cachedRoutine.RoutineParsingRowver = rawJson.RoutineParsingRowver;
         cachedRoutine.IsDeleted = rawJson.IsDeleted;
         cachedRoutine.Parameters = rawJson.Parameters;
+        cachedRoutine.jsDALMetadata = rawJson.jsDALMetadata;
         return cachedRoutine;
     }
     equals(r, routineName) {
