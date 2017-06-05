@@ -76,6 +76,7 @@ class Settings {
         if (!rawJson)
             return null;
         let settings = new Settings();
+        settings.GoogleRecaptchaSecret = rawJson.GoogleRecaptchaSecret;
         settings.DbSource_CheckForChangesInMilliseconds = rawJson.DbSource_CheckForChangesInMilliseconds;
         settings.WebServer = WebServerSettings.createFromJson(rawJson);
         return settings;

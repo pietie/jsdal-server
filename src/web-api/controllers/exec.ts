@@ -14,12 +14,18 @@ import { jsDALServerVariables } from "./../jsdal-server-variables";
 import { BlobStore } from "./../blob-store";
 
 import * as multer from 'multer';
+import { CachedRoutine } from "./../../settings/object-model/cache/cached-routine";
+
+import * as request from 'request';
+import { ExceptionLogger } from "./../../util/exception-logger";
+import { ThreadUtil } from "./../../util/thread-util";
 
 // parse multipart/form-data
 let memStorage = multer.memoryStorage();
 let blobUploader = multer({ storage: memStorage, limits: { fileSize/*bytes*/: 1024 * 1024 * 10 } }).any(); // TODO: make max file size configurable
 
 export class ExecController {
+
 
 
     @route("/api/blob", { get: false, post: true }, true)
@@ -105,7 +111,7 @@ export class ExecController {
                     return undefined;
                 }
 
-                let execResult: any = await ExecController.execRoutineQuery(req,
+                let execResult: any = await ExecController.execRoutineQuery(req, res,
                     schema,
                     routine,
                     dbSource,
@@ -236,7 +242,66 @@ export class ExecController {
         return ret;
     }
 
-    private static async execRoutineQuery(request: Request,
+    private static async processMetadata(req: Request, res: Response, cachedRoutine: CachedRoutine): Promise<{ success: boolean, userErrorMsg?: string }> {
+        if (cachedRoutine.jsDALMetadata && cachedRoutine.jsDALMetadata.jsDAL) {
+            if (cachedRoutine.jsDALMetadata.jsDAL.security) {
+                if (cachedRoutine.jsDALMetadata.jsDAL.security.requiresCaptcha) {
+                    if (!req.headers["captcha-val"]) {
+
+                        await ThreadUtil.Sleep(1000 * 5); // TODO: Make this configurable? We intentionally slow down requests that do not conform 
+
+                        throw new Error("captcha-val header not specified");
+                    }
+
+                    if (!SettingsInstance.Instance.Settings.GoogleRecaptchaSecret)
+                    {
+                        throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
+                    }
+
+                    let capResp = await ExecController.validateGoogleRecaptcha(req.headers["captcha-val"]);
+
+                    if (capResp.success) return { success: true };
+                    else return { success: false, userErrorMsg: "Captcha failed." }
+
+                }
+            }
+        }
+
+        return { success: true };
+    }
+
+    private static validateGoogleRecaptcha(captcha: string): Promise<{ success: boolean, "error-codes"?: string[] }> {
+
+        return new Promise<{ success: boolean, "error-codes"?: string[] }>((resolve, reject) => {
+            let postData = {
+                secret: SettingsInstance.Instance.Settings.GoogleRecaptchaSecret, 
+                response: captcha
+
+            };
+
+            request.post('https://www.google.com/recaptcha/api/siteverify',
+                {
+                    headers: { 'content-type': 'application/json' },
+                    form: postData
+                }, (error: any, response: request.RequestResponse, body: any) => {
+                    if (!error) {
+                        try {
+                            resolve(JSON.parse(body));
+                        }
+                        catch (e) {
+                            ExceptionLogger.logException(e);
+                            reject(e);
+                        }
+                    }
+                    else {
+                        reject(error);
+                    }
+
+                });
+        });
+    }
+
+    private static async execRoutineQuery(req: Request, res: Response,
         schemaName: string,
         routineName: string,
         dbSource: DatabaseSource,
@@ -254,6 +319,16 @@ export class ExecController {
                 if (cachedRoutine == null) {
                     throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
                 }
+
+
+                let metaResp = await ExecController.processMetadata(req, res, cachedRoutine);
+
+                if (!metaResp.success) {
+                    res.send(ApiResponse.ExclamationModal(metaResp.userErrorMsg));
+                    resolve(undefined);
+                    return;
+                }
+
 
                 let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
 
@@ -300,7 +375,7 @@ export class ExecController {
                                 let val = queryString[parmName];
 
                                 // look for special jsDAL Server variables
-                                val = jsDALServerVariables.parse(request, val);
+                                val = jsDALServerVariables.parse(req, val);
 
                                 if (val == null) {
                                     parmValue = null;

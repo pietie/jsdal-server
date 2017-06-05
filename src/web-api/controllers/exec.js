@@ -27,6 +27,9 @@ const log_1 = require("./../../util/log");
 const jsdal_server_variables_1 = require("./../jsdal-server-variables");
 const blob_store_1 = require("./../blob-store");
 const multer = require("multer");
+const request = require("request");
+const exception_logger_1 = require("./../../util/exception-logger");
+const thread_util_1 = require("./../../util/thread-util");
 // parse multipart/form-data
 let memStorage = multer.memoryStorage();
 let blobUploader = multer({ storage: memStorage, limits: { fileSize /*bytes*/: 1024 * 1024 * 10 } }).any(); // TODO: make max file size configurable
@@ -95,7 +98,7 @@ class ExecController {
                         res.status(403).send(mayAccess.userErrorMsg);
                         return undefined;
                     }
-                    let execResult = yield ExecController.execRoutineQuery(req, schema, routine, dbSource, dbConnectionGuid, isPOST ? req.body : req.query);
+                    let execResult = yield ExecController.execRoutineQuery(req, res, schema, routine, dbSource, dbConnectionGuid, isPOST ? req.body : req.query);
                     // .catch(e => {
                     //     resolve(ApiResponse.Exception(e));
                     //     return;
@@ -189,7 +192,55 @@ class ExecController {
         }
         return ret;
     }
-    static execRoutineQuery(request, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 60) {
+    static processMetadata(req, res, cachedRoutine) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (cachedRoutine.jsDALMetadata && cachedRoutine.jsDALMetadata.jsDAL) {
+                if (cachedRoutine.jsDALMetadata.jsDAL.security) {
+                    if (cachedRoutine.jsDALMetadata.jsDAL.security.requiresCaptcha) {
+                        if (!req.headers["captcha-val"]) {
+                            yield thread_util_1.ThreadUtil.Sleep(1000 * 5); // TODO: Make this configurable? We intentionally slow down requests that do not conform 
+                            throw new Error("captcha-val header not specified");
+                        }
+                        if (!settings_instance_1.SettingsInstance.Instance.Settings.GoogleRecaptchaSecret) {
+                            throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
+                        }
+                        let capResp = yield ExecController.validateGoogleRecaptcha(req.headers["captcha-val"]);
+                        if (capResp.success)
+                            return { success: true };
+                        else
+                            return { success: false, userErrorMsg: "Captcha failed." };
+                    }
+                }
+            }
+            return { success: true };
+        });
+    }
+    static validateGoogleRecaptcha(captcha) {
+        return new Promise((resolve, reject) => {
+            let postData = {
+                secret: settings_instance_1.SettingsInstance.Instance.Settings.GoogleRecaptchaSecret,
+                response: captcha
+            };
+            request.post('https://www.google.com/recaptcha/api/siteverify', {
+                headers: { 'content-type': 'application/json' },
+                form: postData
+            }, (error, response, body) => {
+                if (!error) {
+                    try {
+                        resolve(JSON.parse(body));
+                    }
+                    catch (e) {
+                        exception_logger_1.ExceptionLogger.logException(e);
+                        reject(e);
+                    }
+                }
+                else {
+                    reject(error);
+                }
+            });
+        });
+    }
+    static execRoutineQuery(req, res, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 60) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -197,6 +248,12 @@ class ExecController {
                     let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
                     if (cachedRoutine == null) {
                         throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
+                    }
+                    let metaResp = yield ExecController.processMetadata(req, res, cachedRoutine);
+                    if (!metaResp.success) {
+                        res.send(api_response_1.ApiResponse.ExclamationModal(metaResp.userErrorMsg));
+                        resolve(undefined);
+                        return;
                     }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
                     let sqlConfig = {
@@ -232,7 +289,7 @@ class ExecController {
                                 if (queryString[parmName]) {
                                     let val = queryString[parmName];
                                     // look for special jsDAL Server variables
-                                    val = jsdal_server_variables_1.jsDALServerVariables.parse(request, val);
+                                    val = jsdal_server_variables_1.jsDALServerVariables.parse(req, val);
                                     if (val == null) {
                                         parmValue = null;
                                     }

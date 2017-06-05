@@ -95,6 +95,7 @@ export class JsDalServerConfig {
 // TODO: move to another file
 export class Settings {
 
+    public GoogleRecaptchaSecret: string;
     public DbSource_CheckForChangesInMilliseconds: number = 200;
     public WebServer: WebServerSettings;
 
@@ -102,6 +103,7 @@ export class Settings {
         if (!rawJson) return null;
         let settings = new Settings();
 
+        settings.GoogleRecaptchaSecret = rawJson.GoogleRecaptchaSecret;
         settings.DbSource_CheckForChangesInMilliseconds = rawJson.DbSource_CheckForChangesInMilliseconds;
         settings.WebServer = WebServerSettings.createFromJson(rawJson);
 
