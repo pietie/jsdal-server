@@ -98,7 +98,6 @@ fs.readdirSync('node_modules')
 // ];
 
 
-
 module.exports = {
     entry: './src/start.ts',
     target: 'node',

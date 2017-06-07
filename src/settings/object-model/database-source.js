@@ -328,9 +328,14 @@ class DatabaseSource {
         pluginList.forEach(p => {
             let included = p.Included;
             if (included)
-                this.Plugins.push(p);
+                this.Plugins.push(p.Guid);
         });
         return { success: true };
+    }
+    isPluginIncluded(guid) {
+        if (!this.Plugins)
+            return false;
+        return this.Plugins.find(g => g.toLowerCase() == guid.toLowerCase()) != null;
     }
     addJsFile(name) {
         if (this.JsFiles == null)

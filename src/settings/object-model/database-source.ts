@@ -427,10 +427,17 @@ export class DatabaseSource {
         pluginList.forEach(p => {
             let included: boolean = p.Included;
 
-            if (included) this.Plugins.push(p);
+            if (included) this.Plugins.push(p.Guid);
         });
 
         return { success: true };
+    }
+
+    public isPluginIncluded(guid:string) : boolean
+    {
+        if (!this.Plugins) return false;
+
+        return this.Plugins.find(g=>g.toLowerCase() == guid.toLowerCase()) != null;
     }
 
     public addJsFile(name: string): { success: boolean, userError?: string } {

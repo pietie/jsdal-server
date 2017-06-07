@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const settings_instance_1 = require("./settings/settings-instance");
 const work_spawner_1 = require("./generator/work-spawner");
 const fs = require("fs");
+const path = require("path");
 const user_management_1 = require("./util/user-management");
+const exception_logger_1 = require("./util/exception-logger");
 user_management_1.UserManagement.loadUsersFromFile();
 settings_instance_1.SettingsInstance.loadSettingsFromFile().then(() => {
     work_spawner_1.WorkSpawner.Start();
@@ -13,11 +15,15 @@ settings_instance_1.SettingsInstance.loadSettingsFromFile().then(() => {
 global["PluginAssemblies"] = []; // TOOD: Wrap nicely in a class?
 function CompileListOfAvailablePlugins() {
     try {
-        // TODO: Figure out how we want to do JS-plugins
         let pluginCollection = fs.readdirSync("./plugins").filter(p => p.toLowerCase().endsWith(".plugin.js"));
-        pluginCollection.forEach(p => LoadPlugin(`./../plugins/${p}`));
+        pluginCollection.forEach(p => {
+            p = path.resolve(path.join('./plugins', p));
+            console.info(`\tLoading plugin "${p}"`);
+            LoadPlugin(p);
+        });
     }
     catch (e) {
+        exception_logger_1.ExceptionLogger.logException(e);
         // TODO: Just log
         ///ignore?
         // console.log("e,",e);
@@ -25,12 +31,15 @@ function CompileListOfAvailablePlugins() {
 }
 function LoadPlugin(path) {
     try {
-        let PluginCollection = require(path).plugins;
+        // bypass webpack ... I'm sure there must be a better way but for now this works fine!
+        let r = eval("require");
+        let PluginCollection = r(path).plugins;
         if (!PluginCollection)
             return;
         PluginCollection.forEach(Plugin => {
             try {
                 let p = new Plugin();
+                console.info(`\t${p.Name} (${p.Guid}) loaded`);
                 // TODO: Check Id, check interface compatibility...
                 global["PluginAssemblies"].push(p);
             }

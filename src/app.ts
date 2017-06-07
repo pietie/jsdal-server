@@ -1,8 +1,11 @@
-import { SettingsInstance } from './settings/settings-instance'
-import { WorkSpawner } from './generator/work-spawner'
+import { SettingsInstance } from './settings/settings-instance';
+import { WorkSpawner } from './generator/work-spawner';
 
-import * as fs from 'fs'
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { UserManagement } from "./util/user-management";
+import { ExceptionLogger } from "./util/exception-logger";
 
 UserManagement.loadUsersFromFile();
 
@@ -19,12 +22,17 @@ global["PluginAssemblies"] = [];// TOOD: Wrap nicely in a class?
 function CompileListOfAvailablePlugins() {
 
   try {
-    // TODO: Figure out how we want to do JS-plugins
     let pluginCollection = fs.readdirSync("./plugins").filter(p => p.toLowerCase().endsWith(".plugin.js"));
 
-    pluginCollection.forEach(p => LoadPlugin(`./../plugins/${p}`));
+    pluginCollection.forEach(p => {
+      p = path.resolve(path.join('./plugins', p));
+
+      console.info(`\tLoading plugin "${p}"`)
+      LoadPlugin(p);
+    });
   }
   catch (e) {
+    ExceptionLogger.logException(e);
     // TODO: Just log
     ///ignore?
     // console.log("e,",e);
@@ -34,7 +42,10 @@ function CompileListOfAvailablePlugins() {
 function LoadPlugin(path: string) {
   try {
 
-    let PluginCollection: any[] = require(path).plugins;
+    // bypass webpack ... I'm sure there must be a better way but for now this works fine!
+    let r = eval("require");
+    
+    let PluginCollection: any[] = r(path).plugins;
 
     if (!PluginCollection) return;
 
@@ -42,7 +53,7 @@ function LoadPlugin(path: string) {
       try {
 
         let p = new Plugin();
-
+        console.info(`\t${p.Name} (${p.Guid}) loaded`);
         // TODO: Check Id, check interface compatibility...
 
         global["PluginAssemblies"].push(p);

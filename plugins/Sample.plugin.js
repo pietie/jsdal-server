@@ -2,6 +2,7 @@ var TokenContextPlugin = (function () {
     function TokenContextPlugin() {
 		this.Name = "Test plugin";
 		this.Description = "Simple plugin to demonstrate the plugin functionality.";
+		this.Guid = "1994B360-4728-491D-B09C-E81F26979DF6";
     }
     TokenContextPlugin.prototype.OnConnectionOpened = function (con) {
         

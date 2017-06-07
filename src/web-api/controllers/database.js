@@ -339,13 +339,21 @@ class DatabaseController {
             if (!proj) {
                 return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
             }
-            var cs = proj.getDatabaseSource(dbSource);
+            let cs = proj.getDatabaseSource(dbSource);
             if (cs == null) {
                 return api_response_1.ApiResponse.ExclamationModal(`The project '${projectName}' does not contain a datasource called '${dbSource}'`);
             }
             if (cs.Plugins == null)
                 cs.Plugins = [];
-            let ret = global["PluginAssemblies"].map(p => { return { Name: p.Name, Description: p.Description, Guid: "TODO!", Included: false, SortOrder: 0 }; });
+            let ret = global["PluginAssemblies"].map(p => {
+                return {
+                    Name: p.Name,
+                    Description: p.Description,
+                    Guid: p.Guid,
+                    Included: cs.isPluginIncluded(p.Guid),
+                    SortOrder: 0
+                };
+            });
             /*
                         var availableOnServer = (from p in jsDALServer.Classes.jsDALServer.Instance.PluginAssemblies.SelectMany(kv => kv.Value)
                         select new
