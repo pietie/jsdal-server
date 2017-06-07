@@ -179,9 +179,9 @@ class Worker {
                         // for every row
                         genGetRoutineListStream.on('row', async (row) => {
 
-                            if (routineCount < 2) {
-                                SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}][${row.RoutineName}] changed.`)
-                            }
+                            //if (routineCount < 2) {
+                            //   SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}].[${row.RoutineName}] changed.`)
+                            //}
 
                             stillProcessingCnt++;
 
@@ -287,7 +287,7 @@ class Worker {
 
                         genGetRoutineListStream.on('done', (affected) => {
                             isDone = true;
-                            
+
                             dbSource.saveCache();
                         });
 

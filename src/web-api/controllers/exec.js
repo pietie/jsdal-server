@@ -544,9 +544,9 @@ class ExecController {
     }
     static convertToSqlBinary(value) {
         if (typeof (value) === "string") {
-            let str = value.toString().toLowerCase();
+            let str = value.toString();
             let blobRefPrefix = "blobRef:";
-            if (str.startsWith(blobRefPrefix.toLowerCase())) {
+            if (str.startsWith(blobRefPrefix)) {
                 let key = str.substring(blobRefPrefix.length);
                 if (!blob_store_1.BlobStore.exists(key))
                     throw new Error(`Invalid, non-existent or expired blob reference specified: '${str}'`);

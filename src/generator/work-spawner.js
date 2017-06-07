@@ -130,9 +130,9 @@ class Worker {
                             let isDone = false;
                             // for every row
                             genGetRoutineListStream.on('row', (row) => __awaiter(this, void 0, void 0, function* () {
-                                if (routineCount < 2) {
-                                    log_1.SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}][${row.RoutineName}] changed.`);
-                                }
+                                //if (routineCount < 2) {
+                                //   SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}].[${row.RoutineName}] changed.`)
+                                //}
                                 stillProcessingCnt++;
                                 let newCachedRoutine = new cached_routine_1.CachedRoutine();
                                 newCachedRoutine.Routine = row.RoutineName;
