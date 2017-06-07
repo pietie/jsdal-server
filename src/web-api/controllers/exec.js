@@ -299,6 +299,11 @@ class ExecController {
                                     }
                                     else {
                                         parmValue = ExecController.convertParameterValue(sqlType, val);
+                                        // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
+                                        // convert the string value of 'null' to actual JavaScript null
+                                        if (parmValue === "null") {
+                                            parmValue = null;
+                                        }
                                         // TODO: Workaround for issue for datetime conversions - see https://github.com/patriksimek/node-mssql/issues/377
                                         if (sqlType == sql.DateTime)
                                             sqlType = sql.NVarChar;
@@ -421,7 +426,12 @@ class ExecController {
                                 // look for special jsDAL Server variables
                                 //val = jsDALServerVariables.Parse(request, val);
                                 //!?parmValue = val == null ? DBNull.Value : ConvertParameterValue(sqlType, val);
-                                parmValue = val; // TODO:???
+                                parmValue = val;
+                                // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
+                                // convert the string value of 'null' to actual JavaScript null
+                                if (parmValue === "null") {
+                                    parmValue = null;
+                                }
                             }
                             if (p.ParameterMode == "IN") {
                                 cmd.input(parmName, sqlType, parmValue);

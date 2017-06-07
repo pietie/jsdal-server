@@ -253,14 +253,13 @@ export class ExecController {
                         throw new Error("captcha-val header not specified");
                     }
 
-                    if (!SettingsInstance.Instance.Settings.GoogleRecaptchaSecret)
-                    {
+                    if (!SettingsInstance.Instance.Settings.GoogleRecaptchaSecret) {
                         throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
                     }
 
                     let capResp = await ExecController.validateGoogleRecaptcha(req.headers["captcha-val"]);
 
-                    res.setHeader("captcha-ret", capResp.success? "1":"0");
+                    res.setHeader("captcha-ret", capResp.success ? "1" : "0");
 
                     if (capResp.success) return { success: true };
                     else return { success: false, userErrorMsg: "Captcha failed." }
@@ -276,7 +275,7 @@ export class ExecController {
 
         return new Promise<{ success: boolean, "error-codes"?: string[] }>((resolve, reject) => {
             let postData = {
-                secret: SettingsInstance.Instance.Settings.GoogleRecaptchaSecret, 
+                secret: SettingsInstance.Instance.Settings.GoogleRecaptchaSecret,
                 response: captcha
 
             };
@@ -318,10 +317,9 @@ export class ExecController {
 
                 let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
 
-                if (routineName == "RegisterManually")
-                {
-                    console.log(` exec on dbSource ${dbSource.CacheKey}...${cachedRoutine.jsDALMetadata != null?"YES":"NO"}`);
-                    
+                if (routineName == "RegisterManually") {
+                    console.log(` exec on dbSource ${dbSource.CacheKey}...${cachedRoutine.jsDALMetadata != null ? "YES" : "NO"}`);
+
                 }
 
                 if (cachedRoutine == null) {
@@ -391,6 +389,12 @@ export class ExecController {
                                 else {
 
                                     parmValue = ExecController.convertParameterValue(sqlType, val);
+
+                                    // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
+                                    // convert the string value of 'null' to actual JavaScript null
+                                    if (parmValue === "null") {
+                                        parmValue = null;
+                                    }
 
                                     // TODO: Workaround for issue for datetime conversions - see https://github.com/patriksimek/node-mssql/issues/377
                                     if (sqlType == sql.DateTime) sqlType = sql.NVarChar;
@@ -560,7 +564,13 @@ export class ExecController {
                             //val = jsDALServerVariables.Parse(request, val);
 
                             //!?parmValue = val == null ? DBNull.Value : ConvertParameterValue(sqlType, val);
-                            parmValue = val;// TODO:???
+                            parmValue = val;
+
+                            // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
+                            // convert the string value of 'null' to actual JavaScript null
+                            if (parmValue === "null") {
+                                parmValue = null;
+                            }
                         }
 
                         if (p.ParameterMode == "IN") {
