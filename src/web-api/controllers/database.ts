@@ -96,6 +96,11 @@ export class DatabaseController {
         let jsNamespace: string = req.query.jsNamespace;
         let defaultRoleMode: number = req.query.defaultRoleMode;
 
+        if (logicalName == null || logicalName.trim() == "")
+        {
+            return ApiResponse.ExclamationModal("Please provide a valid database source name.");
+        }
+
         let proj = SettingsInstance.Instance.getProject(projectName);
 
         if (!proj) return ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
@@ -156,6 +161,11 @@ export class DatabaseController {
         let catalog: string = req.query.catalog;
         let username: string = req.query.username;
         let password: string = req.query.password;
+
+        if (logicalName == null || logicalName.trim() == "")
+        {
+            return ApiResponse.ExclamationModal("Please provide a valid database source name.");
+        }        
 
 
         let proj = SettingsInstance.Instance.getProject(projectName);

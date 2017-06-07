@@ -89,6 +89,9 @@ class DatabaseController {
         let password = req.query.password;
         let jsNamespace = req.query.jsNamespace;
         let defaultRoleMode = req.query.defaultRoleMode;
+        if (logicalName == null || logicalName.trim() == "") {
+            return api_response_1.ApiResponse.ExclamationModal("Please provide a valid database source name.");
+        }
         let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
         if (!proj)
             return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
@@ -135,6 +138,9 @@ class DatabaseController {
         let catalog = req.query.catalog;
         let username = req.query.username;
         let password = req.query.password;
+        if (logicalName == null || logicalName.trim() == "") {
+            return api_response_1.ApiResponse.ExclamationModal("Please provide a valid database source name.");
+        }
         let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
         if (!proj)
             return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);

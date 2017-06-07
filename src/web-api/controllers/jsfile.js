@@ -37,6 +37,9 @@ class JsFileController {
             let projectName = req.query.projectName;
             let dbSource = req.query.dbSource;
             let jsFileName = req.query.jsFileName;
+            if (jsFileName == null || jsFileName.trim() == "") {
+                return api_response_1.ApiResponse.ExclamationModal("Please provide a valid file name.");
+            }
             if (!jsFileName.toLowerCase().endsWith(".js"))
                 jsFileName += ".js";
             let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
@@ -66,6 +69,9 @@ class JsFileController {
             let dbSource = req.query.dbSource;
             let oldName = req.query.oldName;
             let newName = req.query.newName;
+            if (newName == null || newName.trim() == "") {
+                return api_response_1.ApiResponse.ExclamationModal("Please provide a valid file name.");
+            }
             if (!newName.toLowerCase().endsWith(".js"))
                 newName += ".js";
             let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);

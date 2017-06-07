@@ -42,6 +42,10 @@ export class JsFileController {
             let dbSource: string = req.query.dbSource;
             let jsFileName: string = req.query.jsFileName;
 
+            if (jsFileName == null || jsFileName.trim() == "") {
+                return ApiResponse.ExclamationModal("Please provide a valid file name.");
+            }
+
             if (!jsFileName.toLowerCase().endsWith(".js")) jsFileName += ".js";
 
             let proj = SettingsInstance.Instance.getProject(projectName);
@@ -81,6 +85,10 @@ export class JsFileController {
             let dbSource: string = req.query.dbSource;
             let oldName: string = req.query.oldName;
             let newName: string = req.query.newName;
+
+            if (newName == null || newName.trim() == "") {
+                return ApiResponse.ExclamationModal("Please provide a valid file name.");
+            }
 
             if (!newName.toLowerCase().endsWith(".js")) newName += ".js";
 

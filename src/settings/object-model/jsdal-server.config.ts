@@ -45,6 +45,10 @@ export class JsDalServerConfig {
 
         if (this.ProjectList == null) this.ProjectList = [];
 
+        if (name == null || name.trim() == "") {
+            return { success: false, userError: 'Please provide a valid project name.' };
+        }
+
         if (this.exists(name)) {
             return { success: false, userError: `A project with the name "${name}" already exists.` };
         }
@@ -60,6 +64,10 @@ export class JsDalServerConfig {
     public UpdateProject(currentName: string, newName: string): { success: boolean, userError?: string } {
 
         if (this.ProjectList == null) this.ProjectList = [];
+
+        if (newName == null || newName.trim() == "") {
+            return { success: false, userError: 'Please provide a valid project name.' };
+        }
 
         if (this.exists(newName)) {
             return { success: false, userError: `A project with the name "${newName}" already exists.` };

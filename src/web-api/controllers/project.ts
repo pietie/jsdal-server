@@ -11,7 +11,7 @@ export class ProjectController {
     @route("/api/project", { post: true })
     public static AddNew(req): ApiResponse {
 
-        let name = req.body;
+        let name:string = req.body;
 
         let ret = SettingsInstance.Instance.AddProject(name);
 
