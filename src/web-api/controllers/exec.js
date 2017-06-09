@@ -30,6 +30,7 @@ const multer = require("multer");
 const request = require("request");
 const exception_logger_1 = require("./../../util/exception-logger");
 const thread_util_1 = require("./../../util/thread-util");
+const sql_config_builder_1 = require("./../../util/sql-config-builder");
 // parse multipart/form-data
 let memStorage = multer.memoryStorage();
 let blobUploader = multer({ storage: memStorage, limits: { fileSize /*bytes*/: 1024 * 1024 * 10 } }).any(); // TODO: make max file size configurable
@@ -260,18 +261,7 @@ class ExecController {
                         return;
                     }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
-                    let sqlConfig = {
-                        user: dbConn.user,
-                        password: dbConn.password,
-                        server: dbConn.server,
-                        database: dbConn.database,
-                        connectionTimeout: 1000 * 60,
-                        requestTimeout: commandTimeOutInSeconds * 1000,
-                        stream: false,
-                        options: {
-                            encrypt: true
-                        }
-                    };
+                    let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(dbConn);
                     let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         reject(err);
                         return;
@@ -389,18 +379,7 @@ class ExecController {
                         throw `The routine [${schemaName}].[${routineName}] was not found.`;
                     }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
-                    let sqlConfig = {
-                        user: dbConn.user,
-                        password: dbConn.password,
-                        server: dbConn.server,
-                        database: dbConn.database,
-                        connectionTimeout: 1000 * 60,
-                        requestTimeout: commandTimeOutInSeconds * 1000,
-                        stream: false,
-                        options: {
-                            encrypt: true
-                        }
-                    };
+                    let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(dbConn);
                     let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         log_1.SessionLog.error(err.toString());
                         reject(err);

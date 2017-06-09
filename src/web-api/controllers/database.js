@@ -23,185 +23,246 @@ const decorators_1 = require("./../decorators");
 class DatabaseController {
     // get list of DB Sources for a specific Project
     static Get(req) {
-        let projectName = req.query.project;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        if (proj.DatabaseSources == null)
-            proj.DatabaseSources = [];
-        return api_response_1.ApiResponse.Payload(proj.DatabaseSources.map(dbs => {
-            return {
-                Name: dbs.Name,
-                Guid: dbs.CacheKey,
-                InitialCatalog: dbs.initialCatalog,
-                DataSource: dbs.dataSource,
-                IsOrmInstalled: dbs.IsOrmInstalled,
-                JsNamespace: dbs.JsNamespace,
-                DefaultRuleMode: dbs.DefaultRuleMode,
-                UserID: dbs.userID,
-                IntegratedSecurity: dbs.integratedSecurity
-            };
-        }).sort((a, b) => a.Name.localeCompare(b.Name)));
+        try {
+            let projectName = req.query.project;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            if (proj.DatabaseSources == null)
+                proj.DatabaseSources = [];
+            return api_response_1.ApiResponse.Payload(proj.DatabaseSources.map(dbs => {
+                return {
+                    Name: dbs.Name,
+                    Guid: dbs.CacheKey,
+                    InitialCatalog: dbs.initialCatalog,
+                    DataSource: dbs.dataSource,
+                    IsOrmInstalled: dbs.IsOrmInstalled,
+                    JsNamespace: dbs.JsNamespace,
+                    DefaultRuleMode: dbs.DefaultRuleMode,
+                    UserID: dbs.userID,
+                    IntegratedSecurity: dbs.integratedSecurity,
+                    port: dbs.port,
+                    instanceName: dbs.instanceName
+                };
+            }).sort((a, b) => a.Name.localeCompare(b.Name)));
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
     }
     static GetSingle(req) {
-        let projectName = req.params.project;
-        let dbSourceName = req.params.dbSource;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var dbSource = proj.getDatabaseSource(dbSourceName);
-        if (dbSource == null) {
-            return api_response_1.ApiResponse.ExclamationModal(`The database source entry '${dbSourceName}' does not exist.`);
+        try {
+            let projectName = req.params.project;
+            let dbSourceName = req.params.dbSource;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var dbSource = proj.getDatabaseSource(dbSourceName);
+            if (dbSource == null) {
+                return api_response_1.ApiResponse.ExclamationModal(`The database source entry '${dbSourceName}' does not exist.`);
+            }
+            return api_response_1.ApiResponse.Payload({
+                Name: dbSource.Name,
+                Guid: dbSource.CacheKey,
+                InitialCatalog: dbSource.initialCatalog,
+                DataSource: dbSource.dataSource,
+                IsOrmInstalled: dbSource.IsOrmInstalled,
+                // JsNamespace: dbSource.JsNamespace,
+                DefaultRuleMode: dbSource.DefaultRuleMode
+                // UserID: dbSource.userID,
+                // IntegratedSecurity: dbSource.integratedSecurity
+            });
         }
-        return api_response_1.ApiResponse.Payload({
-            Name: dbSource.Name,
-            Guid: dbSource.CacheKey,
-            InitialCatalog: dbSource.initialCatalog,
-            DataSource: dbSource.dataSource,
-            IsOrmInstalled: dbSource.IsOrmInstalled,
-            // JsNamespace: dbSource.JsNamespace,
-            DefaultRuleMode: dbSource.DefaultRuleMode
-            // UserID: dbSource.userID,
-            // IntegratedSecurity: dbSource.integratedSecurity
-        });
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
     }
     static Delete(req) {
-        let projectName = req.query.projectName;
-        let name = req.params.name;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var cs = proj.getDatabaseSource(name);
-        if (cs == null) {
-            return api_response_1.ApiResponse.ExclamationModal(`The project '${projectName}' does not contain a datasource called '${name}'`);
-        }
-        proj.removeConnectionString(cs);
-        settings_instance_1.SettingsInstance.saveSettingsToFile();
-        return api_response_1.ApiResponse.Success();
-    }
-    static Post(req) {
-        // TODO: Validate parameters - mandatory and also things like logicalName(no special chars etc?)
-        let logicalName = req.body;
-        let projectName = req.query.project;
-        let dataSource = req.query.dataSource;
-        let catalog = req.query.catalog;
-        let username = req.query.username;
-        let password = req.query.password;
-        let jsNamespace = req.query.jsNamespace;
-        let defaultRoleMode = req.query.defaultRoleMode;
-        if (logicalName == null || logicalName.trim() == "") {
-            return api_response_1.ApiResponse.ExclamationModal("Please provide a valid database source name.");
-        }
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var existing = proj.getDatabaseSource(logicalName);
-        if (existing != null) {
-            return api_response_1.ApiResponse.ExclamationModal(`The database source entry '${logicalName}' already exists.`);
-        }
-        let ret = proj.addMetadataConnectionString(logicalName, dataSource, catalog, username, password, jsNamespace, defaultRoleMode);
-        if (!ret.success)
-            return api_response_1.ApiResponse.ExclamationModal(ret.userError);
-        settings_instance_1.SettingsInstance.saveSettingsToFile();
-        return api_response_1.ApiResponse.Success();
-    }
-    static GetDatabaseConnections(req) {
-        let projectName = req.query.projectName;
-        let dbSourceName = req.query.dbSourceName;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var dbSource = proj.getDatabaseSource(dbSourceName);
-        if (dbSource == null)
-            return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
-        var dbConnections = dbSource.ExecutionConnections;
-        if (dbConnections == null)
-            return api_response_1.ApiResponse.Payload(null);
-        return api_response_1.ApiResponse.Payload(dbConnections.map(con => {
-            return {
-                Guid: con.Guid,
-                Name: con.Name,
-                InitialCatalog: con.initialCatalog,
-                DataSource: con.dataSource,
-                UserID: con.userID,
-                IntegratedSecurity: con.integratedSecurity
-            };
-        }).sort((a, b) => a.Name.localeCompare(b.Name)));
-    }
-    static AddUpdateDatabaseConnection(req) {
-        // TODO: Validate parameters - mandatory and also things like logicalName(no special chars etc?)
-        let dbSourceName = req.query.dbSourceName;
-        let logicalName = req.query.logicalName;
-        let dbConnectionGuid = req.query.dbConnectionGuid;
-        let projectName = req.query.projectName;
-        let dataSource = req.query.dataSource;
-        let catalog = req.query.catalog;
-        let username = req.query.username;
-        let password = req.query.password;
-        if (logicalName == null || logicalName.trim() == "") {
-            return api_response_1.ApiResponse.ExclamationModal("Please provide a valid database source name.");
-        }
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var dbSource = proj.getDatabaseSource(dbSourceName);
-        if (dbSource == null)
-            return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
-        let ret = dbSource.addUpdateDatabaseConnection(false, dbConnectionGuid, logicalName, dataSource, catalog, username, password);
-        if (ret.success) {
+        try {
+            let projectName = req.query.projectName;
+            let name = req.params.name;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var cs = proj.getDatabaseSource(name);
+            if (cs == null) {
+                return api_response_1.ApiResponse.ExclamationModal(`The project '${projectName}' does not contain a datasource called '${name}'`);
+            }
+            proj.removeConnectionString(cs);
             settings_instance_1.SettingsInstance.saveSettingsToFile();
             return api_response_1.ApiResponse.Success();
         }
-        else {
-            return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
+    }
+    static Post(req) {
+        try {
+            let logicalName = req.body;
+            let projectName = req.query.project;
+            let dataSource = req.query.dataSource;
+            let catalog = req.query.catalog;
+            let username = req.query.username;
+            let password = req.query.password;
+            let jsNamespace = req.query.jsNamespace;
+            let defaultRoleMode = req.query.defaultRoleMode;
+            let port = req.query.port;
+            let instanceName = req.query.instanceName;
+            if (port == null || port == undefined || isNaN(port))
+                port = 1433;
+            if (!instanceName || instanceName.trim() == "")
+                instanceName = null;
+            if (logicalName == null || logicalName.trim() == "") {
+                return api_response_1.ApiResponse.ExclamationModal("Please provide a valid database source name.");
+            }
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var existing = proj.getDatabaseSource(logicalName);
+            if (existing != null) {
+                return api_response_1.ApiResponse.ExclamationModal(`The database source entry '${logicalName}' already exists.`);
+            }
+            let ret = proj.addMetadataConnectionString(logicalName, dataSource, catalog, username, password, jsNamespace, defaultRoleMode, port, instanceName);
+            if (!ret.success)
+                return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+            settings_instance_1.SettingsInstance.saveSettingsToFile();
+            return api_response_1.ApiResponse.Success();
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
+    }
+    static GetDatabaseConnections(req) {
+        try {
+            let projectName = req.query.projectName;
+            let dbSourceName = req.query.dbSourceName;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var dbSource = proj.getDatabaseSource(dbSourceName);
+            if (dbSource == null)
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
+            var dbConnections = dbSource.ExecutionConnections;
+            if (dbConnections == null)
+                return api_response_1.ApiResponse.Payload(null);
+            return api_response_1.ApiResponse.Payload(dbConnections.map(con => {
+                return {
+                    Guid: con.Guid,
+                    Name: con.Name,
+                    InitialCatalog: con.initialCatalog,
+                    DataSource: con.dataSource,
+                    UserID: con.userID,
+                    IntegratedSecurity: con.integratedSecurity,
+                    port: con.port,
+                    instanceName: con.instanceName
+                };
+            }).sort((a, b) => a.Name.localeCompare(b.Name)));
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
+    }
+    static AddUpdateDatabaseConnection(req) {
+        try {
+            // TODO: Validate parameters - mandatory and also things like logicalName(no special chars etc?)
+            let dbSourceName = req.query.dbSourceName;
+            let logicalName = req.query.logicalName;
+            let dbConnectionGuid = req.query.dbConnectionGuid;
+            let projectName = req.query.projectName;
+            let dataSource = req.query.dataSource;
+            let catalog = req.query.catalog;
+            let username = req.query.username;
+            let password = req.query.password;
+            let port = req.query.port;
+            let instanceName = req.query.instanceName;
+            if (port == null || port == undefined || isNaN(port))
+                port = 1433;
+            if (!instanceName || instanceName.trim() == "")
+                instanceName = null;
+            if (logicalName == null || logicalName.trim() == "") {
+                return api_response_1.ApiResponse.ExclamationModal("Please provide a valid database source name.");
+            }
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var dbSource = proj.getDatabaseSource(dbSourceName);
+            if (dbSource == null)
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
+            let ret = dbSource.addUpdateDatabaseConnection(false, dbConnectionGuid, logicalName, dataSource, catalog, username, password, port, instanceName);
+            if (ret.success) {
+                settings_instance_1.SettingsInstance.saveSettingsToFile();
+                return api_response_1.ApiResponse.Success();
+            }
+            else {
+                return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+            }
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
         }
     }
     // 04/07/2016, PL: Created.
     static DeleteDatabaseConnection(req) {
-        let dbConnectionGuid = req.query.dbConnectionGuid;
-        let projectName = req.query.projectName;
-        let dbSourceName = req.query.dbSourceName;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var dbSource = proj.getDatabaseSource(dbSourceName);
-        if (dbSource == null)
-            return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
-        let ret = dbSource.deleteDatabaseConnection(dbConnectionGuid);
-        if (ret.success) {
-            settings_instance_1.SettingsInstance.saveSettingsToFile();
-            return api_response_1.ApiResponse.Success();
+        try {
+            let dbConnectionGuid = req.query.dbConnectionGuid;
+            let projectName = req.query.projectName;
+            let dbSourceName = req.query.dbSourceName;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var dbSource = proj.getDatabaseSource(dbSourceName);
+            if (dbSource == null)
+                return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
+            let ret = dbSource.deleteDatabaseConnection(dbConnectionGuid);
+            if (ret.success) {
+                settings_instance_1.SettingsInstance.saveSettingsToFile();
+                return api_response_1.ApiResponse.Success();
+            }
+            else {
+                return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+            }
         }
-        else {
-            return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
         }
     }
     static UpdateDatabaseSource(req) {
-        let logicalName = req.body;
-        let oldName = req.query.oldName;
-        let projectName = req.query.project;
-        let dataSource = req.query.dataSource;
-        let catalog = req.query.catalog;
-        let username = req.query.username;
-        let password = req.query.password;
-        let jsNamespace = req.query.jsNamespace;
-        let defaultRoleMode = req.query.defaultRoleMode;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj)
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        var existing = proj.getDatabaseSource(oldName);
-        if (existing == null) {
-            return api_response_1.ApiResponse.ExclamationModal(`The database source entry '${logicalName}' does not exist and the update operation cannot continue.`);
+        try {
+            let logicalName = req.body;
+            let oldName = req.query.oldName;
+            let projectName = req.query.project;
+            let dataSource = req.query.dataSource;
+            let catalog = req.query.catalog;
+            let username = req.query.username;
+            let password = req.query.password;
+            let jsNamespace = req.query.jsNamespace;
+            let defaultRoleMode = req.query.defaultRoleMode;
+            let port = parseInt(req.query.port);
+            let instanceName = req.query.instanceName;
+            if (port == null || port == undefined || isNaN(port))
+                port = 1433;
+            if (!instanceName || instanceName.trim() == "")
+                instanceName = null;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj)
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            var existing = proj.getDatabaseSource(oldName);
+            if (existing == null) {
+                return api_response_1.ApiResponse.ExclamationModal(`The database source entry '${logicalName}' does not exist and the update operation cannot continue.`);
+            }
+            existing.Name = logicalName;
+            let ret = existing.addUpdateDatabaseConnection(true /*isMetadataConnection*/, null, logicalName, dataSource, catalog, username, password, port, instanceName);
+            if (!ret.success) {
+                return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+            }
+            existing.JsNamespace = jsNamespace;
+            existing.DefaultRuleMode = defaultRoleMode;
+            settings_instance_1.SettingsInstance.saveSettingsToFile();
+            return api_response_1.ApiResponse.Success();
         }
-        existing.Name = logicalName;
-        let ret = existing.addUpdateDatabaseConnection(true /*isMetadataConnection*/, null, logicalName, dataSource, catalog, username, password);
-        if (!ret.success) {
-            return api_response_1.ApiResponse.ExclamationModal(ret.userError);
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
         }
-        existing.JsNamespace = jsNamespace;
-        existing.DefaultRuleMode = defaultRoleMode;
-        settings_instance_1.SettingsInstance.saveSettingsToFile();
-        return api_response_1.ApiResponse.Success();
     }
     static IsOrmInstalled(req) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -482,34 +543,39 @@ class DatabaseController {
         });
     }
     static UpdateWhitelist(req) {
-        let projectName = req.query.projectName;
-        let dbSource = req.query.dbSourceName;
-        let whitelist = req.query.whitelist;
-        let allowAllPrivate = req.query.allowAllPrivate;
-        let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
-        if (!proj) {
-            return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
-        }
-        var cs = proj.getDatabaseSource(dbSource);
-        if (cs == null) {
-            return api_response_1.ApiResponse.ExclamationModal(`The project '${projectName}' does not contain a datasource called '${dbSource}'`);
-        }
-        cs.WhitelistAllowAllPrivateIPs = allowAllPrivate;
-        if (whitelist != null) {
-            //Select(w => w.TrimEnd('\r')
-            var ar = whitelist.split('\n').map(w => w.trim()).filter(w => w && w != "");
-            if (ar.length > 0) {
-                cs.WhitelistedDomainsCsv = ar.join(',');
+        try {
+            let projectName = req.query.projectName;
+            let dbSource = req.query.dbSourceName;
+            let whitelist = req.query.whitelist;
+            let allowAllPrivate = req.query.allowAllPrivate;
+            let proj = settings_instance_1.SettingsInstance.Instance.getProject(projectName);
+            if (!proj) {
+                return api_response_1.ApiResponse.ExclamationModal(`The project "${projectName}" does not exist.`);
+            }
+            var cs = proj.getDatabaseSource(dbSource);
+            if (cs == null) {
+                return api_response_1.ApiResponse.ExclamationModal(`The project '${projectName}' does not contain a datasource called '${dbSource}'`);
+            }
+            cs.WhitelistAllowAllPrivateIPs = allowAllPrivate;
+            if (whitelist != null) {
+                //Select(w => w.TrimEnd('\r')
+                var ar = whitelist.split('\n').map(w => w.trim()).filter(w => w && w != "");
+                if (ar.length > 0) {
+                    cs.WhitelistedDomainsCsv = ar.join(',');
+                }
+                else {
+                    cs.WhitelistedDomainsCsv = null;
+                }
             }
             else {
                 cs.WhitelistedDomainsCsv = null;
             }
+            settings_instance_1.SettingsInstance.saveSettingsToFile();
+            return api_response_1.ApiResponse.Success();
         }
-        else {
-            cs.WhitelistedDomainsCsv = null;
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
         }
-        settings_instance_1.SettingsInstance.saveSettingsToFile();
-        return api_response_1.ApiResponse.Success();
     }
 }
 __decorate([

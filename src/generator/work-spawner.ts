@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import * as shortid from 'shortid';
 
 import * as xml2js from 'xml2js'
+import { SqlConfigBuilder } from "./../util/sql-config-builder";
 
 export class WorkSpawner {
     private static _workerList: Worker[];
@@ -40,7 +41,7 @@ export class WorkSpawner {
 
             WorkSpawner._workerList = [];
 
-            //dbSources = [dbSources[2]]; //TEMP 
+            //dbSources = [dbSources[3]]; //TEMP 
 
             async.each(dbSources, (source) => {
 
@@ -97,19 +98,8 @@ class Worker {
         this.isRunning = true;
 
         let lastSavedDate: Date = new Date();
-
-        let sqlConfig: sql.config = {
-            user: dbSource.userID,
-            password: dbSource.password,
-            server: dbSource.dataSource,
-            database: dbSource.initialCatalog,
-            connectionTimeout: 1000 * 60, //TODO:make configurable
-            requestTimeout: 1000 * 60,//TODO:make configurable
-            stream: false,
-            options: {
-                encrypt: true
-            }
-        }
+        
+        let sqlConfig = SqlConfigBuilder.build(dbSource);
 
         var cache = dbSource.cache;
 
@@ -193,8 +183,6 @@ class Worker {
                             newCachedRoutine.IsDeleted = row.IsDeleted;
                             newCachedRoutine.Parameters = [];
                             newCachedRoutine.RowVer = row.rowver;
-                            newCachedRoutine.ResultSetRowver = row.ResultSetRowver;
-                            newCachedRoutine.RoutineParsingRowver = row.RoutineParsingRowver;
 
                             if (row.JsonMetadata && row.JsonMetadata != "") {
                                 try {

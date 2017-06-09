@@ -4,11 +4,10 @@ import * as shortid from 'shortid'
 export class Project {
     public Name: string;
     public Guid: string;
-    public DatabaseSources: DatabaseSource[]; 
+    public DatabaseSources: DatabaseSource[];
 
-    public toJSON()
-    {
-        return { Name: this.Name, Guid: this.Guid, DatabaseSources: this.DatabaseSources  } ;
+    public toJSON() {
+        return { Name: this.Name, Guid: this.Guid, DatabaseSources: this.DatabaseSources };
     }
 
     constructor() {
@@ -40,7 +39,11 @@ export class Project {
         this.DatabaseSources.splice(this.DatabaseSources.indexOf(dbSource), 1);
     }
 
-    public addMetadataConnectionString(name: string, dataSource: string, catalog: string, username: string, password: string, jsNamespace: string, defaultRoleMode: number): { success: boolean, userError?: string, dbSource?: DatabaseSource } {
+    public addMetadataConnectionString(name: string, dataSource: string,
+        catalog: string, username: string,
+        password: string, jsNamespace: string,
+        defaultRoleMode: number,
+        port: number, instanceName: string): { success: boolean, userError?: string, dbSource?: DatabaseSource } {
         if (this.DatabaseSources == null) this.DatabaseSources = [];
 
         var cs = new DatabaseSource();
@@ -49,7 +52,8 @@ export class Project {
         cs.Name = name;
         cs.DefaultRuleMode = defaultRoleMode;
 
-        let ret = cs.addUpdateDatabaseConnection(true/*isMetadataConnection*/, null, name, dataSource, catalog, username, password);
+
+        let ret = cs.addUpdateDatabaseConnection(true/*isMetadataConnection*/, null, name, dataSource, catalog, username, password, port, instanceName);
 
         if (!ret.success) return ret;
 

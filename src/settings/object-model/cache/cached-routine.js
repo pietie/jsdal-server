@@ -24,7 +24,6 @@ class CachedRoutine {
         cachedRoutine.RowVer = rawJson.RowVer;
         cachedRoutine.ResultSetRowver = rawJson.ResultSetRowver;
         cachedRoutine.ResultSetError = rawJson.ResultSetError;
-        cachedRoutine.RoutineParsingRowver = rawJson.RoutineParsingRowver;
         cachedRoutine.IsDeleted = rawJson.IsDeleted;
         cachedRoutine.Parameters = rawJson.Parameters;
         cachedRoutine.jsDALMetadata = rawJson.jsDALMetadata;

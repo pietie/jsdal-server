@@ -20,6 +20,7 @@ const sql = require("mssql");
 const fs = require("fs");
 const shortid = require("shortid");
 const xml2js = require("xml2js");
+const sql_config_builder_1 = require("./../util/sql-config-builder");
 class WorkSpawner {
     static getWorker(name) {
         return WorkSpawner._workerList.find(wl => wl.name == name);
@@ -34,7 +35,7 @@ class WorkSpawner {
             WorkSpawner.TEMPLATE_Routine = fs.readFileSync('./resources/RoutineTemplate.txt', { encoding: "utf8" });
             WorkSpawner.TEMPLATE_TypescriptDefinitions = fs.readFileSync('./resources/TypeScriptDefinitionsContainer.d.ts', { encoding: "utf8" });
             WorkSpawner._workerList = [];
-            //dbSources = [dbSources[2]]; //TEMP 
+            //dbSources = [dbSources[3]]; //TEMP 
             async.each(dbSources, (source) => {
                 let worker = new Worker();
                 worker.name = source.Name;
@@ -72,18 +73,7 @@ class Worker {
         return __awaiter(this, void 0, void 0, function* () {
             this.isRunning = true;
             let lastSavedDate = new Date();
-            let sqlConfig = {
-                user: dbSource.userID,
-                password: dbSource.password,
-                server: dbSource.dataSource,
-                database: dbSource.initialCatalog,
-                connectionTimeout: 1000 * 60,
-                requestTimeout: 1000 * 60,
-                stream: false,
-                options: {
-                    encrypt: true
-                }
-            };
+            let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(dbSource);
             var cache = dbSource.cache;
             if (cache != null && cache.length > 0) {
                 this.maxRowDate = Math.max(...cache.map(c => c.RowVer));
@@ -141,8 +131,6 @@ class Worker {
                                 newCachedRoutine.IsDeleted = row.IsDeleted;
                                 newCachedRoutine.Parameters = [];
                                 newCachedRoutine.RowVer = row.rowver;
-                                newCachedRoutine.ResultSetRowver = row.ResultSetRowver;
-                                newCachedRoutine.RoutineParsingRowver = row.RoutineParsingRowver;
                                 if (row.JsonMetadata && row.JsonMetadata != "") {
                                     try {
                                         newCachedRoutine.jsDALMetadata = JSON.parse(row.JsonMetadata);

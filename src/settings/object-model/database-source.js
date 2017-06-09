@@ -19,6 +19,7 @@ const shortid = require("shortid");
 const SqlConnectionStringBuilder = require("node-connection-string-builder");
 const sql = require("mssql");
 const log_1 = require("./../../util/log");
+const sql_config_builder_1 = require("./../../util/sql-config-builder");
 var DefaultRuleMode;
 (function (DefaultRuleMode) {
     DefaultRuleMode[DefaultRuleMode["IncludeAll"] = 0] = "IncludeAll";
@@ -72,6 +73,12 @@ class DatabaseSource {
         if (this._connectionStringBuilder == null)
             this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
         return this._connectionStringBuilder.integratedSecurity;
+    }
+    get port() {
+        return this.MetadataConnection.port;
+    }
+    get instanceName() {
+        return this.MetadataConnection.instanceName;
     }
     static createFromJson(rawJson) {
         let dbSource = new DatabaseSource();
@@ -175,11 +182,11 @@ class DatabaseSource {
         }
     }
     get cache() { return this.CachedRoutineList; }
-    addUpdateDatabaseConnection(isMetadataConnection, dbConnectionGuid, logicalName, dataSource, catalog, username, password) {
+    addUpdateDatabaseConnection(isMetadataConnection, dbConnectionGuid, logicalName, dataSource, catalog, username, password, port, instanceName) {
         if (isMetadataConnection) {
             if (this.MetadataConnection == null)
                 this.MetadataConnection = new connection_1.Connection();
-            this.MetadataConnection.update(logicalName, dataSource, catalog, username, password);
+            this.MetadataConnection.update(logicalName, dataSource, catalog, username, password, port, instanceName);
         }
         else {
             if (this.ExecutionConnections == null)
@@ -187,7 +194,7 @@ class DatabaseSource {
             if (!dbConnectionGuid) {
                 // add new
                 let connection = new connection_1.Connection();
-                connection.update(logicalName, dataSource, catalog, username, password);
+                connection.update(logicalName, dataSource, catalog, username, password, port, instanceName);
                 connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
                 this.ExecutionConnections.push(connection);
             }
@@ -196,7 +203,7 @@ class DatabaseSource {
                 if (existing == null) {
                     return { success: false, userError: "The specified connection does not exist and cannot be updated." };
                 }
-                existing.update(logicalName, dataSource, catalog, username, password);
+                existing.update(logicalName, dataSource, catalog, username, password, port, instanceName);
             }
         }
         return { success: true };
@@ -213,18 +220,7 @@ class DatabaseSource {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let sqlScript = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
-                let sqlConfig = {
-                    user: this.MetadataConnection.userID,
-                    password: this.MetadataConnection.password,
-                    server: this.MetadataConnection.dataSource,
-                    database: this.MetadataConnection.initialCatalog,
-                    connectionTimeout: 1000 * 30,
-                    requestTimeout: 1000 * 30,
-                    stream: false,
-                    options: {
-                        encrypt: true
-                    }
-                };
+                let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(this.MetadataConnection);
                 let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     // TODO: Handle connection error
                     console.log("connection error", err);
@@ -244,18 +240,7 @@ class DatabaseSource {
                 try {
                     let installSqlScript = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });
                     ;
-                    let sqlConfig = {
-                        user: this.MetadataConnection.userID,
-                        password: this.MetadataConnection.password,
-                        server: this.MetadataConnection.dataSource,
-                        database: this.MetadataConnection.initialCatalog,
-                        connectionTimeout: 1000 * 60,
-                        requestTimeout: 1000 * 60,
-                        stream: false,
-                        options: {
-                            encrypt: true
-                        }
-                    };
+                    let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(this.MetadataConnection);
                     let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                         reject(err);
                     });

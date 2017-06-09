@@ -20,6 +20,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const api_response_1 = require("./../api-response");
 const decorators_1 = require("./../decorators");
 const sql = require("mssql");
+const sql_config_builder_1 = require("./../../util/sql-config-builder");
 class UtilController {
     static ListDBs(req) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -28,6 +29,10 @@ class UtilController {
                     let dataSource = req.query.datasource;
                     let user = req.query.u;
                     let pass = req.query.p;
+                    let port = parseInt(req.query.port);
+                    let instanceName = req.query.instanceName;
+                    if (port == null || isNaN(port))
+                        port = 1433;
                     // TODO: Figure out how to do INTEGRATED AUTH with this driver
                     /*****
                      *
@@ -39,24 +44,19 @@ class UtilController {
                                         connStr = string.Format("Data Source={0};Persist Security Info=False;Integrated Security=True", dataSource);
                                     }
                      */
-                    let sqlConfig = {
-                        user: user,
-                        password: pass,
-                        server: dataSource,
-                        database: null,
-                        stream: false,
-                        options: {
-                            encrypt: true
-                        }
-                    };
-                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => { reject(err); });
+                    let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build({ user: user, password: pass, server: dataSource, database: null, port: port, instanceName: instanceName });
+                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                        resolve(api_response_1.ApiResponse.ExclamationModal(err));
+                    });
+                    if (con == null)
+                        return;
                     let request = new sql.Request(con);
-                    let ret = yield request.query("select Name from sys.databases order by 1").catch(e => reject(e));
+                    let ret = yield request.query("select Name from sys.databases order by 1").catch(e => resolve(api_response_1.ApiResponse.Exception(e)));
                     con.close();
-                    resolve(api_response_1.ApiResponse.Payload(ret.map(r => r.Name)));
+                    resolve(api_response_1.ApiResponse.Payload(ret.recordset.map(r => r.Name)));
                 }
                 catch (e) {
-                    reject(e);
+                    resolve(api_response_1.ApiResponse.Exception(e));
                 }
             }));
         });
@@ -69,6 +69,10 @@ class UtilController {
                     let catalog = req.query.catalog;
                     let username = req.query.username;
                     let password = req.query.password;
+                    let port = parseInt(req.query.port);
+                    let instanceName = req.query.instanceName;
+                    if (port == null || isNaN(port))
+                        port = 1433;
                     // TODO: Figure out how to do INTEGRATED AUTH with this driver
                     //         if (!string.IsNullOrWhiteSpace(username)) {
                     //             connStr = string.Format("Data Source={0};Persist Security Info=False;User ID={1};Password={2}; Initial Catalog={3}", dataSource, username, password, catalog);
@@ -76,16 +80,7 @@ class UtilController {
                     //         else {
                     //             connStr = string.Format("Data Source={0};Persist Security Info=False;Initial Catalog={1};Integrated Security=True", dataSource, catalog);
                     //         }
-                    let sqlConfig = {
-                        user: username,
-                        password: password,
-                        server: dataSource,
-                        database: catalog,
-                        stream: false,
-                        options: {
-                            encrypt: true
-                        }
-                    };
+                    let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build({ user: username, password: password, server: dataSource, database: catalog, port: port, instanceName: instanceName });
                     let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => { resolve(api_response_1.ApiResponse.Exception(err)); });
                     con.close();
                     resolve(api_response_1.ApiResponse.Success());

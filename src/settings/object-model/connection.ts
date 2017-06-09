@@ -7,7 +7,7 @@ import * as path from 'path';
 const KEY_FILEPATH: string = "./conn.key";
 
 let algorithm = 'aes-256-ctr';
-let connectionPrivateKey:string = null;
+let connectionPrivateKey: string = null;
 
 function encrypt(text) {
     var cipher = crypto.createCipher(algorithm, connectionPrivateKey)
@@ -39,14 +39,11 @@ if (!fs.existsSync(KEY_FILEPATH)) {
         console.error(e);
     }
 }
-else
-{
-    try 
-    {
+else {
+    try {
         connectionPrivateKey = fs.readFileSync(KEY_FILEPATH, { encoding: "utf8" });
     }
-    catch(e)
-    {
+    catch (e) {
         // TODO: Handle and log error
     }
 }
@@ -56,17 +53,21 @@ export class Connection {
     public Guid: string;
     public ConnectionString: string;
 
+    public port: number;
+    public instanceName: string;
+
     public Unsafe: boolean = false; // if set true it means the ConnectionString is not encrypted
 
     private _connectionStringBuilder: SqlConnectionStringBuilder;
 
-    public toJSON()
-    {
+    public toJSON() {
         return {
             Name: this.Name,
             Guid: this.Guid,
             ConnectionString: this.ConnectionString,
-            Unsafe: this.Unsafe        
+            Unsafe: this.Unsafe,
+            port: this.port,
+            instanceName: this.instanceName
         };
     }
 
@@ -108,6 +109,8 @@ export class Connection {
         connection.Guid = rawJson.Guid;
         connection.ConnectionString = rawJson.ConnectionString;
         connection.Unsafe = !!rawJson.Unsafe;
+        connection.port = rawJson.port != null ? rawJson.port : 1433;
+        connection.instanceName = rawJson.instanceName;
 
         return connection;
     }
@@ -128,8 +131,11 @@ export class Connection {
         return this._descryptedConnectionString;
     }
 
-    public update(name: string, dataSource: string, catalog: string, username: string, password: string) {
+    public update(name: string, dataSource: string, catalog: string, username: string, password: string, port: number, instanceName: string) {
         let connectionString: string = null;
+
+        this.port = port;
+        this.instanceName = instanceName;
 
         if (username && username.trim() != "") {
             connectionString = `Data Source=${dataSource};Initial Catalog=${catalog};Persist Security Info=False;User ID=${username};Password=${password}`;

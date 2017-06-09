@@ -50,7 +50,9 @@ class Connection {
             Name: this.Name,
             Guid: this.Guid,
             ConnectionString: this.ConnectionString,
-            Unsafe: this.Unsafe
+            Unsafe: this.Unsafe,
+            port: this.port,
+            instanceName: this.instanceName
         };
     }
     get userID() {
@@ -84,6 +86,8 @@ class Connection {
         connection.Guid = rawJson.Guid;
         connection.ConnectionString = rawJson.ConnectionString;
         connection.Unsafe = !!rawJson.Unsafe;
+        connection.port = rawJson.port != null ? rawJson.port : 1433;
+        connection.instanceName = rawJson.instanceName;
         return connection;
     }
     get ConnectionStringDecrypted() {
@@ -97,8 +101,10 @@ class Connection {
         }
         return this._descryptedConnectionString;
     }
-    update(name, dataSource, catalog, username, password) {
+    update(name, dataSource, catalog, username, password, port, instanceName) {
         let connectionString = null;
+        this.port = port;
+        this.instanceName = instanceName;
         if (username && username.trim() != "") {
             connectionString = `Data Source=${dataSource};Initial Catalog=${catalog};Persist Security Info=False;User ID=${username};Password=${password}`;
         }

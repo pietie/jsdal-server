@@ -28,7 +28,6 @@ export class CachedRoutine {
     public ResultSetRowver: number;
     public ResultSetMetadata: ResultsetMetadata[];
     public ResultSetError: string;
-    public RoutineParsingRowver: number;
     public jsDALMetadata: any;
 
     public IsDeleted: boolean;
@@ -51,7 +50,6 @@ export class CachedRoutine {
 
         cachedRoutine.ResultSetRowver = rawJson.ResultSetRowver;
         cachedRoutine.ResultSetError = rawJson.ResultSetError;
-        cachedRoutine.RoutineParsingRowver = rawJson.RoutineParsingRowver;
         cachedRoutine.IsDeleted = rawJson.IsDeleted;
 
         cachedRoutine.Parameters = rawJson.Parameters;

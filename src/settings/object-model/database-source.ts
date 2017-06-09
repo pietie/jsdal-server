@@ -14,6 +14,7 @@ import * as SqlConnectionStringBuilder from 'node-connection-string-builder';
 import * as sql from 'mssql';
 import { Request } from "@types/express";
 import { SessionLog } from "./../../util/log";
+import { SqlConfigBuilder } from "./../../util/sql-config-builder";
 
 export enum DefaultRuleMode {
     IncludeAll = 0,
@@ -36,6 +37,7 @@ export class DatabaseSource {
 
     public JsFiles: JsFile[];
     public Rules: BaseRule[];
+
 
     public MetadataConnection: Connection;
 
@@ -99,6 +101,14 @@ export class DatabaseSource {
     public get integratedSecurity(): boolean {
         if (this._connectionStringBuilder == null) this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
         return this._connectionStringBuilder.integratedSecurity;
+    }
+    
+    public get port(): number {
+        return this.MetadataConnection.port;
+    }
+    
+    public get instanceName(): string {
+        return this.MetadataConnection.instanceName;
     }
 
     public static createFromJson(rawJson: any): DatabaseSource {
@@ -231,12 +241,12 @@ export class DatabaseSource {
     public get cache(): CachedRoutine[] { return this.CachedRoutineList; }
 
     public addUpdateDatabaseConnection(isMetadataConnection: boolean, dbConnectionGuid: string, logicalName: string, dataSource: string
-        , catalog: string, username: string, password: string): { success: boolean, userError?: string } {
+        , catalog: string, username: string, password: string, port: number, instanceName: string): { success: boolean, userError?: string } {
 
         if (isMetadataConnection) {
             if (this.MetadataConnection == null) this.MetadataConnection = new Connection();
 
-            this.MetadataConnection.update(logicalName, dataSource, catalog, username, password);
+            this.MetadataConnection.update(logicalName, dataSource, catalog, username, password, port, instanceName);
         }
         else {
             if (this.ExecutionConnections == null) this.ExecutionConnections = [];
@@ -245,7 +255,7 @@ export class DatabaseSource {
                 // add new
                 let connection = new Connection();
 
-                connection.update(logicalName, dataSource, catalog, username, password);
+                connection.update(logicalName, dataSource, catalog, username, password, port, instanceName);
                 connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
 
                 this.ExecutionConnections.push(connection);
@@ -258,7 +268,7 @@ export class DatabaseSource {
                     return { success: false, userError: "The specified connection does not exist and cannot be updated." }
                 }
 
-                existing.update(logicalName, dataSource, catalog, username, password);
+                existing.update(logicalName, dataSource, catalog, username, password, port, instanceName);
 
             }
         }
@@ -282,18 +292,7 @@ export class DatabaseSource {
         return new Promise<string>(async (resolve, reject) => {
             let sqlScript: string = fs.readFileSync("./resources/check-pre-requisites.sql", { encoding: "utf8" });
 
-            let sqlConfig: sql.config = {
-                user: this.MetadataConnection.userID,
-                password: this.MetadataConnection.password,
-                server: this.MetadataConnection.dataSource,
-                database: this.MetadataConnection.initialCatalog,
-                connectionTimeout: 1000 * 30, //TODO:make configurable
-                requestTimeout: 1000 * 30,//TODO:make configurable
-                stream: false, // You can enable streaming globally
-                options: {
-                    encrypt: true
-                }
-            };
+            let sqlConfig = SqlConfigBuilder.build(this.MetadataConnection);
 
             let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                 // TODO: Handle connection error
@@ -320,18 +319,7 @@ export class DatabaseSource {
             try {
                 let installSqlScript: string = fs.readFileSync("./resources/install-orm.sql", { encoding: "utf8" });;
 
-                let sqlConfig: sql.config = {
-                    user: this.MetadataConnection.userID,
-                    password: this.MetadataConnection.password,
-                    server: this.MetadataConnection.dataSource,
-                    database: this.MetadataConnection.initialCatalog,
-                    connectionTimeout: 1000 * 60, //TODO:make configurable
-                    requestTimeout: 1000 * 60,//TODO:make configurable
-                    stream: false, // You can enable streaming globally
-                    options: {
-                        encrypt: true
-                    }
-                };
+                let sqlConfig = SqlConfigBuilder.build(this.MetadataConnection);
 
                 let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     reject(err);
@@ -433,11 +421,10 @@ export class DatabaseSource {
         return { success: true };
     }
 
-    public isPluginIncluded(guid:string) : boolean
-    {
+    public isPluginIncluded(guid: string): boolean {
         if (!this.Plugins) return false;
 
-        return this.Plugins.find(g=>g.toLowerCase() == guid.toLowerCase()) != null;
+        return this.Plugins.find(g => g.toLowerCase() == guid.toLowerCase()) != null;
     }
 
     public addJsFile(name: string): { success: boolean, userError?: string } {

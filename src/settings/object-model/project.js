@@ -28,14 +28,14 @@ class Project {
     removeConnectionString(dbSource) {
         this.DatabaseSources.splice(this.DatabaseSources.indexOf(dbSource), 1);
     }
-    addMetadataConnectionString(name, dataSource, catalog, username, password, jsNamespace, defaultRoleMode) {
+    addMetadataConnectionString(name, dataSource, catalog, username, password, jsNamespace, defaultRoleMode, port, instanceName) {
         if (this.DatabaseSources == null)
             this.DatabaseSources = [];
         var cs = new database_source_1.DatabaseSource();
         cs.CacheKey = shortid.generate();
         cs.Name = name;
         cs.DefaultRuleMode = defaultRoleMode;
-        let ret = cs.addUpdateDatabaseConnection(true /*isMetadataConnection*/, null, name, dataSource, catalog, username, password);
+        let ret = cs.addUpdateDatabaseConnection(true /*isMetadataConnection*/, null, name, dataSource, catalog, username, password, port, instanceName);
         if (!ret.success)
             return ret;
         cs.JsNamespace = jsNamespace;

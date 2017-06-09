@@ -19,6 +19,7 @@ import { CachedRoutine } from "./../../settings/object-model/cache/cached-routin
 import * as request from 'request';
 import { ExceptionLogger } from "./../../util/exception-logger";
 import { ThreadUtil } from "./../../util/thread-util";
+import { SqlConfigBuilder } from "./../../util/sql-config-builder";
 
 // parse multipart/form-data
 let memStorage = multer.memoryStorage();
@@ -338,18 +339,7 @@ export class ExecController {
 
                 let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
 
-                let sqlConfig: sql.config = {
-                    user: dbConn.user,
-                    password: dbConn.password,
-                    server: dbConn.server,
-                    database: dbConn.database,
-                    connectionTimeout: 1000 * 60, // TODO: make configurable
-                    requestTimeout: commandTimeOutInSeconds * 1000,
-                    stream: false,
-                    options: {
-                        encrypt: true
-                    }
-                };
+                let sqlConfig = SqlConfigBuilder.build(dbConn);
 
                 let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     reject(err);
@@ -386,16 +376,16 @@ export class ExecController {
                                 if (val == null) {
                                     parmValue = null;
                                 }
-                                 // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
-                                    // convert the string value of 'null' to actual JavaScript null
-                                    else if (val === "null") {
-                                        parmValue = null;
-                                    }
+                                // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
+                                // convert the string value of 'null' to actual JavaScript null
+                                else if (val === "null") {
+                                    parmValue = null;
+                                }
                                 else {
 
                                     parmValue = ExecController.convertParameterValue(sqlType, val);
 
-                                   
+
 
                                     // TODO: Workaround for issue for datetime conversions - see https://github.com/patriksimek/node-mssql/issues/377
                                     if (sqlType == sql.DateTime) sqlType = sql.NVarChar;
@@ -519,19 +509,7 @@ export class ExecController {
                 }
 
                 let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
-
-                let sqlConfig: sql.config = {
-                    user: dbConn.user,
-                    password: dbConn.password,
-                    server: dbConn.server,
-                    database: dbConn.database,
-                    connectionTimeout: 1000 * 60,
-                    requestTimeout: commandTimeOutInSeconds * 1000,
-                    stream: false,
-                    options: {
-                        encrypt: true
-                    }
-                };
+                let sqlConfig = SqlConfigBuilder.build(dbConn);
 
                 let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                     SessionLog.error(err.toString());

@@ -3,6 +3,7 @@ import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
 
 import * as sql from 'mssql';
+import { SqlConfigBuilder } from "./../../util/sql-config-builder";
 
 export class UtilController {
 
@@ -16,6 +17,12 @@ export class UtilController {
                 let dataSource: string = req.query.datasource;
                 let user: string = req.query.u;
                 let pass: string = req.query.p;
+                let port: number = parseInt(req.query.port);
+                let instanceName: string = req.query.instanceName;
+
+                if (port == null || isNaN(port)) port = 1433;
+
+
                 // TODO: Figure out how to do INTEGRATED AUTH with this driver
                 /*****
                  * 
@@ -27,28 +34,24 @@ export class UtilController {
                                     connStr = string.Format("Data Source={0};Persist Security Info=False;Integrated Security=True", dataSource);
                                 }
                  */
-                let sqlConfig: sql.config = {
-                    user: user,
-                    password: pass,
-                    server: dataSource,
-                    database: null,
-                    stream: false, // You can enable streaming globally
-                    options: {
-                        encrypt: true
-                    }
-                };
+                let sqlConfig = SqlConfigBuilder.build({ user: user, password: pass, server: dataSource, database: null, port: port, instanceName: instanceName });
 
-                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => { reject(err); });
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                    resolve(ApiResponse.ExclamationModal(err));
+                });
+
+                if (con == null) return;
+
                 let request = new sql.Request(con);
 
-                let ret: any = await request.query("select Name from sys.databases order by 1").catch(e => reject(e));
+                let ret: any = await request.query("select Name from sys.databases order by 1").catch(e => resolve(ApiResponse.Exception(e)));
 
                 con.close();
 
-                resolve(ApiResponse.Payload(ret.map(r => r.Name)));
+                resolve(ApiResponse.Payload(ret.recordset.map(r => r.Name)));
             }
             catch (e) {
-                reject(e);
+                resolve(ApiResponse.Exception(e));
             }
 
         });
@@ -62,7 +65,10 @@ export class UtilController {
                 let catalog: string = req.query.catalog;
                 let username: string = req.query.username;
                 let password: string = req.query.password;
+                let port: number = parseInt(req.query.port);
+                let instanceName: string = req.query.instanceName;
 
+                if (port == null || isNaN(port)) port = 1433;
 
                 // TODO: Figure out how to do INTEGRATED AUTH with this driver
                 //         if (!string.IsNullOrWhiteSpace(username)) {
@@ -72,20 +78,10 @@ export class UtilController {
                 //             connStr = string.Format("Data Source={0};Persist Security Info=False;Initial Catalog={1};Integrated Security=True", dataSource, catalog);
                 //         }
 
-
-                let sqlConfig: sql.config = {
-                    user: username,
-                    password: password,
-                    server: dataSource,
-                    database: catalog,
-                    stream: false, // You can enable streaming globally
-                    options: {
-                        encrypt: true
-                    }
-                };
+                let sqlConfig = SqlConfigBuilder.build({ user: username, password: password, server: dataSource, database: catalog, port: port, instanceName: instanceName });
 
                 let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => { resolve(ApiResponse.Exception(err)); });
-                
+
                 con.close();
 
                 resolve(ApiResponse.Success());
