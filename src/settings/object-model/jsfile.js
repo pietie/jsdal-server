@@ -6,6 +6,7 @@ class JsFile {
     constructor(guid) {
         this.Rules = [];
         this.Guid = guid;
+        this.Version = 1;
     }
     static get DBLevel() { return JsFile._dbLevel; }
     incrementVersion() {
@@ -15,7 +16,9 @@ class JsFile {
         let jsfile = new JsFile();
         jsfile.Filename = rawJson.Filename;
         jsfile.Guid = rawJson.Guid;
-        jsfile.Version = rawJson.Version;
+        jsfile.Version = parseInt(rawJson.Version);
+        if (isNaN(jsfile.Version))
+            jsfile.Version = 1;
         for (let i = 0; i < rawJson.Rules; i++) {
             jsfile.Rules.push(rules_1.BaseRule.createFromJson(rawJson.Rules[i]));
         }

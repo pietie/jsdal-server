@@ -71,7 +71,7 @@ class SessionLog {
     static info(info) {
         let line = chalk.gray(info);
         this._log.info(line);
-        console.log(line);
+        // console.log(line)
     }
     static error(info) { this._log.error(info); }
     static warning(info) { this._log.warning(info); }

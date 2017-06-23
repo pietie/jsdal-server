@@ -341,10 +341,17 @@ export class ExecController {
 
                 let sqlConfig = SqlConfigBuilder.build(dbConn);
 
-                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                    reject(err);
-                    return;
-                });
+                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig)
+                    .connect()
+                    .catch(err => {
+                        console.log(".....rejecting with error:", err);
+                        reject(err);
+                        return;
+                    });
+
+                (<any>sql).on('error', err => {
+                    console.log("*****************!!! ", err);
+                })
 
                 if (con == null) return;
 

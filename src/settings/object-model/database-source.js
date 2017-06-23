@@ -431,7 +431,12 @@ class DatabaseSource {
             }
         }
         return {
-            user: decryptedConnection.userID, password: decryptedConnection.password, server: decryptedConnection.dataSource, database: decryptedConnection.initialCatalog
+            user: decryptedConnection.userID,
+            password: decryptedConnection.password,
+            server: decryptedConnection.dataSource,
+            database: decryptedConnection.initialCatalog,
+            port: decryptedConnection.port,
+            instanceName: decryptedConnection.instanceName
         };
     }
     get outputDir() {

@@ -111,7 +111,7 @@ export class SessionLog {
     public static info(info: string) {
         let line:string = chalk.gray(info);
         this._log.info(line);
-       console.log(line)
+      // console.log(line)
 
     }
     public static error(info: string) { this._log.error(info); }

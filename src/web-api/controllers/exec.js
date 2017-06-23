@@ -262,9 +262,15 @@ class ExecController {
                     }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
                     let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(dbConn);
-                    let con = yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                    let con = yield new sql.ConnectionPool(sqlConfig)
+                        .connect()
+                        .catch(err => {
+                        console.log(".....rejecting with error:", err);
                         reject(err);
                         return;
+                    });
+                    sql.on('error', err => {
+                        console.log("*****************!!! ", err);
                     });
                     if (con == null)
                         return;

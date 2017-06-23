@@ -14,6 +14,7 @@ export class JsFile {
     constructor(guid?: string) {
         this.Rules = [];
         this.Guid = guid;
+        this.Version = 1;
     }
     
     public incrementVersion()
@@ -26,7 +27,9 @@ export class JsFile {
 
         jsfile.Filename = rawJson.Filename;
         jsfile.Guid = rawJson.Guid;
-        jsfile.Version = rawJson.Version;
+        jsfile.Version = parseInt(rawJson.Version);
+
+        if (isNaN(jsfile.Version)) jsfile.Version = 1;
 
         for (let i = 0; i < rawJson.Rules; i++) {
             jsfile.Rules.push(BaseRule.createFromJson(rawJson.Rules[i]));

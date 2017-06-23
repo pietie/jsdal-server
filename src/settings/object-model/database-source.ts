@@ -102,11 +102,11 @@ export class DatabaseSource {
         if (this._connectionStringBuilder == null) this._connectionStringBuilder = new SqlConnectionStringBuilder(this.MetadataConnection.ConnectionStringDecrypted);
         return this._connectionStringBuilder.integratedSecurity;
     }
-    
+
     public get port(): number {
         return this.MetadataConnection.port;
     }
-    
+
     public get instanceName(): string {
         return this.MetadataConnection.instanceName;
     }
@@ -548,7 +548,7 @@ export class DatabaseSource {
         return { success: false, userErrorMsg: `The host (${host}) is not allowed to access this resource.` };
     }
 
-    public getSqlConnection(dbConnectionGuid: string): { user: string, password: string, server: string, database: string } {
+    public getSqlConnection(dbConnectionGuid: string): { user: string, password: string, server: string, database: string, port?: number, instanceName?: string } {
 
         let decryptedConnection: Connection;
 
@@ -566,10 +566,15 @@ export class DatabaseSource {
                 SessionLog.error(`The execution connection '${dbConnectionGuid}' not found in specified DB Source '${this.Name}' (${this.CacheKey}). Reverting to metadata connection.`);
                 decryptedConnection = this.MetadataConnection;
             }
-        }
+        } 
 
         return {
-            user: decryptedConnection.userID, password: decryptedConnection.password, server: decryptedConnection.dataSource, database: decryptedConnection.initialCatalog
+            user: decryptedConnection.userID,
+            password: decryptedConnection.password,
+            server: decryptedConnection.dataSource,
+            database: decryptedConnection.initialCatalog,
+            port: decryptedConnection.port,
+            instanceName: decryptedConnection.instanceName
         };
     }
 

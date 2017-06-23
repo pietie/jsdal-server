@@ -119,7 +119,7 @@ export class JsFileGenerator {
                     jsParameters = sprocParameters.map(p => `"${p.Name}"`).join(',');
 
                     let tsParameters = sprocParameters.map(p => `${JsFileGenerator.startsWithNum(p.Name) ? "$" + p.Name : p.Name}${p.HasDefault ? "?" : ""}: ${p.TypescriptDataType}`);
-                    let typeScriptParameterDef = `\t\ttype ${tsParameterTypeDefName} = {{ ${tsParameters.join(',')} }}`;
+                    let typeScriptParameterDef = `\t\ttype ${tsParameterTypeDefName} = { ${tsParameters.join(',')} }`;
 
                     typeScriptParameterAndResultTypesSB.push(typeScriptParameterDef);
 
@@ -135,7 +135,7 @@ export class JsFileGenerator {
 
                     if (outputParms.length > 0) {
                         typeScriptOutputParameterTypeName = `${JsFileGenerator.makeNameJsSafe(jsNamespace)}_${schemaName}_${jsFunctionName}OutputParms`;
-                        var typeScriptOutputParameterTypeDef = `\t\ttype ${typeScriptOutputParameterTypeName} = {{ ${outputParms.join(', ')} }}`;
+                        let typeScriptOutputParameterTypeDef = `\t\ttype ${typeScriptOutputParameterTypeName} = { ${outputParms.join(', ')} }`;
 
                         typeScriptParameterAndResultTypesSB.push(typeScriptOutputParameterTypeDef);
                     }
@@ -195,7 +195,7 @@ export class JsFileGenerator {
                             lst.push(`${colName}: ${typeScriptDataType}`);
                         });
 
-                        let typeScriptResultDef = `\t\tclass ${tsResultTypeDefName} {{ ${lst.join('; ')} }}`;
+                        let typeScriptResultDef = `\t\tclass ${tsResultTypeDefName} { ${lst.join('; ')} }`;
 
                         resultTypes.push(tsResultTypeDefName);
 

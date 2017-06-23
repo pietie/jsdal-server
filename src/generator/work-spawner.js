@@ -21,6 +21,7 @@ const fs = require("fs");
 const shortid = require("shortid");
 const xml2js = require("xml2js");
 const sql_config_builder_1 = require("./../util/sql-config-builder");
+const exception_logger_1 = require("./../util/exception-logger");
 class WorkSpawner {
     static getWorker(name) {
         return WorkSpawner._workerList.find(wl => wl.name == name);
@@ -37,12 +38,18 @@ class WorkSpawner {
             WorkSpawner._workerList = [];
             //dbSources = [dbSources[3]]; //TEMP 
             async.each(dbSources, (source) => {
-                let worker = new Worker();
-                worker.name = source.Name;
-                worker.description = `${source.dataSource}; ${source.initialCatalog} `;
-                console.log(`Spawning new worker for ${source.Name}`);
-                WorkSpawner._workerList.push(worker);
-                worker.run(source);
+                try {
+                    let worker = new Worker();
+                    worker.name = source.Name;
+                    worker.description = `${source.dataSource}; ${source.initialCatalog} `;
+                    console.log(`Spawning new worker for ${source.Name}`);
+                    WorkSpawner._workerList.push(worker);
+                    worker.run(source);
+                }
+                catch (e) {
+                    exception_logger_1.ExceptionLogger.logException(e);
+                    console.log(e.toString());
+                }
             }, error => {
                 log_1.SessionLog.error(error.toString());
             });
@@ -92,13 +99,20 @@ class Worker {
                 try {
                     // reconnect if necessary 
                     if (!con || !con.connected) {
+                        //console.log('\tConnecting to...', sqlConfig.server, sqlConfig.database);
                         con = (yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
+                            //console.log('\tError', sqlConfig.server, sqlConfig.database, err.toString());
                             this.status = "Failed to open connection to database: " + err.toString();
-                            log_1.SessionLog.error("Failed to open conneciton to database.");
+                            log_1.SessionLog.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
+                            if (err.message == null)
+                                err.message = "";
+                            let config = {};
+                            Object.assign(config, sqlConfig);
+                            delete config.password;
+                            err.message += "; debug:" + JSON.stringify(config);
                             log_1.SessionLog.exception(err);
-                            this._log.error("Failed to open conneciton to database.");
+                            this._log.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
                             this._log.exception(err);
-                            console.log("connection error", err);
                         }));
                     }
                     if (!con) {
@@ -186,7 +200,7 @@ class Worker {
                                     dbSource.saveCache();
                                 }
                                 if (this.maxRowDate == null || row.rowver > this.maxRowDate) {
-                                    this.maxRowDate = row.rowver;
+                                    this.maxRowDate = parseInt(row.rowver);
                                 }
                                 stillProcessingCnt--;
                             })); // "on row"
@@ -220,6 +234,19 @@ class Worker {
                             this.generateOutputFiles(dbSource);
                         }
                     } // if (routineCount > 0) 
+                    else {
+                        // handle the case where the output files no longer exist but we have also not seen any changes on the DB again
+                        dbSource.JsFiles.forEach(jsFile => {
+                            let path = dbSource.outputFilePath(jsFile);
+                            if (!fs.existsSync(path)) {
+                                js_generator_1.JsFileGenerator.generateJsFile(dbSource, jsFile);
+                                //!this.IsRulesDirty = false;
+                                //!this.IsOutputFilesDirty = false;
+                                dbSource.LastUpdateDate = new Date();
+                            }
+                        });
+                    }
+                    // TODO: generate files if not exists yet
                     /* TODO: !!
                                     if (this.IsRulesDirty || this.IsOutputFilesDirty) {
                                         if (this.IsRulesDirty) Console.WriteLine("{0}\tRules changed", this.DatabaseSource.CacheKey);
@@ -233,6 +260,9 @@ class Worker {
                     log_1.SessionLog.error("reached catch handler ref: ab123");
                     log_1.SessionLog.exception(e);
                     console.log("or catch here?", e.toString());
+                }
+                finally {
+                    //if (con && con.connected) con.close();
                 }
                 yield thread_util_1.ThreadUtil.Sleep(settings_instance_1.SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);
             }
