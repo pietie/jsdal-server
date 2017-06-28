@@ -15,6 +15,7 @@ import * as sql from 'mssql';
 import { Request } from "@types/express";
 import { SessionLog } from "./../../util/log";
 import { SqlConfigBuilder } from "./../../util/sql-config-builder";
+import { WorkSpawner } from "./../../generator/work-spawner";
 
 export enum DefaultRuleMode {
     IncludeAll = 0,
@@ -309,7 +310,7 @@ export class DatabaseSource {
 
             con.close();
 
-            resolve(request.parameters["err"].value);
+            resolve((<any>res).output.err);
 
         });
     }
@@ -397,8 +398,7 @@ export class DatabaseSource {
             // delete cache file
             fs.unlinkSync(cacheFilePath);
 
-            // TODO: Not sure about this
-            //! GeneratorThreadDispatcher.ResetMaxRowDate(this);
+            WorkSpawner.resetMaxRowDate(this);
             this.LastUpdateDate = new Date();
         }
         catch (ex) {

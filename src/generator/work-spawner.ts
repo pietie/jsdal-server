@@ -24,6 +24,13 @@ export class WorkSpawner {
     public static TEMPLATE_Routine: string;
     public static TEMPLATE_TypescriptDefinitions: string;
 
+    public static resetMaxRowDate(dbSource:DatabaseSource)
+    {
+        let worker = WorkSpawner._workerList.find(wl => wl.dbSourceKey == dbSource.CacheKey);
+
+        if (worker) worker.resetMaxRowDate();
+    }
+
     public static getWorker(name: string): Worker {
         return WorkSpawner._workerList.find(wl => wl.name == name);
     }
@@ -49,6 +56,7 @@ export class WorkSpawner {
                 try {
                     let worker = new Worker();
 
+                    worker.dbSourceKey = source.CacheKey;
                     worker.name = source.Name;
                     worker.description = `${source.dataSource}; ${source.initialCatalog} `;
 
@@ -85,6 +93,7 @@ class Worker {
 
     public get id(): string { return this._id; }
     public get running(): boolean { return this.isRunning; }
+    public dbSourceKey:string;
     public name: string;
     public description: string;
 
@@ -96,6 +105,12 @@ class Worker {
     constructor() {
         this._id = shortid.generate();
         this._log = new MemoryLog();
+    }
+
+    public resetMaxRowDate()
+    {
+        this.maxRowDate = 0;
+        this._log.info("MaxRowDate reset to 0.");
     }
 
     public stop() {
@@ -356,6 +371,11 @@ class Worker {
                                 */
             }
             catch (e) {
+                if (e.number == 2812/*Could not find SPROC*/)
+                {
+                    dbSource.IsOrmInstalled = false; // something is missing, need to reinstall
+                }
+
                 SessionLog.error("reached catch handler ref: ab123");
                 SessionLog.exception(e);
                 console.log("or catch here?", e.toString());

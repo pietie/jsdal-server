@@ -23,6 +23,11 @@ const xml2js = require("xml2js");
 const sql_config_builder_1 = require("./../util/sql-config-builder");
 const exception_logger_1 = require("./../util/exception-logger");
 class WorkSpawner {
+    static resetMaxRowDate(dbSource) {
+        let worker = WorkSpawner._workerList.find(wl => wl.dbSourceKey == dbSource.CacheKey);
+        if (worker)
+            worker.resetMaxRowDate();
+    }
     static getWorker(name) {
         return WorkSpawner._workerList.find(wl => wl.name == name);
     }
@@ -40,6 +45,7 @@ class WorkSpawner {
             async.each(dbSources, (source) => {
                 try {
                     let worker = new Worker();
+                    worker.dbSourceKey = source.CacheKey;
                     worker.name = source.Name;
                     worker.description = `${source.dataSource}; ${source.initialCatalog} `;
                     console.log(`Spawning new worker for ${source.Name}`);
@@ -73,6 +79,10 @@ class Worker {
     get status() { return this._status; }
     set status(val) { this._status = val; }
     get log() { return this._log; }
+    resetMaxRowDate() {
+        this.maxRowDate = 0;
+        this._log.info("MaxRowDate reset to 0.");
+    }
     stop() {
         this.isRunning = false;
     }
@@ -257,6 +267,9 @@ class Worker {
                                     */
                 }
                 catch (e) {
+                    if (e.number == 2812 /*Could not find SPROC*/) {
+                        dbSource.IsOrmInstalled = false; // something is missing, need to reinstall
+                    }
                     log_1.SessionLog.error("reached catch handler ref: ab123");
                     log_1.SessionLog.exception(e);
                     console.log("or catch here?", e.toString());

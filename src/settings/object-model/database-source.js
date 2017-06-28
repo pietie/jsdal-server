@@ -20,6 +20,7 @@ const SqlConnectionStringBuilder = require("node-connection-string-builder");
 const sql = require("mssql");
 const log_1 = require("./../../util/log");
 const sql_config_builder_1 = require("./../../util/sql-config-builder");
+const work_spawner_1 = require("./../../generator/work-spawner");
 var DefaultRuleMode;
 (function (DefaultRuleMode) {
     DefaultRuleMode[DefaultRuleMode["IncludeAll"] = 0] = "IncludeAll";
@@ -230,7 +231,7 @@ class DatabaseSource {
                 request.output('err', sql.VarChar, null);
                 let res = yield request.query(sqlScript).catch(e => reject(e));
                 con.close();
-                resolve(request.parameters["err"].value);
+                resolve(res.output.err);
             }));
         });
     }
@@ -297,8 +298,7 @@ class DatabaseSource {
             this.CachedRoutineList = [];
             // delete cache file
             fs.unlinkSync(cacheFilePath);
-            // TODO: Not sure about this
-            //! GeneratorThreadDispatcher.ResetMaxRowDate(this);
+            work_spawner_1.WorkSpawner.resetMaxRowDate(this);
             this.LastUpdateDate = new Date();
         }
         catch (ex) {
