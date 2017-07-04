@@ -32,6 +32,38 @@ class WorkersController {
             return api_response_1.ApiResponse.Payload(null);
         }
     }
+    static startWorker(req, res) {
+        try {
+            let id = req.params.id;
+            let worker = work_spawner_1.WorkSpawner.getWorkerById(id);
+            if (worker) {
+                worker.start();
+                return api_response_1.ApiResponse.Success();
+            }
+            else {
+                return api_response_1.ApiResponse.ExclamationModal(`Failed to find specified worker: ${id}`);
+            }
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
+    }
+    static stopWorker(req, res) {
+        try {
+            let id = req.params.id;
+            let worker = work_spawner_1.WorkSpawner.getWorkerById(id);
+            if (worker) {
+                worker.stop();
+                return api_response_1.ApiResponse.Success();
+            }
+            else {
+                return api_response_1.ApiResponse.ExclamationModal(`Failed to find specified worker: ${id}`);
+            }
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
+    }
 }
 __decorate([
     decorators_1.route("/api/workers"),
@@ -45,5 +77,17 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], WorkersController, "getWorkerLog", null);
+__decorate([
+    decorators_1.route('/api/workers/:id/start', { post: true }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], WorkersController, "startWorker", null);
+__decorate([
+    decorators_1.route('/api/workers/:id/stop', { post: true }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], WorkersController, "stopWorker", null);
 exports.WorkersController = WorkersController;
 //# sourceMappingURL=workers.js.map

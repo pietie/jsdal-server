@@ -20,6 +20,7 @@ const sql = require("mssql");
 const fs = require("fs");
 const shortid = require("shortid");
 const xml2js = require("xml2js");
+const moment = require("moment");
 const sql_config_builder_1 = require("./../util/sql-config-builder");
 const exception_logger_1 = require("./../util/exception-logger");
 class WorkSpawner {
@@ -30,6 +31,9 @@ class WorkSpawner {
     }
     static getWorker(name) {
         return WorkSpawner._workerList.find(wl => wl.name == name);
+    }
+    static getWorkerById(id) {
+        return WorkSpawner._workerList.find(wl => wl.id == id);
     }
     static get workerList() {
         return WorkSpawner._workerList;
@@ -72,7 +76,7 @@ class Worker {
         this.isRunning = false;
         this.maxRowDate = 0;
         this._id = shortid.generate();
-        this._log = new log_1.MemoryLog();
+        this._log = new log_1.MemoryLog(300);
     }
     get id() { return this._id; }
     get running() { return this.isRunning; }
@@ -83,11 +87,21 @@ class Worker {
         this.maxRowDate = 0;
         this._log.info("MaxRowDate reset to 0.");
     }
+    start() {
+        if (this.isRunning)
+            return;
+        this.status = "Starting up...";
+        this._log.info("Worker started by user.");
+        this.run(this._dbSource);
+    }
     stop() {
         this.isRunning = false;
+        this.status = "Stopped.";
+        this._log.info("Worker stopped by user.");
     }
     run(dbSource) {
         return __awaiter(this, void 0, void 0, function* () {
+            this._dbSource = dbSource;
             this.isRunning = true;
             let lastSavedDate = new Date();
             let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(dbSource);
@@ -99,10 +113,11 @@ class Worker {
             }
             let connectionErrorCnt = 0;
             let con;
+            let last0Cnt = null;
             while (this.isRunning) {
                 if (!dbSource.IsOrmInstalled) {
                     // try again in 10 seconds
-                    this.status = `Waiting for ORM to be installed.`;
+                    this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Waiting for ORM to be installed.`;
                     setTimeout(() => this.run(dbSource), 10000);
                     return;
                 }
@@ -111,8 +126,7 @@ class Worker {
                     if (!con || !con.connected) {
                         //console.log('\tConnecting to...', sqlConfig.server, sqlConfig.database);
                         con = (yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                            //console.log('\tError', sqlConfig.server, sqlConfig.database, err.toString());
-                            this.status = "Failed to open connection to database: " + err.toString();
+                            this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Failed to open connection to database: ` + err.toString();
                             log_1.SessionLog.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
                             if (err.message == null)
                                 err.message = "";
@@ -128,7 +142,8 @@ class Worker {
                     if (!con) {
                         connectionErrorCnt++;
                         let waitMS = Math.min(3000 + (connectionErrorCnt * 3000), 300000 /*Max 5mins between tries*/);
-                        this.status = `Attempt: #${connectionErrorCnt + 1} (waiting for ${waitMS}ms). ` + this.status;
+                        this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Attempt: #${connectionErrorCnt + 1} (waiting for ${waitMS}ms). ` + this.status;
+                        this._log.info(this.status);
                         yield thread_util_1.ThreadUtil.Sleep(waitMS);
                         continue;
                     }
@@ -136,17 +151,19 @@ class Worker {
                     let routineCount = yield orm_dal_1.OrmDAL.SprocGenGetRoutineListCnt(con, this.maxRowDate);
                     let curRow = 0;
                     if (routineCount > 0) {
+                        last0Cnt = null;
                         log_1.SessionLog.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`);
-                        this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
+                        this._log.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`);
+                        this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - ${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
                         yield new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                             let genGetRoutineListStream = orm_dal_1.OrmDAL.SprocGenGetRoutineListStream(con, this.maxRowDate);
                             let stillProcessingCnt = 0;
                             let isDone = false;
                             // for every row
                             genGetRoutineListStream.on('row', (row) => __awaiter(this, void 0, void 0, function* () {
-                                //if (routineCount < 2) {
-                                //   SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}].[${row.RoutineName}] changed.`)
-                                //}
+                                if (routineCount == 1) {
+                                    this._log.info(`(single change) ${dbSource.Name}\t[${row.SchemaName}].[${row.RoutineName}]`);
+                                }
                                 stillProcessingCnt++;
                                 let newCachedRoutine = new cached_routine_1.CachedRoutine();
                                 newCachedRoutine.Routine = row.RoutineName;
@@ -174,7 +191,7 @@ class Worker {
                                 });
                                 curRow++;
                                 let perc = (curRow / routineCount) * 100.0;
-                                this.status = `${dbSource.Name} - Overall progress: (${perc.toFixed(2)}%. Currently processing [${row.SchemaName}].[${row.RoutineName}]`; //, schema, name, perc);
+                                this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - ${dbSource.Name} - Overall progress: (${perc.toFixed(2)}%. Currently processing [${row.SchemaName}].[${row.RoutineName}]`; //, schema, name, perc);
                                 if (!newCachedRoutine.IsDeleted) {
                                     /*
                                         Resultset METADATA
@@ -245,6 +262,12 @@ class Worker {
                         }
                     } // if (routineCount > 0) 
                     else {
+                        if (last0Cnt == null)
+                            last0Cnt = moment();
+                        // only update status if we've been receiving 0 changes for a while
+                        if (moment().diff(last0Cnt, 'seconds') > 30) {
+                            this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - no changes found`;
+                        }
                         // handle the case where the output files no longer exist but we have also not seen any changes on the DB again
                         dbSource.JsFiles.forEach(jsFile => {
                             let path = dbSource.outputFilePath(jsFile);

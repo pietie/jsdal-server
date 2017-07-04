@@ -14,6 +14,8 @@ import * as fs from 'fs';
 import * as shortid from 'shortid';
 
 import * as xml2js from 'xml2js'
+import * as moment from 'moment';
+
 import { SqlConfigBuilder } from "./../util/sql-config-builder";
 import { ExceptionLogger } from "./../util/exception-logger";
 
@@ -24,8 +26,7 @@ export class WorkSpawner {
     public static TEMPLATE_Routine: string;
     public static TEMPLATE_TypescriptDefinitions: string;
 
-    public static resetMaxRowDate(dbSource:DatabaseSource)
-    {
+    public static resetMaxRowDate(dbSource: DatabaseSource) {
         let worker = WorkSpawner._workerList.find(wl => wl.dbSourceKey == dbSource.CacheKey);
 
         if (worker) worker.resetMaxRowDate();
@@ -33,6 +34,9 @@ export class WorkSpawner {
 
     public static getWorker(name: string): Worker {
         return WorkSpawner._workerList.find(wl => wl.name == name);
+    }
+    public static getWorkerById(id: string): Worker {
+        return WorkSpawner._workerList.find(wl => wl.id == id);
     }
 
     public static get workerList(): Worker[] {
@@ -88,12 +92,13 @@ class Worker {
     private _status: string;
 
     private _id: string;
+    private _dbSource: DatabaseSource;
 
     private _log: MemoryLog;
 
     public get id(): string { return this._id; }
     public get running(): boolean { return this.isRunning; }
-    public dbSourceKey:string;
+    public dbSourceKey: string;
     public name: string;
     public description: string;
 
@@ -104,20 +109,31 @@ class Worker {
 
     constructor() {
         this._id = shortid.generate();
-        this._log = new MemoryLog();
+        this._log = new MemoryLog(300);
     }
 
-    public resetMaxRowDate()
-    {
+    public resetMaxRowDate() {
         this.maxRowDate = 0;
         this._log.info("MaxRowDate reset to 0.");
     }
 
+    public start() {
+        if (this.isRunning) return;
+
+        this.status = "Starting up...";
+        this._log.info("Worker started by user.");
+        
+        this.run(this._dbSource);
+    }
+
     public stop() {
         this.isRunning = false;
+        this.status = "Stopped.";
+        this._log.info("Worker stopped by user.");
     }
 
     public async run(dbSource: DatabaseSource) {
+        this._dbSource = dbSource;
         this.isRunning = true;
 
         let lastSavedDate: Date = new Date();
@@ -135,12 +151,13 @@ class Worker {
         let connectionErrorCnt: number = 0;
         let con: sql.ConnectionPool;
 
+        let last0Cnt: moment.Moment = null;
 
         while (this.isRunning) {
 
             if (!dbSource.IsOrmInstalled) {
                 // try again in 10 seconds
-                this.status = `Waiting for ORM to be installed.`;
+                this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Waiting for ORM to be installed.`;
                 setTimeout(() => this.run(dbSource), 10000);
                 return;
             }
@@ -152,9 +169,10 @@ class Worker {
                 if (!con || !con.connected) {
                     //console.log('\tConnecting to...', sqlConfig.server, sqlConfig.database);
                     con = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
-                        //console.log('\tError', sqlConfig.server, sqlConfig.database, err.toString());
-                        this.status = "Failed to open connection to database: " + err.toString();
+
+                        this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Failed to open connection to database: ` + err.toString();
                         SessionLog.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
+
 
                         if (err.message == null) err.message = "";
 
@@ -177,7 +195,9 @@ class Worker {
 
                     let waitMS = Math.min(3000 + (connectionErrorCnt * 3000), 300000/*Max 5mins between tries*/);
 
-                    this.status = `Attempt: #${connectionErrorCnt + 1} (waiting for ${waitMS}ms). ` + this.status;
+                    this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Attempt: #${connectionErrorCnt + 1} (waiting for ${waitMS}ms). ` + this.status;
+
+                    this._log.info(this.status);
 
                     await ThreadUtil.Sleep(waitMS);
                     continue;
@@ -189,9 +209,12 @@ class Worker {
                 let curRow: number = 0;
 
                 if (routineCount > 0) {
-                    SessionLog.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`)
-                    this.status = `${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
 
+                    last0Cnt = null;
+
+                    SessionLog.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`);
+                    this._log.info(`${dbSource.Name}\t${routineCount} change(s) found using row date ${this.maxRowDate}`);
+                    this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - ${routineCount} change(s) found using rowdate ${this.maxRowDate}`;
 
                     await new Promise<any>(async (resolve, reject) => {
 
@@ -203,9 +226,9 @@ class Worker {
                         // for every row
                         genGetRoutineListStream.on('row', async (row) => {
 
-                            //if (routineCount < 2) {
-                            //   SessionLog.info(`\t${dbSource.Name}\t[${row.SchemaName}].[${row.RoutineName}] changed.`)
-                            //}
+                            if (routineCount == 1) {
+                                this._log.info(`(single change) ${dbSource.Name}\t[${row.SchemaName}].[${row.RoutineName}]`);
+                            }
 
                             stillProcessingCnt++;
 
@@ -242,7 +265,7 @@ class Worker {
                             curRow++;
                             let perc = (curRow / routineCount) * 100.0;
 
-                            this.status = `${dbSource.Name} - Overall progress: (${perc.toFixed(2)}%. Currently processing [${row.SchemaName}].[${row.RoutineName}]`;//, schema, name, perc);
+                            this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - ${dbSource.Name} - Overall progress: (${perc.toFixed(2)}%. Currently processing [${row.SchemaName}].[${row.RoutineName}]`;//, schema, name, perc);
 
 
                             if (!newCachedRoutine.IsDeleted) {
@@ -344,6 +367,13 @@ class Worker {
 
                 } // if (routineCount > 0) 
                 else {
+                    if (last0Cnt == null) last0Cnt = moment();
+
+                    // only update status if we've been receiving 0 changes for a while
+                    if (moment().diff(last0Cnt, 'seconds') > 30) {
+                        this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - no changes found`;
+                    }
+
                     // handle the case where the output files no longer exist but we have also not seen any changes on the DB again
                     dbSource.JsFiles.forEach(jsFile => {
                         let path = dbSource.outputFilePath(jsFile);
@@ -371,8 +401,7 @@ class Worker {
                                 */
             }
             catch (e) {
-                if (e.number == 2812/*Could not find SPROC*/)
-                {
+                if (e.number == 2812/*Could not find SPROC*/) {
                     dbSource.IsOrmInstalled = false; // something is missing, need to reinstall
                 }
 

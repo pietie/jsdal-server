@@ -158,7 +158,7 @@ class CmdExecutor {
 }
 let args = process.argv;
 let availableStartupCmds = ["run", "install", "uninstall", "uninstall (choose)"];
-let debug = process.execArgv && process.execArgv.length > 0 && process.execArgv[0].startsWith("--debug");
+let debug = process.execArgv && process.execArgv.length > 0 && process.execArgv.find(e => e.startsWith("--debug")) != null;
 if (debug) {
     console.log("!!!\tDebugger detected.");
     args.push("run");

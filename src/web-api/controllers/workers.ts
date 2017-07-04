@@ -32,5 +32,46 @@ export class WorkersController {
             return ApiResponse.Payload(null);
         }
     }
+
+    @route('/api/workers/:id/start', { post: true })
+    public static startWorker(req: Request, res: Response): ApiResponse {
+        try {
+            let id = req.params.id;
+            let worker = WorkSpawner.getWorkerById(id);
+
+            if (worker) {
+                worker.start();
+                return ApiResponse.Success();
+            }
+            else
+            {
+                return ApiResponse.ExclamationModal(`Failed to find specified worker: ${id}`);
+            }
+        }
+        catch (e) {
+            return ApiResponse.Exception(e);
+        }
+    }
+
+    @route('/api/workers/:id/stop', { post: true })
+    public static stopWorker(req: Request, res: Response): ApiResponse {
+        try {
+            let id = req.params.id;
+            let worker = WorkSpawner.getWorkerById(id);
+
+            if (worker) {
+                worker.stop();
+                return ApiResponse.Success();
+            }
+            else
+            {
+                return ApiResponse.ExclamationModal(`Failed to find specified worker: ${id}`);
+            }
+        }
+        catch (e) {
+            return ApiResponse.Exception(e);
+        }
+
+    }
 }
 
