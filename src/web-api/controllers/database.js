@@ -20,6 +20,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const api_response_1 = require("./../api-response");
 const settings_instance_1 = require("./../../settings/settings-instance");
 const decorators_1 = require("./../decorators");
+const work_spawner_1 = require("./../../generator/work-spawner");
 class DatabaseController {
     // get list of DB Sources for a specific Project
     static Get(req) {
@@ -310,6 +311,7 @@ class DatabaseController {
                     let installed = yield cs.InstallOrm();
                     if (installed) {
                         cs.IsOrmInstalled = true;
+                        work_spawner_1.WorkSpawner.resetMaxRowDate(cs);
                         settings_instance_1.SettingsInstance.saveSettingsToFile();
                         resolve(api_response_1.ApiResponse.Success());
                     }

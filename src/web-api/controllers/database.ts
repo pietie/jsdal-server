@@ -2,6 +2,7 @@ import { ApiResponse } from './../api-response'
 import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
 import { ExceptionLogger } from "./../../util/exception-logger";
+import { WorkSpawner } from "./../../generator/work-spawner";
 
 export class DatabaseController {
 
@@ -373,6 +374,9 @@ export class DatabaseController {
 
                 if (installed) {
                     cs.IsOrmInstalled = true;
+
+                    WorkSpawner.resetMaxRowDate(cs);
+                    
                     SettingsInstance.saveSettingsToFile();
 
                     resolve(ApiResponse.Success());
