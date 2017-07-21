@@ -61,7 +61,8 @@ if (webServerSettings.EnableSSL) {
     //cert: fs.readFileSync('cert.pem')
     let httpsServer = https.createServer({
         pfx: fs.readFileSync('cert.pfx'),
-        passphrase: fs.readFileSync('certpass.pass', { encoding: 'utf8' })
+        passphrase: fs.readFileSync('certpass.pass', { encoding: 'utf8' }),
+        ca: fs.readFileSync('ca.crt', { encoding: 'utf8' })
     }, app).listen({
         host: webServerSettings.HttpsServerHostname,
         port: webServerSettings.HttpsServerPort
