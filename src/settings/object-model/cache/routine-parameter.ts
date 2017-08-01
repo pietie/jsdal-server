@@ -5,8 +5,10 @@ export class RoutineParameter {
     public DataType: string;
     public Length: number;
 
-    public DefaultValue: string;
-    public DefaultValueType: string;
+    //public DefaultValue: string;
+    //public DefaultValueType: string;
+
+    public HasDefaultValue: boolean;
 
     //[JsonIgnore]
     //public bool HasDefault { get { return !string.IsNullOrEmpty(this.DefaultValue); } }    
@@ -20,6 +22,7 @@ export class RoutineParameter {
         parm.ParameterName = Array.isArray(rawJson.ParameterName) ? rawJson.ParameterName[0] : rawJson.ParameterName;
         parm.DataType = Array.isArray(rawJson.DataType) ? rawJson.DataType[0] : rawJson.DataType;
         parm.Length = Array.isArray(rawJson.Length) ? rawJson.Length[0] : rawJson.Length;
+        parm.HasDefaultValue = (Array.isArray(rawJson.HasDefault) ? rawJson.HasDefault[0] : rawJson.HasDefault) == "1";
 
 
         //parm.DefaultValue = rawJson.DefaultValue;
@@ -27,7 +30,7 @@ export class RoutineParameter {
         return parm;
     }
 
-    public static getDataTypeForTypeScript(dataType:string): string {
+    public static getDataTypeForTypeScript(dataType: string): string {
         var elems = dataType.toLowerCase().split('.'); // types like geography could come through as sys.CATALOG.geography
         var dt = elems[elems.length - 1];
         switch (dt) {
@@ -47,7 +50,7 @@ export class RoutineParameter {
                 return "number";
             case "bigint":
                 return "number";
-                case "real":
+            case "real":
                 return "number";
             case "bit":
                 return "boolean";
@@ -87,14 +90,14 @@ export class RoutineParameter {
                 return "string";
             case "binary":
                 return "Blob";  // TODO: Not sure about this one...worst case, make it a string                
-                case "numeric":
+            case "numeric":
                 return "number";
             default:
                 throw new Error("getDataTypeForTypeScript::Unsupported data type: " + dataType);
         }
     }
 
-    public static getDataTypeForJavaScriptComment(dataType:string): string {
+    public static getDataTypeForJavaScriptComment(dataType: string): string {
         var elems = dataType.toLowerCase().split('.'); // types like geography could come through as sys.CATALOG.geography
         var dt = elems[elems.length - 1];
         switch (dt) {

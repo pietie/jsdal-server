@@ -23,6 +23,7 @@ const xml2js = require("xml2js");
 const moment = require("moment");
 const sql_config_builder_1 = require("./../util/sql-config-builder");
 const exception_logger_1 = require("./../util/exception-logger");
+const routine_parser_1 = require("./routine-parser");
 class WorkSpawner {
     static resetMaxRowDate(dbSource) {
         let worker = WorkSpawner._workerList.find(wl => wl.dbSourceKey == dbSource.CacheKey);
@@ -217,6 +218,37 @@ class Worker {
                                             // TODO: Loggity log
                                             newCachedRoutine.ResultSetRowver = row.rowver;
                                             newCachedRoutine.ResultSetError = e.toString();
+                                        }
+                                    }
+                                    {
+                                        // PARSE routine body
+                                        /*if (routineParsingRowver.HasValue && routineParsingRowver >= row.rowver) {
+                                            //!logLine.Append("Routine body parsing up to date");
+                                        }
+                                        else*/
+                                        {
+                                            //!logLine.Append("Parsing routine body");
+                                            //!
+                                            let routineDefinition = null;
+                                            // TODO: Wrap in try...catch?
+                                            routineDefinition = yield orm_dal_1.OrmDAL.FetchRoutineDefinition(con, /*dbSource.MetadataConnection.ConnectionStringDecrypted*/ dbSource.MetadataConnection.initialCatalog, row.SchemaName, row.RoutineName);
+                                            if (routineDefinition != null) {
+                                                let parsed = yield routine_parser_1.RoutineParser.parse(routineDefinition);
+                                                if (parsed && parsed.Parameters != null && newCachedRoutine.Parameters != null) {
+                                                    parsed.Parameters.forEach(parsedParm => {
+                                                        // find corresponding Routine Parameter
+                                                        let p = newCachedRoutine.Parameters.find(rp => rp.ParameterName.toLowerCase() == parsedParm.VariableName.toLowerCase());
+                                                        if (p != null) {
+                                                            //p.DefaultValue = parsedParm.DefaultValue;
+                                                            //p.DefaultValueType = parsedParm.DefaultValueType;
+                                                            p.HasDefaultValue = parsedParm.HasDefault;
+                                                        }
+                                                    });
+                                                }
+                                                //!newCachedRoutine.jsDALMetadata = parsed.jsDALMetadata;
+                                                //!newCachedRoutine.RoutineParsingRowver = rowDate;
+                                            }
+                                            //!logLine.Append(""); // output last duration
                                         }
                                     }
                                 } // !IsDeleted

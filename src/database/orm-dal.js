@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const sql = require("mssql");
 class OrmDAL {
@@ -66,6 +74,39 @@ class OrmDAL {
                 resolve(resultSets);
             });
             request.query(query);
+        });
+    }
+    static FetchRoutineDefinition(con, catalog, schema, routine) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let request = new sql.Request(con);
+            //request.stream = true;
+            let result = yield request
+                .input('catalog', sql.VarChar, catalog)
+                .input('schema', sql.VarChar, schema)
+                .input('routine', sql.VarChar, routine)
+                .output('def', sql.VarChar)
+                .query(`select @def = object_definition(object_id(QUOTENAME(@catalog) + '.' + QUOTENAME(@schema) + '.' + QUOTENAME(@routine)))`);
+            return result.output.def;
+            /*
+                            var dbCmd = con.CreateCommand();
+                            
+                            dbCmd.CommandType = CommandType.Text;
+                            dbCmd.CommandText = "select @def = object_definition(object_id(QUOTENAME(@catalog) + '.' + QUOTENAME(@schema) + '.' + QUOTENAME(@name)))";
+            
+                            dbCmd.Parameters.Add("@catalog", SqlDbType.VarChar, 4000).Value = catalog;
+                            dbCmd.Parameters.Add("@schema", SqlDbType.VarChar, 4000).Value = schema;
+                            dbCmd.Parameters.Add("@name", SqlDbType.VarChar, 4000).Value = routine;
+            
+                            var defParm = dbCmd.Parameters.Add("@def", SqlDbType.VarChar, int.MaxValue);
+            
+                            defParm.Value = DBNull.Value;
+                            defParm.Direction = ParameterDirection.InputOutput;
+            
+                            dbCmd.ExecuteNonQuery();
+            
+                            if (defParm.Value == DBNull.Value) return null;
+                            return (string)defParm.Value;
+            */
         });
     }
     static mapDbTypeToSqlDriverType(dbType) {

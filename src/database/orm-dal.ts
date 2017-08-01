@@ -58,10 +58,9 @@ export class OrmDAL {
                 // NumericalScale = row.Field<short>("NumericScale"),
                 //console.log("!!!\t", columns);
                 //return;
-                let cols:ResultsetMetadata[] = [];
-                
-                for (let e in columns)
-                {
+                let cols: ResultsetMetadata[] = [];
+
+                for (let e in columns) {
                     let col = columns[e];
                     cols.push({
                         ColumnName: col.name,
@@ -72,7 +71,7 @@ export class OrmDAL {
 
                     });
                 }
-                
+
                 resultSets.push(cols);
 
             });
@@ -91,6 +90,43 @@ export class OrmDAL {
             request.query(query);
 
         });
+
+    }
+
+    public static async FetchRoutineDefinition(con: sql.ConnectionPool, catalog: string, schema: string, routine: string): Promise<string> {
+        let request = new sql.Request(con);
+
+        //request.stream = true;
+
+        let result = await request
+            .input('catalog', sql.VarChar, catalog)
+            .input('schema', sql.VarChar, schema)
+            .input('routine', sql.VarChar, routine)
+            .output('def', sql.VarChar)
+            .query(`select @def = object_definition(object_id(QUOTENAME(@catalog) + '.' + QUOTENAME(@schema) + '.' + QUOTENAME(@routine)))`);
+
+
+        return result.output.def;
+        /*
+                        var dbCmd = con.CreateCommand();
+                        
+                        dbCmd.CommandType = CommandType.Text;
+                        dbCmd.CommandText = "select @def = object_definition(object_id(QUOTENAME(@catalog) + '.' + QUOTENAME(@schema) + '.' + QUOTENAME(@name)))";
+        
+                        dbCmd.Parameters.Add("@catalog", SqlDbType.VarChar, 4000).Value = catalog;
+                        dbCmd.Parameters.Add("@schema", SqlDbType.VarChar, 4000).Value = schema;
+                        dbCmd.Parameters.Add("@name", SqlDbType.VarChar, 4000).Value = routine;
+        
+                        var defParm = dbCmd.Parameters.Add("@def", SqlDbType.VarChar, int.MaxValue);
+        
+                        defParm.Value = DBNull.Value;
+                        defParm.Direction = ParameterDirection.InputOutput;
+        
+                        dbCmd.ExecuteNonQuery();
+        
+                        if (defParm.Value == DBNull.Value) return null;
+                        return (string)defParm.Value;
+        */
 
     }
 

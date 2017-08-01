@@ -86,7 +86,7 @@ class JsFileGenerator {
                             IsResult: p.IsResult,
                             DataType: p.DataType,
                             ParameterMode: p.ParameterMode,
-                            HasDefault: p.DefaultValue && p.DataType.trim() != "",
+                            HasDefault: p.HasDefaultValue,
                             JavascriptDataType: routine_parameter_1.RoutineParameter.getDataTypeForJavaScriptComment(p.DataType),
                             TypescriptDataType: routine_parameter_1.RoutineParameter.getDataTypeForTypeScript(p.DataType)
                         };
@@ -154,7 +154,7 @@ class JsFileGenerator {
                         typeScriptParameterAndResultTypesSB.push(typeScriptResultDef);
                     });
                 } // if (r.ResultSetMetadata != null)
-                var tsArguments = "";
+                let tsArguments = "";
                 if (tsParameterTypeDefName && tsParameterTypeDefName.trim() != "") {
                     tsArguments = `_.${tsParameterTypeDefName}`;
                 }

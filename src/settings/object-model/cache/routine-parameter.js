@@ -10,6 +10,7 @@ class RoutineParameter {
         parm.ParameterName = Array.isArray(rawJson.ParameterName) ? rawJson.ParameterName[0] : rawJson.ParameterName;
         parm.DataType = Array.isArray(rawJson.DataType) ? rawJson.DataType[0] : rawJson.DataType;
         parm.Length = Array.isArray(rawJson.Length) ? rawJson.Length[0] : rawJson.Length;
+        parm.HasDefaultValue = (Array.isArray(rawJson.HasDefault) ? rawJson.HasDefault[0] : rawJson.HasDefault) == "1";
         //parm.DefaultValue = rawJson.DefaultValue;
         //parm.DefaultValueType = rawJson.DefaultValueType;
         return parm;

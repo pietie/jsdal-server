@@ -16,7 +16,7 @@ BEGIN
 		[LastUpdateByHostName] [varchar](100) NULL,
 		[ParametersXml] [varchar](max) NULL,
 		[ParameterCount] [int] NULL,
-		[JsonMetadata] [varchar](max) NULL,
+		[JsonMetadata] [varchar](max) NULL
 	 CONSTRAINT [PK_SprocDalMonitor] PRIMARY KEY CLUSTERED 
 	(
 		[Id] ASC
@@ -30,7 +30,281 @@ BEGIN
 	CREATE NONCLUSTERED INDEX [IX_SprocDalMonitor_CatSchName] ON [orm].[SprocDalMonitor] ([CatalogName] ASC, [SchemaName] ASC, [RoutineName] ASC) 
 END
 
+if (not exists (select top 1 1 from sys.procedures where name ='ParamsGetDetail' and SCHEMA_NAME(schema_Id) = 'orm'))
+BEGIN
+	EXEC('CREATE FUNCTION orm.ParamsGetDetail
+(
+	@catalog varchar(500)
+	,@schema varchar(500)
+	,@routine varchar(500)
+)
+RETURNS @ret TABLE (ParmName varchar(max), HasDefault bit)
+AS
+BEGIN
 
+	DECLARE @routineSource varchar(max)
+
+	select @routineSource = object_definition(object_id(QUOTENAME(@catalog) + ''.'' + QUOTENAME(@schema) + ''.'' + QUOTENAME(@routine)))
+
+	DECLARE @commentLookup TABLE (ID INT IDENTITY(1,1), StartIx INT, EndIx INT)
+
+	-- start by removing all comments
+
+	declare @i int = 1
+			,@ch char(1)
+			,@nextCh char(1)
+
+			,@inMultiLineComment bit = 0
+			,@inSingleLineComment bit = 0
+
+			,@curCommentLookupId INT
+			,@commentEndIx INT
+			,@foundEndOfComment bit = 0
+
+			,@len INT = len(@routineSource) + 1
+			,@startIx INT
+
+	while (@i < @len)
+	begin
+		set @ch = substring(@routineSource,@i,1)
+		set @nextCh = substring(@routineSource,@i+1,1)
+
+		if (@inMultiLineComment = 0 AND @inSingleLineComment = 0)
+		begin
+			if (@ch = ''/'' and @nextCh = ''*'')
+			begin
+				set @inMultiLineComment = 1
+				set @commentEndIx = null
+
+				insert into @commentLookup (StartIx) values (@i)
+				select @curCommentLookupId = SCOPE_IDENTITY()
+
+				set @startIx = @i
+
+				set @i += 1
+			end
+			else if (@ch = ''-'' and @nextCh = ''-'')
+			begin
+				set @inSingleLineComment = 1
+				set @commentEndIx = null
+
+				insert into @commentLookup (StartIx) values (@i)
+				select @curCommentLookupId = SCOPE_IDENTITY()
+
+				set @startIx = @i
+
+				set @i += 1
+			end
+		end
+		else if (@inMultiLineComment = 1 and @inSingleLineComment = 0)
+		begin
+
+			if ((@ch = ''*'' and @nextCh = ''/'') OR (@i = len(@routineSource)/*auto close multiline comment if this is the last character*/))
+			begin
+				set @foundEndOfComment = 1;
+				set @i += 1;
+				set @commentEndIx = @i + 1;
+			end
+		end
+		else if (@inMultiLineComment = 0 AND @inSingleLineComment = 1 AND (@ch = char(10) OR @i = len(@routineSource))) -- single line comments end at a newline (or as last line in source)
+		begin
+			set @foundEndOfComment = 1;
+			set @commentEndIx = @i;
+
+			if (@i = len(@routineSource)) set @commentEndIx += 1;
+		end
+
+		if (@foundEndOfComment = 1)
+		begin
+			set @inSingleLineComment = 0
+			set @inMultiLineComment = 0
+
+			update @commentLookup
+				set EndIx = @commentEndIx
+			where id= @curCommentLookupId
+
+			set @routineSource = LEFT(@routineSource, @startIx-1) + SUBSTRING(@routineSource, @startIx + (@commentEndIx - @startIx), 99999)
+			
+			set @len -= @commentEndIx - @startIx;
+			set @i -= @commentEndIx - @startIx;
+			
+
+			set @curCommentLookupId = null	
+			set @foundEndOfComment = 0
+		end
+
+
+		set @i += 1;
+	end
+	
+
+	-- find the position of the ''AS'' keyword and catalog the strings
+
+	DECLARE @asKeywordIx INT
+	DECLARE @stringLookup TABLE (ID INT IDENTITY(1,1), StartIx INT, EndIx INT)
+	DECLARE @curStringLookupId INT
+
+	DECLARE @isInString bit
+			,@token varchar(3)
+
+	set @isInString = 0
+	
+	set @i = 1;
+	while (@i <= len(@routineSource))
+	begin
+		set @ch = substring(@routineSource,@i,1)
+		set @nextCh = substring(@routineSource,@i+1,1)	
+
+		set @token = REPLACE(REPLACE(REPLACE(LOWER(substring(@routineSource,@i,3)), char(10), ''''), char(13), ''''), '' '','''')
+
+		if (@isInString = 0)
+		begin
+			if (@ch = '''''''') 
+			begin
+				set @isInString = 1
+				insert into @stringLookup (StartIx) values (@i)
+				select @curStringLookupId = SCOPE_IDENTITY()
+			end
+		end
+		else
+		begin
+			if (@ch = '''''''' AND @nextCh != '''''''') begin
+				set @isInString = 0
+				update @stringLookup set EndIx = @i where id = @curStringLookupId
+			end
+			else if (@ch = '''''''' AND @nextCh = '''''''') set @i += 1 -- skip escaped quote
+		end
+
+		set @i += 1
+	end
+
+	-- replace ALL string contents with something else so that we can be sure there are no conflicting keywords or ''parm declarations'' in the strings themselves
+	select @routineSource = STUFF(@routineSource, StartIx+1, EndIx-StartIx-1, REPLICATE(''x'', EndIx-StartIx-1)) from @stringLookup
+	
+	/*
+		1. Run through each expected parameter, in the order they are defined
+		2. For each, look for first occurences of [Name]+[Whitespace]
+		3. Move on to next declaration
+		4. After finding starting positions of all go back and fill in end positions
+		5. Look for equal sings
+	*/
+		
+	
+	DECLARE @parmDeclarations varchar(max) 
+	
+	set @parmDeclarations = @routineSource
+	
+	-- find starting point of each parm declaration
+	DECLARE @parmLookup TABLE (ID INT IDENTITY(1,1), Name nvarchar(500), Ix INT, HasDefault bit default 0, DefaultValue varchar(max))
+
+	DECLARE @parmName varchar(600)
+			,@charIndexOffset INT 
+
+	DECLARE cur CURSOR LOCAL FOR   
+	select p.PARAMETER_NAME from INFORMATION_SCHEMA.PARAMETERS p with(nolock)
+	where p.SPECIFIC_CATALOG = @catalog and p.SPECIFIC_SCHEMA = @schema and p.SPECIFIC_NAME = @routine and p.IS_RESULT != ''YES''
+	order by p.ORDINAL_POSITION
+
+	OPEN cur  
+	FETCH NEXT FROM cur INTO @parmName 
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN  
+
+		/*
+			1. Find appropriate starting place for parm declaration
+			2. Walk forward to find = sign if available
+			3. Determine start and end of default value and extract
+			4. Stop when we hit next parm declaration or the end
+		*/
+		
+		set @charIndexOffset = 0
+	TryNext:
+	
+		-- the declaration as to be followed by a whitespace(space,newline, tab)
+		select top 1 @i = x.Ix from
+			(select charindex(@parmName+char(32), @parmDeclarations, @charIndexOffset) Ix
+			union select  charindex(@parmName+char(9), @parmDeclarations, @charIndexOffset)
+			union select  charindex(@parmName+char(10), @parmDeclarations, @charIndexOffset)
+			union select  charindex(@parmName+char(13), @parmDeclarations, @charIndexOffset)) x
+		where x.Ix > 0
+		order by 1
+		
+		set @charIndexOffset = @i+1
+	
+		insert into @parmLookup (Name, Ix) values (@parmName, @i)
+
+	FETCH NEXT FROM cur INTO @parmName
+	END   
+	CLOSE cur;  
+	DEALLOCATE cur;
+
+	
+		DECLARE @parmDataType varchar(100)
+
+		select top 1 @i = Ix, @parmName = Name from @parmLookup order by id desc
+
+		select @parmDataType = p.DATA_TYPE from INFORMATION_SCHEMA.PARAMETERS p
+		where p.SPECIFIC_CATALOG = @catalog
+		  AND p.SPECIFIC_SCHEMA = @schema
+		  AND p.SPECIFIC_NAME = @routine
+		  and P.PARAMETER_NAME = @parmName
+
+		-- move past the data type declaration to account for definitions like ''@parm AS varchar'' where the AS keyword in the definition might trip us up
+		select @i = CHARINDEX(@parmDataType, @parmDeclarations, @i) + len(@parmDataType)
+
+		;WITH CTE AS (
+			select REPLACE(REPLACE(REPLACE(@parmDeclarations, char(10), '' ''), char(13),'' ''), char(9) ,'' '') Src
+		)
+		select @i = Ix from 
+		(select CHARINDEX('' as '', Src, @i) Ix from CTE
+		union select CHARINDEX('')as '', Src, @i) from CTE) x
+		where x.Ix > 0
+		order by 1
+
+	
+	DECLARE @nextIx INT
+			,@decl varchar(max)
+			,@declLen int
+			,@ix INT
+			,@id INT
+
+	DECLARE cur CURSOR LOCAL FOR   
+		select p.Id, p.Name ,p.Ix , IsNull(n.Ix, @i) NextIx
+			from @parmLookup p
+				 left join @parmLookup n on n.Id = p.Id +1
+		order by p.Id
+
+		
+	OPEN cur  
+	FETCH NEXT FROM cur INTO @id,@parmName, @ix, @nextIx
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN  
+	
+		
+		set @declLen = @nextIx-@ix-1
+		set @decl = substring(@parmDeclarations, @ix, @declLen)
+
+
+		set @i = charindex(''='', @decl)
+
+		if (@i != 0) -- if we have a default
+		begin
+			update @parmLookup set HasDefault = 1 where ID = @id
+		end
+
+		
+
+	FETCH NEXT FROM cur INTO @id, @parmName, @ix, @nextIx
+	END   
+	CLOSE cur;  
+	DEALLOCATE cur;
+
+	insert into  @ret (ParmName, HasDefault)
+	select Name, HasDefault from @parmLookup order by Id	
+	
+	RETURN 
+END')
+END
 
 if (not exists (select top 1 1 from sys.procedures where name ='SprocGenGetParameterList' and SCHEMA_NAME(schema_Id) = 'orm'))
 BEGIN
@@ -256,6 +530,7 @@ BEGIN
 AS
 begin
 
+
 	-- INSERT NEW ROUTINES
 	INSERT INTO orm.SprocDalMonitor (CatalogName, SchemaName, RoutineName, RoutineType,ReturnType, IsDeleted, LastUpdateByHostName, ParametersXml, ParameterCount)
 	select r.SPECIFIC_CATALOG [Catalog]
@@ -274,10 +549,12 @@ begin
 						,Parameter.PARAMETER_NAME ParameterName
 						,Parameter.DATA_TYPE DataType
 						,Parameter.CHARACTER_OCTET_LENGTH Length
+						,ISNULL(x.HasDefault,0) HasDefault
 					from INFORMATION_SCHEMA.ROUTINES Routine
 							inner join INFORMATION_SCHEMA.PARAMETERS Parameter on Parameter.SPECIFIC_NAME = routine.SPECIFIC_NAME
 																			and Parameter.SPECIFIC_CATALOG = routine.SPECIFIC_CATALOG
 																			and Parameter.SPECIFIC_SCHEMA = routine.SPECIFIC_SCHEMA
+						left join orm.ParamsGetDetail(r.SPECIFIC_CATALOG, r.SPECIFIC_SCHEMA, r.SPECIFIC_NAME) x on x.ParmName= Parameter.PARAMETER_NAME
 				where routine.SPECIFIC_NAME = r.SPECIFIC_NAME
 					and routine.SPECIFIC_CATALOG = r.SPECIFIC_CATALOG
 					and routine.SPECIFIC_SCHEMA = r.SPECIFIC_SCHEMA
@@ -321,10 +598,12 @@ begin
 										,Parameter.PARAMETER_NAME ParameterName
 										,Parameter.DATA_TYPE DataType
 										,Parameter.CHARACTER_OCTET_LENGTH Length
+										,ISNULL(x.HasDefault,0) HasDefault
 									from INFORMATION_SCHEMA.ROUTINES Routine
 											inner join INFORMATION_SCHEMA.PARAMETERS Parameter on Parameter.SPECIFIC_NAME = routine.SPECIFIC_NAME
 																							and Parameter.SPECIFIC_CATALOG = routine.SPECIFIC_CATALOG
 																							and Parameter.SPECIFIC_SCHEMA = routine.SPECIFIC_SCHEMA
+											left join orm.ParamsGetDetail(r.SPECIFIC_CATALOG, r.SPECIFIC_SCHEMA, r.SPECIFIC_NAME) x on x.ParmName= Parameter.PARAMETER_NAME
 								where routine.SPECIFIC_NAME = r.SPECIFIC_NAME
 									and routine.SPECIFIC_CATALOG = r.SPECIFIC_CATALOG
 									and routine.SPECIFIC_SCHEMA = r.SPECIFIC_SCHEMA
@@ -347,18 +626,19 @@ begin
 			,@schema varchar(500)
 			,@routine varchar(500)
 
-	DECLARE curInit CURSOR LOCAL FOR
+	DECLARE cur CURSOR FOR
 		select CatalogName, SchemaName, RoutineName from orm.SprocDalMonitor where JsonMetadata is null
  
-	OPEN curInit
-	FETCH NEXT FROM curInit INTO @catalog, @schema, @routine
+	OPEN cur
+	FETCH NEXT FROM cur INTO @catalog, @schema, @routine
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
 		 exec [orm].[SprocGenExtractAndStoreJsonMetadata] @catalog = @catalog, @schema = @schema, @routine = @routine
-	FETCH NEXT FROM curInit INTO @catalog, @schema, @routine
+	FETCH NEXT FROM cur INTO @catalog, @schema, @routine
 	END
-	CLOSE curInit
-	DEALLOCATE curInit
+	CLOSE cur
+	DEALLOCATE cur
+
 
 
 			
@@ -467,10 +747,12 @@ BEGIN
 									,Parameter.PARAMETER_NAME ParameterName
 									,Parameter.DATA_TYPE DataType
 									,Parameter.CHARACTER_OCTET_LENGTH Length
+									,ISNULL(x.HasDefault,0) HasDefault
 								from INFORMATION_SCHEMA.ROUTINES Routine
 									 inner join INFORMATION_SCHEMA.PARAMETERS Parameter on Parameter.SPECIFIC_NAME = routine.SPECIFIC_NAME
 																						and Parameter.SPECIFIC_CATALOG = routine.SPECIFIC_CATALOG
 																						and Parameter.SPECIFIC_SCHEMA = routine.SPECIFIC_SCHEMA
+									 left join orm.ParamsGetDetail(@dbName, @schema, @objectName) x on x.ParmName= Parameter.PARAMETER_NAME																						
 							where routine.SPECIFIC_NAME = @objectName
 							  and routine.SPECIFIC_CATALOG = @dbName
 							  and routine.SPECIFIC_SCHEMA = @schema

@@ -18,6 +18,7 @@ import * as moment from 'moment';
 
 import { SqlConfigBuilder } from "./../util/sql-config-builder";
 import { ExceptionLogger } from "./../util/exception-logger";
+import { RoutineParser } from "./routine-parser";
 
 export class WorkSpawner {
     private static _workerList: Worker[];
@@ -122,7 +123,7 @@ class Worker {
 
         this.status = "Starting up...";
         this._log.info("Worker started by user.");
-        
+
         this.run(this._dbSource);
     }
 
@@ -301,6 +302,51 @@ class Worker {
                                         newCachedRoutine.ResultSetRowver = row.rowver;
                                         newCachedRoutine.ResultSetError = e.toString();
                                     }
+
+                                }
+
+                                {
+                                    
+
+                                    // PARSE routine body
+                                    /*if (routineParsingRowver.HasValue && routineParsingRowver >= row.rowver) {
+                                        //!logLine.Append("Routine body parsing up to date");
+                                    }
+                                    else*/ 
+                                        {
+                                        //!logLine.Append("Parsing routine body");
+                                        //!
+                                        let routineDefinition: string = null;
+
+                                        // TODO: Wrap in try...catch?
+                                        routineDefinition = await OrmDAL.FetchRoutineDefinition(con, /*dbSource.MetadataConnection.ConnectionStringDecrypted*/
+                                            dbSource.MetadataConnection.initialCatalog, row.SchemaName, row.RoutineName);
+
+                                        if (routineDefinition != null) {
+                                            let parsed = await RoutineParser.parse(routineDefinition);
+
+                                            if (parsed && parsed.Parameters != null && newCachedRoutine.Parameters != null) {
+                                                parsed.Parameters.forEach(parsedParm => {
+                                                    // find corresponding Routine Parameter
+                                                    let p = newCachedRoutine.Parameters.find(rp => rp.ParameterName.toLowerCase() == parsedParm.VariableName.toLowerCase());
+
+                                                    if (p != null) {
+                                                        //p.DefaultValue = parsedParm.DefaultValue;
+                                                        //p.DefaultValueType = parsedParm.DefaultValueType;
+                                                        p.HasDefaultValue = parsedParm.HasDefault;
+                                                    }
+                                                });
+
+                                            }
+
+                                            //!newCachedRoutine.jsDALMetadata = parsed.jsDALMetadata;
+                                            //!newCachedRoutine.RoutineParsingRowver = rowDate;
+                                        }
+
+
+                                        //!logLine.Append(""); // output last duration
+                                    }
+
 
                                 }
 

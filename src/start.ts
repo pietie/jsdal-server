@@ -20,7 +20,7 @@ class NssmWrapper {
         console.log('-----');
         console.log(`\tSetting DisplayName to:\t${displayName}`);
         console.log(`\tSetting AppDirectory to:\t${path.resolve('./')}`);
-        console.log('-----'); 
+        console.log('-----');
 
         exec(cmd,
             (err, stdout) => {
@@ -35,7 +35,7 @@ class NssmWrapper {
 
     }
 
-     static uninstallService(serviceName: string) {
+    static uninstallService(serviceName: string) {
         let cmd: string = `${NssmWrapper.exePath} remove "${serviceName}" confirm`;
 
         exec(cmd,
@@ -57,15 +57,14 @@ class NssmWrapper {
 function overrideStdOutput() {
     let logDir = path.resolve('./log');
 
-    if (!fs.existsSync(logDir))
-    {
+    if (!fs.existsSync(logDir)) {
         fs.mkdirSync(logDir);
     }
 
     let filename = moment().format("YYYY-MM-DD");
-    
-    let logStream = fs.createWriteStream(path.join(logDir, `${filename}.log`), {'flags': 'a'});
-    let errStream = fs.createWriteStream(path.join(logDir, `${filename}.err`), {'flags': 'a'});
+
+    let logStream = fs.createWriteStream(path.join(logDir, `${filename}.log`), { 'flags': 'a' });
+    let errStream = fs.createWriteStream(path.join(logDir, `${filename}.err`), { 'flags': 'a' });
 
     (<any>process).__defineGetter__('stdout', function () {
         return logStream;
@@ -177,14 +176,13 @@ class CmdExecutor {
         }
     }
 }
- 
+
 let args = process.argv;
 let availableStartupCmds = ["run", "install", "uninstall", "uninstall (choose)"];
 
-let debug = process.execArgv && process.execArgv.length > 0 && process.execArgv.find(e=>e.startsWith("--debug")) != null;
+let debug = process.execArgv && process.execArgv.length > 0 && process.execArgv.find(e => e.startsWith("--debug")) != null;
 
-if (debug)
-{
+if (debug) {
     console.log("!!!\tDebugger detected.");
     args.push("run");
 }

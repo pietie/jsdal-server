@@ -108,7 +108,7 @@ export class JsFileGenerator {
                             IsResult: p.IsResult,
                             DataType: p.DataType,
                             ParameterMode: p.ParameterMode,
-                            HasDefault: p.DefaultValue && p.DataType.trim() != "",
+                            HasDefault: p.HasDefaultValue,
                             JavascriptDataType: RoutineParameter.getDataTypeForJavaScriptComment(p.DataType),
                             TypescriptDataType: RoutineParameter.getDataTypeForTypeScript(p.DataType)
 
@@ -204,7 +204,7 @@ export class JsFileGenerator {
                     });
                 } // if (r.ResultSetMetadata != null)
 
-                var tsArguments = "";
+                let tsArguments = "";
 
                 if (tsParameterTypeDefName && tsParameterTypeDefName.trim() != "") {
                     tsArguments = `_.${tsParameterTypeDefName}`;
