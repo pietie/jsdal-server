@@ -305,50 +305,50 @@ class Worker {
 
                                 }
 
-                                {
-                                    
-
-                                    // PARSE routine body
-                                    /*if (routineParsingRowver.HasValue && routineParsingRowver >= row.rowver) {
-                                        //!logLine.Append("Routine body parsing up to date");
-                                    }
-                                    else*/ 
-                                        {
-                                        //!logLine.Append("Parsing routine body");
-                                        //!
-                                        let routineDefinition: string = null;
-
-                                        // TODO: Wrap in try...catch?
-                                        routineDefinition = await OrmDAL.FetchRoutineDefinition(con, /*dbSource.MetadataConnection.ConnectionStringDecrypted*/
-                                            dbSource.MetadataConnection.initialCatalog, row.SchemaName, row.RoutineName);
-
-                                        if (routineDefinition != null) {
-                                            let parsed = await RoutineParser.parse(routineDefinition);
-
-                                            if (parsed && parsed.Parameters != null && newCachedRoutine.Parameters != null) {
-                                                parsed.Parameters.forEach(parsedParm => {
-                                                    // find corresponding Routine Parameter
-                                                    let p = newCachedRoutine.Parameters.find(rp => rp.ParameterName.toLowerCase() == parsedParm.VariableName.toLowerCase());
-
-                                                    if (p != null) {
-                                                        //p.DefaultValue = parsedParm.DefaultValue;
-                                                        //p.DefaultValueType = parsedParm.DefaultValueType;
-                                                        p.HasDefaultValue = parsedParm.HasDefault;
-                                                    }
-                                                });
-
-                                            }
-
-                                            //!newCachedRoutine.jsDALMetadata = parsed.jsDALMetadata;
-                                            //!newCachedRoutine.RoutineParsingRowver = rowDate;
-                                        }
+                                // HasDefault calculated on sproc-level so no longer 
+                                // {
 
 
-                                        //!logLine.Append(""); // output last duration
-                                    }
+                                //     // PARSE routine body
+                                //     /*if (routineParsingRowver.HasValue && routineParsingRowver >= row.rowver) {
+                                //         //!logLine.Append("Routine body parsing up to date");
+                                //     }
+                                //     else*/
+                                //     {
+                                //         //!logLine.Append("Parsing routine body");
+                                //         //!
+                                //         let routineDefinition: string = null;
+
+                                //         // TODO: Wrap in try...catch?
+                                //         routineDefinition = await OrmDAL.FetchRoutineDefinition(con, /*dbSource.MetadataConnection.ConnectionStringDecrypted*/
+                                //             dbSource.MetadataConnection.initialCatalog, row.SchemaName, row.RoutineName);
+
+                                //         if (routineDefinition != null) {
+                                //             let parsed = await RoutineParser.parse(routineDefinition);
+
+                                //             if (parsed && parsed.Parameters != null && newCachedRoutine.Parameters != null) {
+                                //                 parsed.Parameters.forEach(parsedParm => {
+                                //                     // find corresponding Routine Parameter
+                                //                     let p = newCachedRoutine.Parameters.find(rp => rp.ParameterName.toLowerCase() == parsedParm.VariableName.toLowerCase());
+
+                                //                     if (p != null) {
+                                //                         //p.DefaultValue = parsedParm.DefaultValue;
+                                //                         //p.DefaultValueType = parsedParm.DefaultValueType;
+                                //                         p.HasDefaultValue = parsedParm.HasDefault;
+                                //                     }
+                                //                 });
+
+                                //             }
 
 
-                                }
+                                //         }
+
+
+                                //         //!logLine.Append(""); // output last duration
+                                //     }
+
+
+                                // }
 
                             } // !IsDeleted
 
