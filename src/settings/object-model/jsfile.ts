@@ -31,7 +31,7 @@ export class JsFile {
 
         if (isNaN(jsfile.Version)) jsfile.Version = 1;
 
-        for (let i = 0; i < rawJson.Rules; i++) {
+        for (let i = 0; i < rawJson.Rules.length; i++) {
             jsfile.Rules.push(BaseRule.createFromJson(rawJson.Rules[i]));
         }
 

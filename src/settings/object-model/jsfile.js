@@ -19,7 +19,7 @@ class JsFile {
         jsfile.Version = parseInt(rawJson.Version);
         if (isNaN(jsfile.Version))
             jsfile.Version = 1;
-        for (let i = 0; i < rawJson.Rules; i++) {
+        for (let i = 0; i < rawJson.Rules.length; i++) {
             jsfile.Rules.push(rules_1.BaseRule.createFromJson(rawJson.Rules[i]));
         }
         return jsfile;
