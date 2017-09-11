@@ -12,7 +12,7 @@ import * as shortid from 'shortid'
 import * as SqlConnectionStringBuilder from 'node-connection-string-builder';
 
 import * as sql from 'mssql';
-import { Request } from "@types/express";
+import { Request } from "express";
 import { SessionLog } from "./../../util/log";
 import { SqlConfigBuilder } from "./../../util/sql-config-builder";
 import { WorkSpawner } from "./../../generator/work-spawner";

@@ -1,10 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const chalk = require("chalk");
+const sizeof = require("object-sizeof");
 class MemoryLog {
     constructor(maxEntries = 1000) {
         this._entries = [];
         this._maxEntries = maxEntries;
+    }
+    get count() { return this._entries.length; }
+    memDetail() {
+        return { Cnt: this._entries.length, MemBytes: sizeof(this) };
     }
     addEntry(type, entry) {
         //lock(_entries)
@@ -65,6 +70,9 @@ var LogEntryType;
     LogEntryType[LogEntryType["Exception"] = 40] = "Exception";
 })(LogEntryType || (LogEntryType = {}));
 class SessionLog {
+    static memDetail() {
+        return SessionLog._log.memDetail();
+    }
     static get entries() {
         return this._log.Entries;
     }

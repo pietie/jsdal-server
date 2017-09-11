@@ -15,7 +15,7 @@ const cached_routine_1 = require("./../settings/object-model/cache/cached-routin
 const routine_parameter_1 = require("./../settings/object-model/cache/routine-parameter");
 const orm_dal_1 = require("../database/orm-dal");
 const js_generator_1 = require("./js-generator");
-const async = require("async");
+//import * as async from 'async'
 const sql = require("mssql");
 const fs = require("fs");
 const shortid = require("shortid");
@@ -24,6 +24,13 @@ const moment = require("moment");
 const sql_config_builder_1 = require("./../util/sql-config-builder");
 const exception_logger_1 = require("./../util/exception-logger");
 class WorkSpawner {
+    static memDetail() {
+        return {
+            Cnt: WorkSpawner._workerList.length,
+            //TotalMemBytes: sizeof(WorkSpawner._workerList), 
+            Workers: WorkSpawner._workerList.map(w => w.memDetail())
+        };
+    }
     static resetMaxRowDate(dbSource) {
         let worker = WorkSpawner._workerList.find(wl => wl.dbSourceKey == dbSource.CacheKey);
         if (worker)
@@ -46,7 +53,8 @@ class WorkSpawner {
             WorkSpawner.TEMPLATE_TypescriptDefinitions = fs.readFileSync('./resources/TypeScriptDefinitionsContainer.d.ts', { encoding: "utf8" });
             WorkSpawner._workerList = [];
             //dbSources = [dbSources[3]]; //TEMP 
-            async.each(dbSources, (source) => {
+            //async.each(dbSources, (source) => {
+            dbSources.forEach(source => {
                 try {
                     let worker = new Worker();
                     worker.dbSourceKey = source.CacheKey;
@@ -60,9 +68,10 @@ class WorkSpawner {
                     exception_logger_1.ExceptionLogger.logException(e);
                     console.log(e.toString());
                 }
-            }, error => {
-                log_1.SessionLog.error(error.toString());
             });
+            // }, error => {
+            //     SessionLog.error(error.toString());
+            // });
         }
         catch (e) {
             log_1.SessionLog.exception(e);
@@ -83,6 +92,14 @@ class Worker {
     get status() { return this._status; }
     set status(val) { this._status = val; }
     get log() { return this._log; }
+    memDetail() {
+        return {
+            Name: this.name,
+            // This: sizeof(this),
+            Log: this._log.memDetail()
+            //LastCon: this._lastCon != null? sizeof(this._lastCon): 0
+        };
+    }
     resetMaxRowDate() {
         this.maxRowDate = 0;
         this._log.info("MaxRowDate reset to 0.");
@@ -124,6 +141,11 @@ class Worker {
                 try {
                     // reconnect if necessary 
                     if (!con || !con.connected) {
+                        if (con) {
+                            this._log.info("Reconnecting...");
+                            con.removeAllListeners();
+                            this._lastCon = null;
+                        }
                         //console.log('\tConnecting to...', sqlConfig.server, sqlConfig.database);
                         con = (yield new sql.ConnectionPool(sqlConfig).connect().catch(err => {
                             this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Failed to open connection to database: ` + err.toString();
@@ -138,6 +160,7 @@ class Worker {
                             this._log.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
                             this._log.exception(err);
                         }));
+                        this._lastCon = con;
                     }
                     if (!con) {
                         connectionErrorCnt++;
@@ -219,7 +242,7 @@ class Worker {
                                             newCachedRoutine.ResultSetError = e.toString();
                                         }
                                     }
-                                    // HasDefault calculated on sproc-level so no longer 
+                                    // HasDefault calculated on sproc-level so no longer need this
                                     // {
                                     //     // PARSE routine body
                                     //     /*if (routineParsingRowver.HasValue && routineParsingRowver >= row.rowver) {
@@ -270,6 +293,7 @@ class Worker {
                             genGetRoutineListStream.on('done', (affected) => {
                                 isDone = true;
                                 dbSource.saveCache();
+                                genGetRoutineListStream.removeAllListeners();
                             });
                             /*
                                 The following loop waits for all the routines to finish processing.
@@ -334,6 +358,7 @@ class Worker {
                 yield thread_util_1.ThreadUtil.Sleep(settings_instance_1.SettingsInstance.Instance.Settings.DbSource_CheckForChangesInMilliseconds);
             }
             if (con && con.connected) {
+                con.removeAllListeners();
                 con.close();
             }
         });

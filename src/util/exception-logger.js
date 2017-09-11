@@ -2,7 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const shortid = require("shortid");
 const mssql_1 = require("mssql");
+const sizeof = require("object-sizeof");
 class ExceptionLogger {
+    static memDetail() {
+        return { Cnt: ExceptionLogger.exceptionList.length, MemBytes: sizeof(ExceptionLogger.exceptionList) };
+    }
     static get exceptions() {
         return ExceptionLogger.exceptionList;
     }
@@ -16,6 +20,11 @@ class ExceptionLogger {
         if (ix < 0)
             ix = 0;
         return ExceptionLogger.exceptionList.slice(ix);
+    }
+    static getTotalCnt() {
+        if (ExceptionLogger.exceptionList)
+            return 0;
+        return ExceptionLogger.exceptionList.length;
     }
     static logException(ex) {
         if (ExceptionLogger.exceptionList.length >= ExceptionLogger.MAX_ENTRIES) {

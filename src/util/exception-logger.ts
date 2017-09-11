@@ -1,10 +1,16 @@
 import * as shortid from 'shortid'
 import { RequestError } from "mssql";
+import * as sizeof from 'object-sizeof';
 
 export class ExceptionLogger {
     private static MAX_ENTRIES: number = 1000;
 
     private static exceptionList: ExceptionWrapper[] = [];
+
+    public static memDetail(): any
+    {
+        return { Cnt: ExceptionLogger.exceptionList.length, MemBytes: sizeof(ExceptionLogger.exceptionList) } ;
+    }
 
     public static get exceptions(): ExceptionWrapper[] {
         return ExceptionLogger.exceptionList;
@@ -19,6 +25,11 @@ export class ExceptionLogger {
         let ix = ExceptionLogger.exceptionList.length - n;
         if (ix < 0) ix = 0;
         return ExceptionLogger.exceptionList.slice(ix);
+    }
+
+    public static getTotalCnt(): number {
+        if (ExceptionLogger.exceptionList) return 0;
+        return ExceptionLogger.exceptionList.length;
     }
 
     static logException(ex): string {
@@ -45,7 +56,7 @@ export class ExceptionWrapper {
         let msg = ex;
 
         if (ex instanceof RequestError) {
-            let re:any = ex;
+            let re: any = ex;
 
             msg = `Procedure ##${re.procName}##, Line ${re.lineNumber}, Message: ${re.message}, Error ${re.number}, Level ${re.class}, State ${re.state}`;
         }

@@ -13,12 +13,29 @@ const api_response_1 = require("./../api-response");
 const decorators_1 = require("./../decorators");
 const log_1 = require("./../../util/log");
 const user_management_1 = require("./../../util/user-management");
+const exception_logger_1 = require("./../../util/exception-logger");
+const work_spawner_1 = require("./../../generator/work-spawner");
 class MainController {
-    static isFirstTimeSetupComplete() {
+    static getMemDetail(req, res) {
+        try {
+            let memDetail = {
+                ExceptionLogger: exception_logger_1.ExceptionLogger.memDetail(),
+                Workers: work_spawner_1.WorkSpawner.memDetail(),
+                SessionLog: log_1.SessionLog.memDetail()
+            };
+            return api_response_1.ApiResponse.Payload(memDetail);
+        }
+        catch (e) {
+            return api_response_1.ApiResponse.Exception(e);
+        }
+    }
+    static isFirstTimeSetupComplete(req, res) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+        res.setHeader("Content-Type", "application/json");
         return api_response_1.ApiResponse.Payload(user_management_1.UserManagement.adminUserExists);
     }
     static performFirstTimeSetup(req, res) {
-        //return ApiResponse.Payload(UserManagement.adminUserExists);
         if (req.body.adminUser) {
             user_management_1.UserManagement.addUser({ username: req.body.adminUser.username, password: req.body.adminUser.password, isAdmin: true });
             user_management_1.UserManagement.saveToFile();
@@ -45,9 +62,15 @@ class MainController {
     }
 }
 __decorate([
+    decorators_1.route('/api/main/memdetail', { get: true }, true, true),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", api_response_1.ApiResponse)
+], MainController, "getMemDetail", null);
+__decorate([
     decorators_1.route('/api/main/issetupcomplete', { get: true }, true),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", api_response_1.ApiResponse)
 ], MainController, "isFirstTimeSetupComplete", null);
 __decorate([

@@ -3,18 +3,42 @@ import { route } from './../decorators'
 import * as os from 'os'
 import { SessionLog } from "./../../util/log";
 import { UserManagement } from "./../../util/user-management";
-import { Request } from "@types/express";
+import { Request, Response } from "express";
+import * as sizeof from 'object-sizeof';
+import { ExceptionLogger } from "./../../util/exception-logger";
+import { WorkSpawner } from "./../../generator/work-spawner";
 
 export class MainController {
 
+    @route('/api/main/memdetail', { get: true }, true, true)
+    public static getMemDetail(req: Request, res: Response): ApiResponse {
+        try {
+            let memDetail =
+                {
+                    ExceptionLogger: ExceptionLogger.memDetail(),
+                    Workers: WorkSpawner.memDetail(),
+                    SessionLog: SessionLog.memDetail()
+                }
+
+            return ApiResponse.Payload(memDetail);
+        }
+        catch (e) {
+            return ApiResponse.Exception(e);
+        }
+    }
+
+
     @route('/api/main/issetupcomplete', { get: true }, true)
-    public static isFirstTimeSetupComplete(): ApiResponse {
+    public static isFirstTimeSetupComplete(req: Request, res: Response): ApiResponse {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+        res.setHeader("Content-Type", "application/json");
+
         return ApiResponse.Payload(UserManagement.adminUserExists);
     }
 
     @route('/api/main/1sttimesetup', { post: true }, true)
     public static performFirstTimeSetup(req: Request, res): ApiResponse {
-        //return ApiResponse.Payload(UserManagement.adminUserExists);
         if (req.body.adminUser) {
             UserManagement.addUser({ username: req.body.adminUser.username, password: req.body.adminUser.password, isAdmin: true });
             UserManagement.saveToFile();

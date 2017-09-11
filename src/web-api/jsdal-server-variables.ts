@@ -1,4 +1,4 @@
-import { Request } from "@types/express";
+import { Request } from "express";
 
 export class jsDALServerVariables {
     private static readonly PREFIX_MARKER: string = "$jsDAL$";

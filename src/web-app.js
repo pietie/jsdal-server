@@ -164,6 +164,11 @@ function processRequest(route, req, res) {
                 return res.status(auth.status).send(auth.ret);
             }
         }
+        if (route.nocache) {
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+            res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+            res.setHeader("Content-Type", "application/json");
+        }
         let ret = route.target.call(this, req, res);
         // if the ret value is undefined assume the target call already handled the response
         if (ret == undefined)

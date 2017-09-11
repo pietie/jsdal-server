@@ -2,7 +2,7 @@ import { ApiResponse } from './../api-response'
 import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
 import { ExceptionLogger } from "./../../util/exception-logger";
-import { Request, Response } from "@types/express";
+import { Request, Response } from "express";
 
 export class ExceptionsController {
 
@@ -41,7 +41,10 @@ export class ExceptionsController {
 
             }); // sort desc based on create date
 
-            return ApiResponse.Payload(ret);
+            return ApiResponse.Payload({
+                Results: ret,
+                TotalExceptionCnt: ExceptionLogger.getTotalCnt()
+            });
         }
         catch (ex) {
             return ApiResponse.Exception(ex);

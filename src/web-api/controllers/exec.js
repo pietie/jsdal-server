@@ -79,6 +79,10 @@ class ExecController {
     }
     static execQueryAndNonQuery(req, res, isNonQuery) {
         return __awaiter(this, void 0, void 0, function* () {
+            // always start off not caching whatever we send back
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+            res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+            res.setHeader("Content-Type", "application/json");
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let debugInfo = "";
                 try {
@@ -129,9 +133,6 @@ class ExecController {
                             ret.Type = api_response_1.ApiResponseType.ExclamationModal;
                         }
                     }
-                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
-                    res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-                    res.setHeader("Content-Type", "application/json");
                     resolve(ret);
                 }
                 catch (ex) {
@@ -142,6 +143,10 @@ class ExecController {
     }
     static Scalar(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            // always start off not caching whatever we send back
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+            res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+            res.setHeader("Content-Type", "application/json");
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 try {
                     let dbSourceGuid = req.params.dbSourceGuid;
@@ -167,9 +172,6 @@ class ExecController {
                     else {
                         ret = api_response_1.ApiResponse.Payload(scalar);
                     }
-                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
-                    res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-                    res.setHeader("Content-Type", "application/json");
                     resolve(ret);
                 }
                 catch (ex) {

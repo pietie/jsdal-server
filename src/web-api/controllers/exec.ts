@@ -3,7 +3,7 @@ import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
 
 import { DatabaseSource } from './../../settings/object-model'
-import { Request, Response } from "@types/express";
+import { Request, Response } from "express";
 
 import * as sql from 'mssql';
 import * as moment from 'moment';
@@ -84,10 +84,17 @@ export class ExecController {
     }
 
     public static async execQueryAndNonQuery(req: Request, res: Response, isNonQuery: boolean): Promise<ApiResponse> {
+        // always start off not caching whatever we send back
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+        res.setHeader("Content-Type", "application/json");
+
         return new Promise<ApiResponse>(async (resolve, reject) => {
 
             let debugInfo: string = "";
             try {
+
+
                 let isPOST = req.method === "POST";
 
                 let dbSourceGuid: string = req.params.dbSourceGuid;
@@ -159,10 +166,6 @@ export class ExecController {
                 }
 
 
-                res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
-                res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-                res.setHeader("Content-Type", "application/json");
-
                 resolve(ret);
 
             }
@@ -177,6 +180,12 @@ export class ExecController {
     @route("/api/execScalar/:dbSourceGuid/:dbConnectionGuid/:schema/:routine", { get: true }, true)
     public static async Scalar(req: Request, res: Response): Promise<ApiResponse> {
 
+        // always start off not caching whatever we send back
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+        res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+        res.setHeader("Content-Type", "application/json");
+
+        
         return new Promise<ApiResponse>(async (resolve, reject) => {
 
             try {
@@ -209,10 +218,6 @@ export class ExecController {
                 else {
                     ret = ApiResponse.Payload(scalar);
                 }
-
-                res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
-                res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-                res.setHeader("Content-Type", "application/json");
 
                 resolve(ret);
             }
@@ -258,7 +263,7 @@ export class ExecController {
                         throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
                     }
 
-                    let capResp = await ExecController.validateGoogleRecaptcha(req.headers["captcha-val"]);
+                    let capResp = await ExecController.validateGoogleRecaptcha((<any>req).headers["captcha-val"]);
 
                     res.setHeader("captcha-ret", capResp.success ? "1" : "0");
 

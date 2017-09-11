@@ -1,7 +1,7 @@
 import { ApiResponse } from './../api-response'
 import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
-import { Request, Response } from "@types/express";
+import { Request, Response } from "express";
 import { WorkSpawner } from "./../../generator/work-spawner";
 import { SessionLog } from "./../../util/log";
 

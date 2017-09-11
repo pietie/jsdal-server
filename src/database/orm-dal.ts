@@ -88,7 +88,6 @@ export class OrmDAL {
 
 
             request.query(query);
-
         });
 
     }

@@ -2,7 +2,7 @@ import { ApiResponse } from './../api-response'
 import { SettingsInstance } from './../../settings/settings-instance'
 import { route } from './../decorators'
 import { ExceptionLogger } from "./../../util/exception-logger";
-import { Request, Response } from "@types/express";
+import { Request, Response } from "express";
 import { JsFile, DatabaseSource } from "./../../settings/object-model";
 
 import * as fs from 'fs';
@@ -175,9 +175,9 @@ export class PublicController {
 
             let etagForLatestFile = PublicController.computeETag(jsFileData);
 
-            let etagFromRequest = req.headers["if-none-match"];
+            let etagFromRequest:string = <any>req.headers["if-none-match"];
 
-            if (etagFromRequest && etagFromRequest.trim() != '' && etagForLatestFile && etagForLatestFile.trim() != '') {
+            if (etagFromRequest && (<any>etagFromRequest).trim() != '' && etagForLatestFile && etagForLatestFile.trim() != '') {
                 if (`"${etagForLatestFile}"` == etagFromRequest) {
                     //return new HttpResponseMessage(HttpStatusCode.NotModified);
                     res.status(304).send(null);

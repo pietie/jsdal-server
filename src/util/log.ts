@@ -1,6 +1,5 @@
 import * as chalk from 'chalk'
-
-
+import * as sizeof from 'object-sizeof';
 
 export class MemoryLog {
 
@@ -8,6 +7,13 @@ export class MemoryLog {
 
     public constructor(maxEntries: number = 1000) {
         this._maxEntries = maxEntries;
+    }
+
+    public get count(): number { return this._entries.length; }
+
+    public memDetail(): any
+    {
+        return { Cnt: this._entries.length, MemBytes: sizeof(this) } ;
     }
 
     private _entries: LogEntry[] = [];
@@ -103,6 +109,12 @@ enum LogEntryType {
 export class SessionLog {
     static readonly MAX_ENTRIES: number = 2000;
     static _log:MemoryLog = new MemoryLog(SessionLog.MAX_ENTRIES);
+
+    public static memDetail(): any
+    {
+        return SessionLog._log.memDetail();
+    }
+
 
     public static get entries() : LogEntry[] {
         return this._log.Entries;

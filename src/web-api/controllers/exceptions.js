@@ -40,7 +40,10 @@ class ExceptionsController {
                     return 1;
                 return 0;
             }); // sort desc based on create date
-            return api_response_1.ApiResponse.Payload(ret);
+            return api_response_1.ApiResponse.Payload({
+                Results: ret,
+                TotalExceptionCnt: exception_logger_1.ExceptionLogger.getTotalCnt()
+            });
         }
         catch (ex) {
             return api_response_1.ApiResponse.Exception(ex);

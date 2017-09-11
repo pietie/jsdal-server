@@ -8,10 +8,11 @@ import { OrmDAL } from '../database/orm-dal'
 
 import { JsFileGenerator } from './js-generator'
 
-import * as async from 'async'
+//import * as async from 'async'
 import * as sql from 'mssql';
 import * as fs from 'fs';
 import * as shortid from 'shortid';
+import * as sizeof from 'object-sizeof';
 
 import * as xml2js from 'xml2js'
 import * as moment from 'moment';
@@ -26,6 +27,14 @@ export class WorkSpawner {
     public static TEMPLATE_RoutineContainer: string;
     public static TEMPLATE_Routine: string;
     public static TEMPLATE_TypescriptDefinitions: string;
+
+    public static memDetail(): any {
+        return {
+            Cnt: WorkSpawner._workerList.length, 
+            //TotalMemBytes: sizeof(WorkSpawner._workerList), 
+            Workers: WorkSpawner._workerList.map(w => w.memDetail())
+        };
+    }
 
     public static resetMaxRowDate(dbSource: DatabaseSource) {
         let worker = WorkSpawner._workerList.find(wl => wl.dbSourceKey == dbSource.CacheKey);
@@ -56,7 +65,8 @@ export class WorkSpawner {
 
             //dbSources = [dbSources[3]]; //TEMP 
 
-            async.each(dbSources, (source) => {
+            //async.each(dbSources, (source) => {
+            dbSources.forEach(source => {
 
                 try {
                     let worker = new Worker();
@@ -73,11 +83,11 @@ export class WorkSpawner {
                     ExceptionLogger.logException(e);
                     console.log(e.toString());
                 }
-
-
-            }, error => {
-                SessionLog.error(error.toString());
             });
+
+            // }, error => {
+            //     SessionLog.error(error.toString());
+            // });
         }
         catch (e) {
             SessionLog.exception(e);
@@ -113,6 +123,15 @@ class Worker {
         this._log = new MemoryLog(300);
     }
 
+    public memDetail(): any {
+        return {
+            Name: this.name,
+            // This: sizeof(this),
+            Log: this._log.memDetail()
+            //LastCon: this._lastCon != null? sizeof(this._lastCon): 0
+        };
+    }
+
     public resetMaxRowDate() {
         this.maxRowDate = 0;
         this._log.info("MaxRowDate reset to 0.");
@@ -133,6 +152,7 @@ class Worker {
         this._log.info("Worker stopped by user.");
     }
 
+    private _lastCon: sql.ConnectionPool;
     public async run(dbSource: DatabaseSource) {
         this._dbSource = dbSource;
         this.isRunning = true;
@@ -168,12 +188,19 @@ class Worker {
 
                 // reconnect if necessary 
                 if (!con || !con.connected) {
+
+                    if (con) {
+                        this._log.info("Reconnecting...");
+                        con.removeAllListeners();
+                        this._lastCon = null;
+                    }
+
                     //console.log('\tConnecting to...', sqlConfig.server, sqlConfig.database);
+
                     con = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig).connect().catch(err => {
 
                         this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - Failed to open connection to database: ` + err.toString();
                         SessionLog.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
-
 
                         if (err.message == null) err.message = "";
 
@@ -189,6 +216,8 @@ class Worker {
                         this._log.error(`Failed to open conneciton to database. ${sqlConfig.server}->${sqlConfig.database}`);
                         this._log.exception(err);
                     });
+
+                    this._lastCon = con;
                 }
 
                 if (!con) {
@@ -268,7 +297,6 @@ class Worker {
 
                             this.status = `${moment().format("YYYY-MM-DD HH:mm:ss")} - ${dbSource.Name} - Overall progress: (${perc.toFixed(2)}%. Currently processing [${row.SchemaName}].[${row.RoutineName}]`;//, schema, name, perc);
 
-
                             if (!newCachedRoutine.IsDeleted) {
 
                                 /*
@@ -305,7 +333,7 @@ class Worker {
 
                                 }
 
-                                // HasDefault calculated on sproc-level so no longer 
+                                // HasDefault calculated on sproc-level so no longer need this
                                 // {
 
 
@@ -380,6 +408,8 @@ class Worker {
                             isDone = true;
 
                             dbSource.saveCache();
+
+                            genGetRoutineListStream.removeAllListeners();
                         });
 
                         /*
@@ -463,6 +493,7 @@ class Worker {
         }
 
         if (con && con.connected) {
+            con.removeAllListeners();
             con.close();
         }
 
