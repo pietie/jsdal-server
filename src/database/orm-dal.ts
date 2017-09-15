@@ -6,17 +6,27 @@ export class OrmDAL {
 
     public static SprocGenGetRoutineListCnt(con: sql.ConnectionPool, maxRowDate: number): Promise<number> {
         return new Promise<number>((resolve, reject) => {
-            (<any>(new sql.Request(con)))
-                .input('maxRowver', sql.BigInt, maxRowDate)
-                .execute('orm.SprocGenGetRoutineListCnt').then((result) => {
+            try {
+                (<any>(new sql.Request(con)))
+                    .on("error", err => {
+                        reject(err);
+                    })
+                    .input('maxRowver', sql.BigInt, maxRowDate)
+                    .execute('orm.SprocGenGetRoutineListCnt').then((result) => {
+                        if (result && result.recordset && result.recordset.length > 0) {
+                            resolve(result.recordset[0].CNT);
+                        }
+                        else {
+                            reject();
+                        }
+                    }).catch(function (err) {
+                        reject(err);
+                    });
+            }
+            catch (e) {
+                reject(e);
+            }
 
-                    if (result && result.recordset && result.recordset.length > 0) resolve(result.recordset[0].CNT);
-                    else reject();
-
-                }).catch(function (err) {
-                    reject(err);
-                });
-            return null;
         });
     }
 
@@ -83,6 +93,7 @@ export class OrmDAL {
             });
 
             request.on('done', function (affected) {
+                if (request) request.removeAllListeners();
                 resolve(resultSets);
             });
 

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import * as moment from 'moment';
+import { SessionLog } from "./util/log";
 
 class NssmWrapper {
     private static exePath: string = path.resolve('./tools/nssm.exe');
@@ -74,7 +75,14 @@ function overrideStdOutput() {
     });
 
     process.on('uncaughtException', function (err) {
+        console.info('uncaughtException reached');
         console.error((err && err.stack) ? err.stack : err);
+        SessionLog.exception(err);
+    });
+
+    process.on('unhandledRejection', (reason, p) => {
+        console.log(`-**************************-\r\nUnhandled rejection: ${reason}\r\n+**************************+`);
+        SessionLog.error(reason.toString());
     });
 
     console.info("\r\n%s\r\n------------------------\r\n", moment().format("HH:mm:ss"));

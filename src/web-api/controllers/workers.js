@@ -15,7 +15,17 @@ const work_spawner_1 = require("./../../generator/work-spawner");
 class WorkersController {
     static getAllWokers(req, res) {
         try {
-            let ret = work_spawner_1.WorkSpawner.workerList.map(wl => { return { id: wl.id, name: wl.name, desc: wl.description, status: wl.status, isRunning: wl.running }; });
+            let ret = work_spawner_1.WorkSpawner.workerList.map(wl => {
+                return {
+                    id: wl.id,
+                    name: wl.name,
+                    desc: wl.description,
+                    status: wl.status,
+                    lastProgress: wl.lastProgress,
+                    lastProgressMoment: wl.lastProgressMoment,
+                    isRunning: wl.running
+                };
+            });
             return api_response_1.ApiResponse.Payload(ret);
         }
         catch (ex) {

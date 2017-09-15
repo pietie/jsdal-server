@@ -12,17 +12,26 @@ const sql = require("mssql");
 class OrmDAL {
     static SprocGenGetRoutineListCnt(con, maxRowDate) {
         return new Promise((resolve, reject) => {
-            (new sql.Request(con))
-                .input('maxRowver', sql.BigInt, maxRowDate)
-                .execute('orm.SprocGenGetRoutineListCnt').then((result) => {
-                if (result && result.recordset && result.recordset.length > 0)
-                    resolve(result.recordset[0].CNT);
-                else
-                    reject();
-            }).catch(function (err) {
-                reject(err);
-            });
-            return null;
+            try {
+                (new sql.Request(con))
+                    .on("error", err => {
+                    reject(err);
+                })
+                    .input('maxRowver', sql.BigInt, maxRowDate)
+                    .execute('orm.SprocGenGetRoutineListCnt').then((result) => {
+                    if (result && result.recordset && result.recordset.length > 0) {
+                        resolve(result.recordset[0].CNT);
+                    }
+                    else {
+                        reject();
+                    }
+                }).catch(function (err) {
+                    reject(err);
+                });
+            }
+            catch (e) {
+                reject(e);
+            }
         });
     }
     static SprocGenGetRoutineListStream(con, maxRowDate) {
@@ -71,6 +80,8 @@ class OrmDAL {
                 reject(err); // possible move to done .. so keep track of any and all errors and then reject in done if necessary
             });
             request.on('done', function (affected) {
+                if (request)
+                    request.removeAllListeners();
                 resolve(resultSets);
             });
             request.query(query);

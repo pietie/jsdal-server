@@ -16,6 +16,7 @@ class SqlConfigBuilder {
                 requestTimeout: 1000 * 30,
                 stream: false,
                 options: {
+                    appName: 'jsdal-server',
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
                     encrypt: true
                 }
@@ -32,6 +33,7 @@ class SqlConfigBuilder {
                 requestTimeout: 1000 * 30,
                 stream: false,
                 options: {
+                    appName: `jsdal-server-${con.Name}`,
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
                     encrypt: true
                 }
@@ -48,6 +50,7 @@ class SqlConfigBuilder {
                 requestTimeout: 1000 * 30,
                 stream: false,
                 options: {
+                    appName: `jsdal-server-else`,
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
                     encrypt: true
                 }

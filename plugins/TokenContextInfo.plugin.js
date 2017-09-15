@@ -14,7 +14,12 @@ var TokenContextPlugin = (function () {
 
 			request.input('tokenGuid', sql.UniqueIdentifier, queryString.tokenGuid);
 
-			return request.execute('dbo.LoginSetContextInfo');
+			var execResult = request.execute('dbo.LoginSetContextInfo');
+			
+			request.removeAllListeners();
+			request = null;
+			
+			return execResult;
 		}
 
 	};

@@ -180,11 +180,11 @@ class ExecController {
             }));
         });
     }
-    static toJsonDataset(results) {
+    static toJsonDataset(resultSets) {
         let ret = {};
-        if (results && results.recordsets) {
-            for (let i = 0; i < results.recordsets.length; i++) {
-                let rs = results.recordsets[i];
+        if (resultSets && resultSets.length > 0) {
+            for (let i = 0; i < resultSets.length; i++) {
+                let rs = resultSets[i];
                 let fields = Object.keys(rs.columns).map(colName => { return { name: colName, type: rs.columns[colName].type.name }; });
                 let table = rs.toTable();
                 ret["Table" + i] = {
@@ -196,28 +196,28 @@ class ExecController {
         return ret;
     }
     static processMetadata(req, res, cachedRoutine) {
-        return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
             if (cachedRoutine.jsDALMetadata && cachedRoutine.jsDALMetadata.jsDAL) {
                 if (cachedRoutine.jsDALMetadata.jsDAL.security) {
                     if (cachedRoutine.jsDALMetadata.jsDAL.security.requiresCaptcha) {
                         if (!req.headers["captcha-val"]) {
                             yield thread_util_1.ThreadUtil.Sleep(1000 * 5); // TODO: Make this configurable? We intentionally slow down requests that do not conform 
-                            throw new Error("captcha-val header not specified");
+                            reject(new Error("captcha-val header not specified"));
                         }
                         if (!settings_instance_1.SettingsInstance.Instance.Settings.GoogleRecaptchaSecret) {
-                            throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
+                            reject(new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server."));
                         }
                         let capResp = yield ExecController.validateGoogleRecaptcha(req.headers["captcha-val"]);
                         res.setHeader("captcha-ret", capResp.success ? "1" : "0");
                         if (capResp.success)
-                            return { success: true };
+                            resolve({ success: true });
                         else
-                            return { success: false, userErrorMsg: "Captcha failed." };
+                            resolve({ success: false, userErrorMsg: "Captcha failed." });
                     }
                 }
             }
-            return { success: true };
-        });
+            resolve({ success: true });
+        }));
     }
     static validateGoogleRecaptcha(captcha) {
         return new Promise((resolve, reject) => {
@@ -247,6 +247,8 @@ class ExecController {
     static execRoutineQuery(req, res, schemaName, routineName, dbSource, dbConnectionGuid, queryString, commandTimeOutInSeconds = 60) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                let con = null;
+                let cmd = null;
                 try {
                     let routineCache = dbSource.cache;
                     let cachedRoutine = routineCache.find(r => r.equals(schemaName, routineName));
@@ -256,29 +258,41 @@ class ExecController {
                     if (cachedRoutine == null) {
                         throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
                     }
-                    let metaResp = yield ExecController.processMetadata(req, res, cachedRoutine);
-                    if (!metaResp.success) {
+                    let metaResp = null;
+                    try {
+                        metaResp = yield ExecController.processMetadata(req, res, cachedRoutine);
+                    }
+                    catch (e) {
+                        console.info("failed to retrieve metadata");
+                        console.error(e);
+                    }
+                    if (metaResp && !metaResp.success) {
                         res.send(api_response_1.ApiResponse.ExclamationModal(metaResp.userErrorMsg));
                         resolve(undefined);
                         return;
                     }
                     let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
                     let sqlConfig = sql_config_builder_1.SqlConfigBuilder.build(dbConn);
-                    let con = yield new sql.ConnectionPool(sqlConfig)
+                    con = (yield new sql.ConnectionPool(sqlConfig)
                         .connect()
                         .catch(err => {
                         console.log(".....rejecting with error:", err);
                         reject(err);
                         return;
-                    });
-                    sql.on('error', err => {
-                        console.log("*****************!!! ", err);
-                    });
+                    }));
+                    // (<any>sql).on('error', err => {
+                    //     //console.log("*****************!!! ", err);
+                    //     if (con) {
+                    //         con.removeAllListeners();
+                    //         con.close();
+                    //         con = null;
+                    //     }
+                    // })
                     if (con == null)
                         return;
                     // PLUGINS
                     yield ExecController.processPlugins(dbSource, queryString, con);
-                    let cmd = new sql.Request(con);
+                    cmd = new sql.Request(con);
                     cmd.stream = false; // TODO: In future consider streaming for async calls
                     let isTVF = cachedRoutine.Type == "TVF";
                     if (cachedRoutine.Type == "PROCEDURE" || isTVF) {
@@ -364,8 +378,11 @@ class ExecController {
                             }
                         }
                         //!executionTrackingEndFunction();
-                        con.close();
-                        resolve({ results: res, outputParms: res.output });
+                        // clone so we can destroy the Request object in the finally block
+                        let resCloned = Object.assign({}, res.recordsets);
+                        let outputParmsClone = Object.assign({}, res.output);
+                        resCloned.length = res.recordsets.length;
+                        resolve({ results: resCloned, outputParms: outputParmsClone });
                     }
                     else if (cachedRoutine.Type == "FUNCTION") {
                         throw "Use ExecScalar for UDF calls";
@@ -373,6 +390,17 @@ class ExecController {
                 }
                 catch (ex) {
                     reject(ex);
+                }
+                finally {
+                    if (cmd) {
+                        cmd.removeAllListeners();
+                        cmd = null;
+                    }
+                    if (con) {
+                        con.removeAllListeners();
+                        con.close();
+                        con = null;
+                    }
                 }
             }));
         });
@@ -441,9 +469,17 @@ class ExecController {
                             resolve(null);
                         }
                     }
+                    cmd.removeAllListeners();
+                    con.removeAllListeners();
+                    con.close();
+                    cmd = null;
+                    con = null;
                 }
                 catch (ex) {
                     reject(ex);
+                }
+                finally {
+                    // TODO: Clean up
                 }
             }));
         });

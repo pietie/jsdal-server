@@ -13,6 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const child_process_1 = require("child_process");
 const moment = require("moment");
+const log_1 = require("./util/log");
 class NssmWrapper {
     static installService(serviceName, displayName = "jsDAL server") {
         let cmd = `${NssmWrapper.exePath} install "${serviceName}" "${NssmWrapper.nodePath}" "${NssmWrapper.scriptPath} run"`;
@@ -65,7 +66,13 @@ function overrideStdOutput() {
         return errStream;
     });
     process.on('uncaughtException', function (err) {
+        console.info('uncaughtException reached');
         console.error((err && err.stack) ? err.stack : err);
+        log_1.SessionLog.exception(err);
+    });
+    process.on('unhandledRejection', (reason, p) => {
+        console.log(`-**************************-\r\nUnhandled rejection: ${reason}\r\n+**************************+`);
+        log_1.SessionLog.error(reason.toString());
     });
     console.info("\r\n%s\r\n------------------------\r\n", moment().format("HH:mm:ss"));
 }

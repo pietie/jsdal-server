@@ -17,6 +17,7 @@ export class SqlConfigBuilder {
                 requestTimeout: 1000 * 30,//TODO:make configurable
                 stream: false, // You can enable streaming globally
                 options: {
+                    appName: 'jsdal-server',
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
                     encrypt: true
                 }
@@ -33,6 +34,7 @@ export class SqlConfigBuilder {
                 requestTimeout: 1000 * 30,//TODO:make configurable
                 stream: false, // You can enable streaming globally
                 options: {
+                    appName: `jsdal-server-${con.Name}`,
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
                     encrypt: true
                 }
@@ -49,6 +51,7 @@ export class SqlConfigBuilder {
                 requestTimeout: 1000 * 30,//TODO:make configurable
                 stream: false, // You can enable streaming globally
                 options: {
+                    appName: `jsdal-server-else`,
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
                     encrypt: true
                 }

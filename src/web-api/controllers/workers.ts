@@ -10,7 +10,17 @@ export class WorkersController {
     @route("/api/workers")
     public static getAllWokers(req: Request, res: Response): ApiResponse {
         try {
-            let ret = WorkSpawner.workerList.map(wl => { return { id: wl.id, name: wl.name, desc: wl.description, status: wl.status, isRunning: wl.running }; });
+            let ret = WorkSpawner.workerList.map(wl => {
+                return {
+                    id: wl.id,
+                    name: wl.name,
+                    desc: wl.description,
+                    status: wl.status,
+                    lastProgress: wl.lastProgress,
+                    lastProgressMoment: wl.lastProgressMoment,
+                    isRunning: wl.running
+                };
+            });
 
             return ApiResponse.Payload(ret);
         }
@@ -43,8 +53,7 @@ export class WorkersController {
                 worker.start();
                 return ApiResponse.Success();
             }
-            else
-            {
+            else {
                 return ApiResponse.ExclamationModal(`Failed to find specified worker: ${id}`);
             }
         }
@@ -63,8 +72,7 @@ export class WorkersController {
                 worker.stop();
                 return ApiResponse.Success();
             }
-            else
-            {
+            else {
                 return ApiResponse.ExclamationModal(`Failed to find specified worker: ${id}`);
             }
         }

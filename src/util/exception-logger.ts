@@ -28,7 +28,7 @@ export class ExceptionLogger {
     }
 
     public static getTotalCnt(): number {
-        if (ExceptionLogger.exceptionList) return 0;
+        if (!ExceptionLogger.exceptionList) return 0;
         return ExceptionLogger.exceptionList.length;
     }
 

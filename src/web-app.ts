@@ -210,17 +210,34 @@ async function processRequest(route, req, res) {
         res.setHeader("Content-Type", "application/json");
     }
 
-    let ret = route.target.call(this, req, res);
+    try {
 
-    // if the ret value is undefined assume the target call already handled the response
-    if (ret == undefined) return;
 
-    // look for promise-like result
-    if (ret.then && ret.catch) {
-        ret.then(function (result) { res.send(result); });
+        let ret = route.target.call(this, req, res);
+
+        // if the ret value is undefined assume the target call already handled the response
+        if (ret == undefined) return;
+
+        // look for promise-like result
+        if (ret.then && ret.catch) {
+            ret.then(result => {
+                // if (global.gc) {
+                //     global.gc();
+                // }
+
+                res.send(result);
+            }).catch(e => {
+                console.log("ERROR!!! during exec call");
+                console.error(e);
+            });
+        }
+        else {
+            res.send(ret);
+        }
     }
-    else {
-        res.send(ret);
+    catch (e) {
+        console.error(e);
+        res.status(500).send("Error:(");
     }
 }
 

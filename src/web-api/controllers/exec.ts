@@ -119,7 +119,7 @@ export class ExecController {
                     return undefined;
                 }
 
-                let execResult: any = await ExecController.execRoutineQuery(req, res,
+                let execResult: ExecutionResult = await ExecController.execRoutineQuery(req, res,
                     schema,
                     routine,
                     dbSource,
@@ -185,7 +185,7 @@ export class ExecController {
         res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
         res.setHeader("Content-Type", "application/json");
 
-        
+
         return new Promise<ApiResponse>(async (resolve, reject) => {
 
             try {
@@ -227,13 +227,13 @@ export class ExecController {
         });
     }
 
-    private static toJsonDataset(results: sql.IResult<any>) {
+    private static toJsonDataset(resultSets: sql.IRecordSet<any>) {
         let ret = {};
 
-        if (results && results.recordsets) {
+        if (resultSets && resultSets.length > 0) {
 
-            for (let i = 0; i < results.recordsets.length; i++) {
-                let rs = results.recordsets[i];
+            for (let i = 0; i < resultSets.length; i++) {
+                let rs = resultSets[i];
 
                 let fields = Object.keys(rs.columns).map(colName => { return { name: colName, type: (<any>rs.columns[colName].type).name } });
                 let table = (<any>rs).toTable();
@@ -248,33 +248,35 @@ export class ExecController {
         return ret;
     }
 
-    private static async processMetadata(req: Request, res: Response, cachedRoutine: CachedRoutine): Promise<{ success: boolean, userErrorMsg?: string }> {
-        if (cachedRoutine.jsDALMetadata && cachedRoutine.jsDALMetadata.jsDAL) {
-            if (cachedRoutine.jsDALMetadata.jsDAL.security) {
-                if (cachedRoutine.jsDALMetadata.jsDAL.security.requiresCaptcha) {
-                    if (!req.headers["captcha-val"]) {
+    private static processMetadata(req: Request, res: Response, cachedRoutine: CachedRoutine): Promise<{ success: boolean, userErrorMsg?: string }> {
+        return new Promise<any>(async (resolve, reject) => {
+            if (cachedRoutine.jsDALMetadata && cachedRoutine.jsDALMetadata.jsDAL) {
+                if (cachedRoutine.jsDALMetadata.jsDAL.security) {
+                    if (cachedRoutine.jsDALMetadata.jsDAL.security.requiresCaptcha) {
+                        if (!req.headers["captcha-val"]) {
 
-                        await ThreadUtil.Sleep(1000 * 5); // TODO: Make this configurable? We intentionally slow down requests that do not conform 
+                            await ThreadUtil.Sleep(1000 * 5); // TODO: Make this configurable? We intentionally slow down requests that do not conform 
 
-                        throw new Error("captcha-val header not specified");
+                            reject(new Error("captcha-val header not specified"));
+                        }
+
+                        if (!SettingsInstance.Instance.Settings.GoogleRecaptchaSecret) {
+                            reject(new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server."));
+                        }
+
+                        let capResp = await ExecController.validateGoogleRecaptcha((<any>req).headers["captcha-val"]);
+
+                        res.setHeader("captcha-ret", capResp.success ? "1" : "0");
+
+                        if (capResp.success) resolve({ success: true });
+                        else resolve({ success: false, userErrorMsg: "Captcha failed." });
+
                     }
-
-                    if (!SettingsInstance.Instance.Settings.GoogleRecaptchaSecret) {
-                        throw new Error("The setting GoogleRecaptchaSecret is not configured on this jsDAL server.");
-                    }
-
-                    let capResp = await ExecController.validateGoogleRecaptcha((<any>req).headers["captcha-val"]);
-
-                    res.setHeader("captcha-ret", capResp.success ? "1" : "0");
-
-                    if (capResp.success) return { success: true };
-                    else return { success: false, userErrorMsg: "Captcha failed." }
-
                 }
             }
-        }
 
-        return { success: true };
+            resolve({ success: true });
+        });
     }
 
     private static validateGoogleRecaptcha(captcha: string): Promise<{ success: boolean, "error-codes"?: string[] }> {
@@ -317,6 +319,10 @@ export class ExecController {
         commandTimeOutInSeconds: number = 60
     ): Promise<ExecutionResult> {
         return new Promise<ExecutionResult>(async (resolve, reject) => {
+
+            let con: sql.ConnectionPool = null;
+            let cmd: sql.Request = null;
+
             try {
 
                 let routineCache = dbSource.cache;
@@ -332,10 +338,17 @@ export class ExecController {
                     throw new Error(`The routine [${schemaName}].[${routineName}] was not found.`);
                 }
 
+                let metaResp = null;
 
-                let metaResp = await ExecController.processMetadata(req, res, cachedRoutine);
+                try {
+                    metaResp = await ExecController.processMetadata(req, res, cachedRoutine);
+                }
+                catch (e) {
+                    console.info("failed to retrieve metadata")
+                    console.error(e);
+                }
 
-                if (!metaResp.success) {
+                if (metaResp && !metaResp.success) {
                     res.send(ApiResponse.ExclamationModal(metaResp.userErrorMsg));
                     resolve(undefined);
                     return;
@@ -346,7 +359,7 @@ export class ExecController {
 
                 let sqlConfig = SqlConfigBuilder.build(dbConn);
 
-                let con: sql.ConnectionPool = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig)
+                con = <sql.ConnectionPool>await new sql.ConnectionPool(sqlConfig)
                     .connect()
                     .catch(err => {
                         console.log(".....rejecting with error:", err);
@@ -354,16 +367,22 @@ export class ExecController {
                         return;
                     });
 
-                (<any>sql).on('error', err => {
-                    console.log("*****************!!! ", err);
-                })
+                    
+                // (<any>sql).on('error', err => {
+                //     //console.log("*****************!!! ", err);
+                //     if (con) {
+                //         con.removeAllListeners();
+                //         con.close();
+                //         con = null;
+                //     }
+                // })
 
                 if (con == null) return;
 
                 // PLUGINS
                 await ExecController.processPlugins(dbSource, queryString, con);
 
-                let cmd = new sql.Request(con);
+                cmd = new sql.Request(con);
 
                 cmd.stream = false; // TODO: In future consider streaming for async calls
 
@@ -482,11 +501,15 @@ export class ExecController {
                     }
 
 
+
                     //!executionTrackingEndFunction();
+                    // clone so we can destroy the Request object in the finally block
+                    let resCloned: any = Object.assign({}, res.recordsets);
+                    let outputParmsClone = Object.assign({}, res.output);
 
-                    con.close();
+                    resCloned.length = res.recordsets.length;
 
-                    resolve({ results: res, outputParms: (<any>res).output });
+                    resolve({ results: resCloned, outputParms: outputParmsClone });
 
                 }
                 else if (cachedRoutine.Type == "FUNCTION") {
@@ -495,6 +518,18 @@ export class ExecController {
             }
             catch (ex) {
                 reject(ex);
+            }
+            finally {
+                if (cmd) {
+                    cmd.removeAllListeners();
+                    cmd = null;
+                }
+                if (con) {
+                    con.removeAllListeners();
+                    con.close();
+                    con = null;
+                }
+
             }
 
         });
@@ -593,9 +628,18 @@ export class ExecController {
                         resolve(null);
                     }
                 }
+
+                cmd.removeAllListeners();
+                con.removeAllListeners();
+                con.close();
+                cmd = null;
+                con = null;
             }
             catch (ex) {
                 reject(ex);
+            }
+            finally {
+                // TODO: Clean up
             }
 
         });
@@ -658,7 +702,6 @@ export class ExecController {
         let pluginAssemblies: any[] = global["PluginAssemblies"];
 
         if (pluginAssemblies != null && dbSource.Plugins != null) {
-
 
             dbSource.Plugins.forEach(pluginGuid => {
                 let plugin = pluginAssemblies.find(p => p.Guid && p.Guid.toLowerCase() == pluginGuid.toLowerCase());

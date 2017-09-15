@@ -22,7 +22,7 @@ class ExceptionLogger {
         return ExceptionLogger.exceptionList.slice(ix);
     }
     static getTotalCnt() {
-        if (ExceptionLogger.exceptionList)
+        if (!ExceptionLogger.exceptionList)
             return 0;
         return ExceptionLogger.exceptionList.length;
     }
