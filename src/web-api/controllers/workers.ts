@@ -18,6 +18,7 @@ export class WorkersController {
                     status: wl.status,
                     lastProgress: wl.lastProgress,
                     lastProgressMoment: wl.lastProgressMoment,
+                    lastConnectMoment: wl.lastConnectedMoment,
                     isRunning: wl.running
                 };
             });

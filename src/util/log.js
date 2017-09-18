@@ -11,6 +11,13 @@ class MemoryLog {
     memDetail() {
         return { Cnt: this._entries.length, MemBytes: sizeof(this) };
     }
+    copyFrom(src) {
+        if (!src)
+            return;
+        if (!this._entries)
+            this._entries = [];
+        this._entries.push(...src.Entries.map(e => e.clone()));
+    }
     addEntry(type, entry) {
         //lock(_entries)
         {
@@ -60,6 +67,14 @@ class LogEntry {
             //!?durationMS = " (" + (int)this.LastAppend.Value.Subtract(startDate).TotalMilliseconds + "ms)";
         }
         this.Message += durationMS + "; " + msg;
+    }
+    clone() {
+        let le = new LogEntry();
+        le.Message = this.Message;
+        le.Type = this.Type;
+        le.CreateDate = this.CreateDate;
+        le.LastAppend = this.LastAppend;
+        return le;
     }
 }
 var LogEntryType;

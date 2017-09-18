@@ -11,12 +11,19 @@ export class MemoryLog {
 
     public get count(): number { return this._entries.length; }
 
-    public memDetail(): any
-    {
-        return { Cnt: this._entries.length, MemBytes: sizeof(this) } ;
+    public memDetail(): any {
+        return { Cnt: this._entries.length, MemBytes: sizeof(this) };
     }
 
     private _entries: LogEntry[] = [];
+
+    public copyFrom(src:MemoryLog)
+    {
+        if (!src) return;
+        if (!this._entries) this._entries = [];
+
+        this._entries.push(...src.Entries.map(e=>e.clone()));
+    }
 
     private addEntry(type: LogEntryType, entry: string): LogEntry {
         //lock(_entries)
@@ -96,6 +103,15 @@ class LogEntry {
 
         this.Message += durationMS + "; " + msg;
     }
+
+    public clone(): LogEntry {
+        let le = new LogEntry();
+        le.Message = this.Message;
+        le.Type = this.Type;
+        le.CreateDate = this.CreateDate;
+        le.LastAppend = this.LastAppend;
+        return le;
+    }
 }
 
 enum LogEntryType {
@@ -108,22 +124,21 @@ enum LogEntryType {
 
 export class SessionLog {
     static readonly MAX_ENTRIES: number = 2000;
-    static _log:MemoryLog = new MemoryLog(SessionLog.MAX_ENTRIES);
+    static _log: MemoryLog = new MemoryLog(SessionLog.MAX_ENTRIES);
 
-    public static memDetail(): any
-    {
+    public static memDetail(): any {
         return SessionLog._log.memDetail();
     }
 
 
-    public static get entries() : LogEntry[] {
+    public static get entries(): LogEntry[] {
         return this._log.Entries;
     }
 
     public static info(info: string) {
-        let line:string = chalk.gray(info);
+        let line: string = chalk.gray(info);
         this._log.info(line);
-      // console.log(line)
+        // console.log(line)
 
     }
     public static error(info: string) { this._log.error(info); }

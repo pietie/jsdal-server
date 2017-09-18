@@ -26,7 +26,6 @@ export class OrmDAL {
             catch (e) {
                 reject(e);
             }
-
         });
     }
 
@@ -113,7 +112,9 @@ export class OrmDAL {
             .input('schema', sql.VarChar, schema)
             .input('routine', sql.VarChar, routine)
             .output('def', sql.VarChar)
-            .query(`select @def = object_definition(object_id(QUOTENAME(@catalog) + '.' + QUOTENAME(@schema) + '.' + QUOTENAME(@routine)))`);
+            .query(`select @def = object_definition(object_id(QUOTENAME(@catalog) + '.' + QUOTENAME(@schema) + '.' + QUOTENAME(@routine)))`)
+            .catch(e => { throw e; });
+        ;
 
 
         return result.output.def;
