@@ -302,6 +302,7 @@ class ExecController {
                                 let parmValue = null;
                                 // trim leading '@'
                                 let parmName = p.ParameterName.substr(1, 99999);
+                                let skipParm = false;
                                 if (queryString[parmName]) {
                                     let val = queryString[parmName];
                                     // look for special jsDAL Server variables
@@ -320,6 +321,10 @@ class ExecController {
                                     }
                                 }
                                 else {
+                                    // do not skip on INOUT parameters as SQL does not apply default values to OUT parameters
+                                    if (p.HasDefaultValue && (p.ParameterMode == "IN")) {
+                                        skipParm = true;
+                                    }
                                     //     if (p.HasDefault) // fall back to default parameter value if one exists
                                     //     {
                                     //         // If no explicit value was specified and the parameter has it's own default...
@@ -330,11 +335,16 @@ class ExecController {
                                     //         newSqlParm.Value = DBNull.Value;
                                     //     }
                                 }
-                                if (p.ParameterMode == "IN") {
-                                    cmd.input(parmName, sqlType, parmValue);
-                                }
-                                else {
-                                    cmd.output(parmName, sqlType);
+                                if (!skipParm) {
+                                    if (p.ParameterMode == "IN") {
+                                        cmd.input(parmName, sqlType, parmValue);
+                                    }
+                                    else if (p.ParameterMode == "INOUT") {
+                                        cmd.output(parmName, sqlType, parmValue);
+                                    }
+                                    else {
+                                        cmd.output(parmName, sqlType);
+                                    }
                                 }
                             }); // foreach Parameter 
                         }

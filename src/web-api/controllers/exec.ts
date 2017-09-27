@@ -367,7 +367,7 @@ export class ExecController {
                         return;
                     });
 
-                    
+
                 // (<any>sql).on('error', err => {
                 //     //console.log("*****************!!! ", err);
                 //     if (con) {
@@ -398,6 +398,8 @@ export class ExecController {
                             // trim leading '@'
                             let parmName = p.ParameterName.substr(1, 99999);
 
+                            let skipParm: boolean = false;
+
                             if (queryString[parmName]) {
                                 let val = queryString[parmName];
 
@@ -423,6 +425,10 @@ export class ExecController {
                                 }
                             }
                             else {
+                                // do not skip on INOUT parameters as SQL does not apply default values to OUT parameters
+                                if (p.HasDefaultValue && (p.ParameterMode == "IN")) {
+                                    skipParm = true;
+                                }
 
                                 //     if (p.HasDefault) // fall back to default parameter value if one exists
                                 //     {
@@ -435,11 +441,16 @@ export class ExecController {
                                 //     }
                             }
 
-                            if (p.ParameterMode == "IN") {
-                                cmd.input(parmName, sqlType, parmValue);
-                            }
-                            else {
-                                cmd.output(parmName, sqlType);
+                            if (!skipParm) {
+                                if (p.ParameterMode == "IN") {
+                                    cmd.input(parmName, sqlType, parmValue);
+                                }
+                                else if (p.ParameterMode == "INOUT") {
+                                    cmd.output(parmName, sqlType, parmValue);
+                                }
+                                else {
+                                    cmd.output(parmName, sqlType);
+                                }
                             }
                         }); // foreach Parameter 
 
