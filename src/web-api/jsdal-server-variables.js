@@ -12,6 +12,9 @@ class jsDALServerVariables {
             var remoteIP = request.ip;
             return remoteIP;
         }
+        else if (val == "DBNull") {
+            return null;
+        }
         else {
             throw new Error(`The server variable name '${val}' does not exist`);
         }

@@ -83,18 +83,20 @@ class ExecController {
             res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
             res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
             res.setHeader("Content-Type", "application/json");
+            let dbSource;
+            let dbConnectionGuid;
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 let debugInfo = "";
                 try {
                     let isPOST = req.method === "POST";
                     let dbSourceGuid = req.params.dbSourceGuid;
-                    let dbConnectionGuid = req.params.dbConnectionGuid;
+                    dbConnectionGuid = req.params.dbConnectionGuid;
                     let schema = req.params.schema;
                     let routine = req.params.routine;
                     debugInfo += `[${schema}].[${routine}]`;
                     let dbSources = settings_instance_1.SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
                     let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
-                    let dbSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
+                    dbSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
                     if (dbSource == null)
                         throw `The specified DB source '${dbSourceGuid}' was not found.`;
                     // make sure the source domain/IP is allowed access
@@ -136,6 +138,17 @@ class ExecController {
                     resolve(ret);
                 }
                 catch (ex) {
+                    if (dbConnectionGuid && dbSource) {
+                        let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
+                        if (debugInfo == null)
+                            debugInfo = "";
+                        if (dbConn) {
+                            debugInfo = `${dbSource.Name} - ${dbConn.server} - ${debugInfo}`;
+                        }
+                        else {
+                            debugInfo = `${dbSource.Name} - (no connection) - ${debugInfo}`;
+                        }
+                    }
                     resolve(api_response_1.ApiResponse.Exception(ex, debugInfo));
                 }
             }));
@@ -297,13 +310,14 @@ class ExecController {
                     let isTVF = cachedRoutine.Type == "TVF";
                     if (cachedRoutine.Type == "PROCEDURE" || isTVF) {
                         if (cachedRoutine.Parameters != null) {
+                            let queryStringKeys = Object.keys(queryString);
                             cachedRoutine.Parameters.forEach(p => {
                                 let sqlType = ExecController.getSqlDbTypeFromParameterType(p.DataType);
                                 let parmValue = null;
                                 // trim leading '@'
                                 let parmName = p.ParameterName.substr(1, 99999);
                                 let skipParm = false;
-                                if (queryString[parmName]) {
+                                if (queryStringKeys.indexOf(parmName) >= 0) {
                                     let val = queryString[parmName];
                                     // look for special jsDAL Server variables
                                     val = jsdal_server_variables_1.jsDALServerVariables.parse(req, val);
@@ -566,6 +580,13 @@ class ExecController {
         return Promise.all(promises);
     }
     static convertParameterValue(sqlType, value) {
+        let mayBeEmptyString = [sql.Char, sql.NChar, sql.NText, sql.NVarChar, sql.Text, sql.VarChar];
+        // handle empty strings
+        if (value === "") {
+            // for non-string type sql types map empty string values to NULL
+            if (mayBeEmptyString.indexOf(sqlType) == -1)
+                return null;
+        }
         if (sqlType == sql.Date || sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
             //return Date.parse(value);
             let mom = moment.utc(value);

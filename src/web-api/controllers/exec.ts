@@ -89,6 +89,9 @@ export class ExecController {
         res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
         res.setHeader("Content-Type", "application/json");
 
+        let dbSource: DatabaseSource;
+        let dbConnectionGuid: string;
+
         return new Promise<ApiResponse>(async (resolve, reject) => {
 
             let debugInfo: string = "";
@@ -98,7 +101,7 @@ export class ExecController {
                 let isPOST = req.method === "POST";
 
                 let dbSourceGuid: string = req.params.dbSourceGuid;
-                let dbConnectionGuid: string = req.params.dbConnectionGuid;
+                dbConnectionGuid = req.params.dbConnectionGuid;
                 let schema: string = req.params.schema;
                 let routine: string = req.params.routine;
 
@@ -107,7 +110,7 @@ export class ExecController {
                 let dbSources = SettingsInstance.Instance.ProjectList.map(p => p.DatabaseSources);
                 let dbSourcesFlat = [].concat.apply([], dbSources); // flatten the array of arrays
 
-                let dbSource: DatabaseSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
+                dbSource = dbSourcesFlat.find(dbs => dbs.CacheKey === dbSourceGuid);
 
                 if (dbSource == null) throw `The specified DB source '${dbSourceGuid}' was not found.`;
 
@@ -170,6 +173,21 @@ export class ExecController {
 
             }
             catch (ex) {
+
+                if (dbConnectionGuid && dbSource) {
+                    let dbConn = dbSource.getSqlConnection(dbConnectionGuid);
+
+                    if (debugInfo == null) debugInfo = "";
+
+                    if (dbConn) {
+                        debugInfo = `${dbSource.Name} - ${dbConn.server} - ${debugInfo}`;
+                    }
+                    else {
+                        debugInfo = `${dbSource.Name} - (no connection) - ${debugInfo}`;
+                    }
+
+                }
+
                 resolve(ApiResponse.Exception(ex, debugInfo));
             }
 
@@ -390,6 +408,9 @@ export class ExecController {
 
                 if (cachedRoutine.Type == "PROCEDURE" || isTVF) {
                     if (cachedRoutine.Parameters != null) {
+
+                        let queryStringKeys = Object.keys(queryString);
+
                         cachedRoutine.Parameters.forEach(p => {
 
                             let sqlType = ExecController.getSqlDbTypeFromParameterType(p.DataType);
@@ -400,7 +421,7 @@ export class ExecController {
 
                             let skipParm: boolean = false;
 
-                            if (queryString[parmName]) {
+                            if (queryStringKeys.indexOf(parmName) >= 0) {
                                 let val = queryString[parmName];
 
                                 // look for special jsDAL Server variables
@@ -740,6 +761,14 @@ export class ExecController {
 
     private static convertParameterValue(sqlType: sql.ISqlTypeFactoryWithNoParams, value: any): any {
 
+        let mayBeEmptyString = [sql.Char, sql.NChar, sql.NText, sql.NVarChar, sql.Text, sql.VarChar];
+
+        // handle empty strings
+        if (value === "") {
+            // for non-string type sql types map empty string values to NULL
+            if (mayBeEmptyString.indexOf(sqlType) == -1) return null;
+        }
+
         if (sqlType == sql.Date || sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
             //return Date.parse(value);
             let mom = moment.utc(value);
@@ -749,6 +778,7 @@ export class ExecController {
 
             //return dt;
         }
+
         else if (sqlType == sql.Bit) {
             let v = value.toString().toLowerCase();
             return value == "true" || value == "1" || value == "yes";

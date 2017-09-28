@@ -19,7 +19,8 @@ export class SqlConfigBuilder {
                 options: {
                     appName: 'jsdal-server',
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
-                    encrypt: true
+                    encrypt: true,
+                    useUTC: false
                 }
             };
         }
@@ -36,7 +37,8 @@ export class SqlConfigBuilder {
                 options: {
                     appName: `jsdal-server-${con.Name}`,
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
-                    encrypt: true
+                    encrypt: true,
+                    useUTC: false
                 }
             };
         }
@@ -53,7 +55,8 @@ export class SqlConfigBuilder {
                 options: {
                     appName: `jsdal-server-else`,
                     instanceName: con.instanceName != null && con.instanceName.trim() != "" ? con.instanceName : null,
-                    encrypt: true
+                    encrypt: true,
+                    useUTC: false
                 }
             };
         }
