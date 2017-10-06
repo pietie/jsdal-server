@@ -769,14 +769,20 @@ export class ExecController {
             if (mayBeEmptyString.indexOf(sqlType) == -1) return null;
         }
 
-        if (sqlType == sql.Date || sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
+        if (sqlType == sql.DateTime || sqlType == sql.DateTime2 || sqlType == sql.SmallDateTime) {
             //return Date.parse(value);
             let mom = moment.utc(value);
             // TODO: temporary fix for tedious Date issue
             return mom.format("YYYY-MM-DD hh:mm:ss.SSS A");
+//return mom.toDate();
+
             //        return dt.toString();
 
             //return dt;
+        }
+        else if (sqlType == sql.Date)
+        {
+            return moment.utc(value).toDate();
         }
 
         else if (sqlType == sql.Bit) {
