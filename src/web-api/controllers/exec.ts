@@ -118,6 +118,7 @@ export class ExecController {
                 let mayAccess = dbSource.mayAccessDbSource(req);
 
                 if (!mayAccess.success) {
+                    res.set('Content-Type', 'text/plain');
                     res.status(403).send(mayAccess.userErrorMsg);
                     return undefined;
                 }

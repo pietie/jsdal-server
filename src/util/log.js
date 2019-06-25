@@ -43,9 +43,10 @@ class MemoryLog {
     }
     exception(ex) {
         var line = ex.name + ';' + ex.message + ';' + ex.stack;
-        // if (args != null && args.Length > 0) {
-        //     line = string.Join(";", args) + "; " + ex.ToString();
-        // }
+        if (ex.originalError)
+            line = "originalError: " + ex.originalError + ";" + line;
+        if (ex.precedingErrors)
+            line = "precedingErrors: " + ex.precedingErrors + ";" + line;
         return this.addEntry(LogEntryType.Exception, line);
     }
     get Entries() { return this._entries; }

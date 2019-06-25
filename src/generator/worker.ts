@@ -80,7 +80,7 @@ export class Worker {
         this.run(this._dbSource);
     }
 
-    isForcedStopped:boolean =false;
+    isForcedStopped: boolean = false;
     public stop() {
         this.isForcedStopped = true;
         this.isRunning = false;
@@ -108,7 +108,7 @@ export class Worker {
         dst._dbSource = this._dbSource;
         dst.dbSourceKey = this.dbSourceKey;
         dst.description = this.description;
-        
+
         dst._log.copyFrom(this._log);
     }
 
@@ -170,7 +170,12 @@ export class Worker {
 
                         try {
                             this.progress("New connection pool...");
-                            con = new sql.ConnectionPool(sqlConfig);
+
+                            con = await new sql.ConnectionPool(sqlConfig).connect().catch(e => {
+                                this.progress("Connection pool catch");
+                                this._log.exception(e);
+                                return null;
+                            });
 
                             con.addListener("error", err => {
                                 this.progress("Connection error 002:" + err.toString());
@@ -180,11 +185,6 @@ export class Worker {
 
                                 con = null;/// Make it break lower down
                                 //TODO: kill connection? start over somehow
-                            });
-
-                            con = await con.connect().catch(e => {
-                                this._log.exception(e);
-                                return null;
                             });
                         }
                         catch (err) {
@@ -519,6 +519,7 @@ export class Worker {
                     // close the connection each time to take care of memory leak problems that I just cannot resolve :-/
                     if (con && con.connected) {
                         con.removeAllListeners();
+                        //!console.log("Closing connection for:", dbSource.Name)
                         con.close();
                         con = null;
                     }

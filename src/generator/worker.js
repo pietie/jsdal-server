@@ -126,7 +126,11 @@ class Worker {
                             }
                             try {
                                 this.progress("New connection pool...");
-                                con = new sql.ConnectionPool(sqlConfig);
+                                con = yield new sql.ConnectionPool(sqlConfig).connect().catch(e => {
+                                    this.progress("Connection pool catch");
+                                    this._log.exception(e);
+                                    return null;
+                                });
                                 con.addListener("error", err => {
                                     this.progress("Connection error 002:" + err.toString());
                                     this._log.exception(err);
@@ -134,10 +138,6 @@ class Worker {
                                     log_1.SessionLog.exception(err);
                                     con = null; /// Make it break lower down
                                     //TODO: kill connection? start over somehow
-                                });
-                                con = yield con.connect().catch(e => {
-                                    this._log.exception(e);
-                                    return null;
                                 });
                             }
                             catch (err) {
@@ -382,6 +382,7 @@ class Worker {
                         // close the connection each time to take care of memory leak problems that I just cannot resolve :-/
                         if (con && con.connected) {
                             con.removeAllListeners();
+                            //!console.log("Closing connection for:", dbSource.Name)
                             con.close();
                             con = null;
                         }

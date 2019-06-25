@@ -186,6 +186,7 @@ class OrmDAL {
             return sql.Geography;
         else if (dbType == "geometry")
             return sql.Geometry;
+        //else if (dbType == "table type") return sql.Table; // sql.Table does not work
         else if (dbType == "table type")
             return sql.VarChar;
         else if (dbType == "sql_variant")

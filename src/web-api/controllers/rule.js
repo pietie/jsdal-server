@@ -27,7 +27,7 @@ class RuleController {
             if (dbSource == null)
                 return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
             var obj = JSON.parse(json);
-            if (!jsFilenameGuid) {
+            if (!jsFilenameGuid) { // DB-level
                 let ret = dbSource.addRule(obj.Type, obj.Text);
                 if (ret.success) {
                     settings_instance_1.SettingsInstance.saveSettingsToFile();
@@ -69,7 +69,7 @@ class RuleController {
             var dbSource = proj.getDatabaseSource(dbSourceName);
             if (dbSource == null)
                 return api_response_1.ApiResponse.ExclamationModal(`The data source '${dbSourceName}' does not exist.`);
-            if (!jsFilenameGuid) {
+            if (!jsFilenameGuid) { // DB level
                 let ret = dbSource.deleteRule(ruleGuid);
                 if (ret.success) {
                     //!GeneratorThreadDispatcher.SetRulesDirty(cs);
@@ -189,7 +189,7 @@ class RuleController {
                     AffectedCount: ruleLookup[rule.Guid] != null ? ruleLookup[rule.Guid].Cnt : 0
                 };
             });
-            if (!jsFilenameGuid) {
+            if (!jsFilenameGuid) { // DB-level
                 /*
                 
                                 var q = (from r in cs.Rules
@@ -206,7 +206,7 @@ class RuleController {
                 */
                 return api_response_1.ApiResponse.Payload(dbSourceRules);
             }
-            else {
+            else { //  JsFile-level
                 var jsFile = dbSource.JsFiles.find(js => js.Guid == jsFilenameGuid);
                 if (jsFile == null)
                     return api_response_1.ApiResponse.ExclamationModal("The specified output file was not found.");

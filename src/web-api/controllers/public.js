@@ -122,7 +122,8 @@ class PublicController {
                 return;
             }
             let dbSource = dbSources.find(db => db.JsFiles.indexOf(jsFile) >= 0);
-            if (tsd) {
+            if (tsd) // typescript definition
+             {
                 return PublicController.serveTypescriptDefinition(req, res, jsFile, dbSource);
             }
             let path = min ? dbSource.minifiedOutputFilePath(jsFile) : dbSource.outputFilePath(jsFile);

@@ -22,7 +22,7 @@ function decrypt(text) {
 }
 // setup the connection private key used for encryption/decryption if it does not already exist
 if (!fs.existsSync(KEY_FILEPATH)) {
-    try {
+    try { // TODO: Replace console.log and console.error with Session Log
         console.log("Creating private key for Connections...");
         console.log("\t", path.resolve(KEY_FILEPATH));
         let newKey = keypair().private;

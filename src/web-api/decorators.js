@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 function route(route, methods, allowAnonymousAccess = false, nocache = false) {
     return function (target, // the function itself and not the prototype
-        propertyKey, // The name of the static method
-        descriptor) {
+    propertyKey, // The name of the static method
+    descriptor) {
         if (!global["WebRoutes"])
             global["WebRoutes"] = [];
         if (!methods)

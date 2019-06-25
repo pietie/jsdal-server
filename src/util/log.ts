@@ -56,12 +56,11 @@ export class MemoryLog {
         return this.addEntry(LogEntryType.Error, info);
     }
 
-    public exception(ex: Error): LogEntry {
+    public exception(ex: Error|any): LogEntry {
         var line = ex.name + ';' + ex.message + ';' + ex.stack;
-
-        // if (args != null && args.Length > 0) {
-        //     line = string.Join(";", args) + "; " + ex.ToString();
-        // }
+        
+        if (ex.originalError) line = "originalError: " + ex.originalError + ";" + line;
+        if (ex.precedingErrors) line = "precedingErrors: " + ex.precedingErrors + ";" + line;
 
         return this.addEntry(LogEntryType.Exception, line);
     }

@@ -102,6 +102,7 @@ class ExecController {
                     // make sure the source domain/IP is allowed access
                     let mayAccess = dbSource.mayAccessDbSource(req);
                     if (!mayAccess.success) {
+                        res.set('Content-Type', 'text/plain');
                         res.status(403).send(mayAccess.userErrorMsg);
                         return undefined;
                     }
@@ -324,6 +325,8 @@ class ExecController {
                                     if (val == null) {
                                         parmValue = null;
                                     }
+                                    // TODO: Consider making this 'null' mapping configurable.This is just a nice to have for when the client does not call the API correctly
+                                    // convert the string value of 'null' to actual JavaScript null
                                     else if (val === "null") {
                                         parmValue = null;
                                     }

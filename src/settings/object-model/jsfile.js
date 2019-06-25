@@ -26,7 +26,8 @@ class JsFile {
     }
     addRule(ruleType, txt) {
         let rule = null;
-        switch (ruleType) {
+        switch (ruleType) // TODO: Check for duplicated rules?
+         {
             case rules_1.RuleType.Schema:
                 rule = new rules_1.SchemaRule(txt);
                 break;

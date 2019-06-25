@@ -199,7 +199,7 @@ class DatabaseSource {
                 connection.Guid = shortid.generate(); // TODO: Needs to move into constructor of Connection or something like Connection.create(..).
                 this.ExecutionConnections.push(connection);
             }
-            else {
+            else { // update
                 let existing = this.ExecutionConnections.find(c => c.Guid == dbConnectionGuid);
                 if (existing == null) {
                     return { success: false, userError: "The specified connection does not exist and cannot be updated." };
@@ -337,7 +337,8 @@ class DatabaseSource {
     }
     addRule(ruleType, txt) {
         let rule = null;
-        switch (ruleType) {
+        switch (ruleType) // TODO: Check for duplicated rules?
+         {
             case rules_1.RuleType.Schema:
                 rule = new rules_1.SchemaRule(txt);
                 break;
@@ -372,7 +373,7 @@ class DatabaseSource {
         return { success: true };
     }
     deleteRule(ruleGuid) {
-        var existingRule = this.Rules.find(r => r.Guid == ruleGuid);
+        var existingRule = this.Rules.find(r => /*r!=null &&*/ r.Guid == ruleGuid);
         if (existingRule == null) {
             return { success: false, userErrorMsg: "The specified rule was not found." };
         }

@@ -12,6 +12,11 @@ import * as bodyParser from 'body-parser';
 import * as keypair from 'keypair';
 import * as jwt from 'jsonwebtoken';
 
+import * as  httpProxy from 'http-proxy';  
+
+let proxy = httpProxy.createProxyServer();
+
+
 import { SettingsInstance } from './settings/settings-instance'
 import { AuthController } from './web-api'
 import { UserManagement } from "./util/user-management";
@@ -19,6 +24,17 @@ import { UserManagement } from "./util/user-management";
 let app = express();
 
 const SERVER_PRIVATE_KEY = keypair().private;
+
+app.use(function (req, res, next) {
+    let host:string = <string>req.headers.host;
+
+    if (host && host.startsWith('dal2.'))
+    {
+        proxy.web(req, res, { target: 'http://dal2.europassistance.co.za:8001' });
+        return;
+    }
+    next();
+});
 
 app.use(compression());
 
@@ -38,11 +54,12 @@ app.use(cors());
 
 app.use(function (req, res, next) {
     let url: string = req.url.toLowerCase();
-
+    
     if (url.startsWith("/api/") || url.startsWith("/token/")) {
         next();
         return;
     }
+    
 
     res.sendFile(path.resolve("./web/index.html"));
 });

@@ -43,6 +43,7 @@ class JsFileGenerator {
         dbSource.applyRules(jsFile);
         let includedRoutines = dbSource.cache
             .filter(r => !r.IsDeleted && (r.RuleInstructions[jsFile.Guid] != null && !!r.RuleInstructions[jsFile.Guid].Included))
+            //.filter(r => r.Routine == "DefTest")
             .sort((a, b) => a.FullName.localeCompare(b.FullName));
         let schemaLookup = {};
         let tsSchemaLookup = {};
@@ -187,7 +188,7 @@ class JsFileGenerator {
                         let tsMethodStub = `\t\t\tstatic ${jsFunctionName}(parameters?: ${tsArguments}): ISprocExecGeneric${cnt}<${outputParmType}, ${resultTypesTopN}, ${tsArguments}>`;
                         tsSchemaLookup[jsSchemaName].push(tsMethodStub);
                     }
-                    else {
+                    else { // NO RESULTSET
                         var tsMethodStub = `\t\t\tstatic ${jsFunctionName}(parameters?: ${tsArguments}): ISprocExecGeneric0<${outputParmType}, ${tsArguments}>`;
                         tsSchemaLookup[jsSchemaName].push(tsMethodStub);
                     }

@@ -19,11 +19,21 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const keypair = require("keypair");
 const jwt = require("jsonwebtoken");
+const httpProxy = require("http-proxy");
+let proxy = httpProxy.createProxyServer();
 const settings_instance_1 = require("./settings/settings-instance");
 const web_api_1 = require("./web-api");
 const user_management_1 = require("./util/user-management");
 let app = express();
 const SERVER_PRIVATE_KEY = keypair().private;
+app.use(function (req, res, next) {
+    let host = req.headers.host;
+    if (host && host.startsWith('dal2.')) {
+        proxy.web(req, res, { target: 'http://dal2.europassistance.co.za:8001' });
+        return;
+    }
+    next();
+});
 app.use(compression());
 // parse application/x-www-form-urlencoded 
 app.use(bodyParser.urlencoded({ extended: false }));
