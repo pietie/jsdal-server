@@ -29,7 +29,7 @@
     "node-connection-string-builder": "0.0.1",
     "object-sizeof": "^1.2.0",
     "request": "^2.81.0",
-    "shelljs": "^0.7.7",
+    "shelljs": "^0.8.5",
     "shortid": "^2.2.8",
     "tedious": "^1.15.0",
     "uglify-js": "^3.1.0",
